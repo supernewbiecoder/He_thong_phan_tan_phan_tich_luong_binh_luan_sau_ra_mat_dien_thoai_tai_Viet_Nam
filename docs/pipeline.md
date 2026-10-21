@@ -4,6 +4,8 @@
 
 Đường ống dữ liệu của hệ thống được thiết kế theo kiến trúc **Stream Processing**, đảm bảo xử lý liên tục với độ trễ thấp ngay khi có bình luận mới.
 
+> **Phân biệt dữ liệu:** dữ liệu bình luận tổng hợp từ Internet/dataset bên ngoài được dùng để EDA, gán nhãn và huấn luyện Teacher. Dữ liệu YouTube trong `src/ingest/data/raw/comments.jsonl` là raw input cho test tích hợp, đánh giá khác miền sau khi gán nhãn và inference production; không dùng trực tiếp để train khi chưa có nhãn. Xem chi tiết tại [Vòng đời mô hình học máy](./ml-training.md).
+
 ## 1. Data Ingestion (Hứng dữ liệu vào Kafka)
 - **Nguồn:** API của YouTube sẽ trả về dữ liệu bình luận dạng JSON (bao gồm comment gốc và reply). 
 - **Quy trình:** Script `crawler` lấy dữ liệu, giữ lại các trường quan trọng (comment_id, text, model, published_at, author_hash) và đẩy trực tiếp vào Topic `raw_comments` của cụm Apache Kafka. Kafka chia partition theo `video_id` để tăng tốc độ phân phối và chống nghẽn nút cổ chai.

@@ -17,6 +17,14 @@ Hệ thống sử dụng kiến trúc xử lý luồng phân tán (Distributed S
 - **Serving & Visualization:** FastAPI (Backend REST API) & Streamlit (Real-time Dashboard).
 - **Machine Learning:** TF-IDF kết hợp SVM/Naive Bayes/Random Forest.
 
+## 🤖 Vòng đời dữ liệu và mô hình
+
+- Dữ liệu bình luận tổng hợp từ Internet/dataset bên ngoài được EDA, gán nhãn và chia theo `video_id`/nguồn/thời gian để huấn luyện **Teacher**.
+- Crawler YouTube ghi raw archive tại `src/ingest/data/raw/comments.jsonl`; dữ liệu này đi vào Kafka/Spark để inference và cảnh báo, không mặc định là dữ liệu train.
+- Một mẫu YouTube được gán nhãn thủ công có thể dùng làm `youtube_test_labeled.jsonl` để đánh giá khả năng chuyển miền.
+- Nếu dùng Teacher–Student, Teacher tạo pseudo-label có lọc confidence cho dữ liệu YouTube; Student chỉ được triển khai sau khi đánh giá độc lập.
+- Xem quy trình đầy đủ tại [`docs/ml-training.md`](docs/ml-training.md).
+
 ## 📂 Cấu trúc Thư mục
 - `/config`: Cấu hình hệ thống, tham số pipeline.
 - `/contracts`: Định nghĩa Schema dữ liệu (VD: JSON schema cho comment).

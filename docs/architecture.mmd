@@ -2,6 +2,8 @@
 graph TD
     %% Tầng 1: Thu thập (Ingestion)
     subgraph Ingestion_Layer [Tầng 1: Thu thập dữ liệu]
+        External[Dataset bình luận bên ngoài] -->|EDA + nhãn train| Training[Kho dữ liệu huấn luyện]
+        Training -->|Train Teacher/Student offline| ModelRegistry[Model Registry]
         API[YouTube Data API] -->|JSON thô| Crawler[Python Crawler]
         Replay[Script Phát lại - Demo] -->|Dữ liệu lịch sử| Crawler
         Crawler -->|Produce| K_Raw[Apache Kafka<br>Topic: raw_comments]
@@ -12,6 +14,7 @@ graph TD
         K_Raw -->|Consume micro-batches| S1[Ánh xạ Schema chuẩn]
         S1 --> S2[Tiền xử lý văn bản<br>Chuẩn hóa, tách mệnh đề]
         S2 --> S3[Mô hình Học máy<br>1. Spam<br>2. Khía cạnh<br>3. Cảm xúc]
+        ModelRegistry -.->|Nạp model version| S3
         
         S3 --> S4[Tính toán theo Cửa sổ<br>Sliding Window Aggregation]
         S4 -->|Bắn cảnh báo| K_Alert[Apache Kafka<br>Topic: alerts]
