@@ -1,0 +1,35 @@
+# Mục đích: Cấu hình các tham số vận hành, lưu trữ, chất lượng và quyền riêng tư của pipeline; cập nhật lần cuối: 2026-10-21.
+pipeline:
+  name: phone_launch_comment_stream
+  environment: development
+  timezone: Asia/Ho_Chi_Minh
+  owner_team: data-platform
+  alert_channel: "#phone-launch-data-oncall"
+
+stream:
+  raw_topic: comments.raw.v1
+  normalized_topic: comments.normalized.v1
+  dead_letter_topic: comments.dlq.v1
+  partitions: 12
+  replication_factor: 3
+  checkpoint_interval_seconds: 30
+  watermark_minutes: 15
+  max_retries: 3
+
+storage:
+  bronze_uri: object://comment-lake/bronze/
+  metrics_table: analytics.comment_metrics_5m
+  daily_table: analytics.comment_insights_daily
+
+quality:
+  freshness_warning_minutes: 20
+  consumer_lag_warning_seconds: 300
+  consumer_lag_critical_seconds: 900
+  minimum_contract_validity_ratio: 0.995
+  maximum_null_text_ratio: 0.01
+  maximum_reconciliation_ratio: 0.005
+
+privacy:
+  retain_text_original_days: 30
+  redact_pii_before_analytics: true
+  credentials_from_secret_manager: true

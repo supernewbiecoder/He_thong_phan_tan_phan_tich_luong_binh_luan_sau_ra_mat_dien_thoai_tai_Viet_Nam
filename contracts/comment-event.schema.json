@@ -1,0 +1,61 @@
+{
+  "$comment": "Mục đích: Định nghĩa hợp đồng JSON Schema cho sự kiện bình luận YouTube; cập nhật lần cuối: 2026-10-21.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "YouTubeCommentEvent",
+  "description": "Hợp đồng cấu trúc dữ liệu cho một sự kiện bình luận đẩy vào hệ thống luồng",
+  "type": "object",
+  "properties": {
+    "comment_id": {
+      "type": "string",
+      "description": "ID của YouTube, đóng vai trò khóa chính (Primary Key)"
+    },
+    "video_id": {
+      "type": "string",
+      "description": "ID của Video chứa comment, dùng làm khóa partition trong Kafka"
+    },
+    "parent_id": {
+      "type": ["string", "null"],
+      "description": "Có giá trị (string) nếu là reply, null nếu là comment gốc"
+    },
+    "model": {
+      "type": "string",
+      "description": "Gắn nhãn mẫu máy chính (main) hoặc đối thủ (rival)"
+    },
+    "text": {
+      "type": "string",
+      "description": "Nội dung chữ gốc của bình luận"
+    },
+    "text_norm": {
+      "type": "string",
+      "description": "Nội dung sau chuẩn hóa, tách từ, xóa teencode (do team DS ghi, lúc đầu Crawler có thể để rỗng)"
+    },
+    "author_hash": {
+      "type": "string",
+      "description": "Mã băm SHA-256 của channel ID tác giả, để ẩn danh người dùng"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm đăng tải (chuẩn ISO 8601 UTC), dùng làm Event Time cho cửa sổ Spark"
+    },
+    "like_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Số lượt thích của bình luận"
+    },
+    "ingested_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm đưa vào Kafka, dùng để đo độ trễ đầu cuối (Latency)"
+    }
+  },
+  "required": [
+    "comment_id",
+    "video_id",
+    "model",
+    "text",
+    "author_hash",
+    "published_at"
+  ],
+  "additionalProperties": false
+}

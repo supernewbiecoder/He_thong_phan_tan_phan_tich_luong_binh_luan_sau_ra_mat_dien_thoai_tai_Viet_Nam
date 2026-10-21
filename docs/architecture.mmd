@@ -1,0 +1,44 @@
+%% Mục đích: Sơ đồ kiến trúc các tầng thu thập, xử lý, lưu trữ và phục vụ; cập nhật lần cuối: 2026-10-21.
+graph TD
+    %% Tầng 1: Thu thập (Ingestion)
+    subgraph Ingestion_Layer [Tầng 1: Thu thập dữ liệu]
+        API[YouTube Data API] -->|JSON thô| Crawler[Python Crawler]
+        Replay[Script Phát lại - Demo] -->|Dữ liệu lịch sử| Crawler
+        Crawler -->|Produce| K_Raw[Apache Kafka<br>Topic: raw_comments]
+    end
+
+    %% Tầng 2: Xử lý luồng (Stream Processing)
+    subgraph Stream_Processing_Layer [Tầng 2: Xử lý luồng - Apache Spark]
+        K_Raw -->|Consume micro-batches| S1[Ánh xạ Schema chuẩn]
+        S1 --> S2[Tiền xử lý văn bản<br>Chuẩn hóa, tách mệnh đề]
+        S2 --> S3[Mô hình Học máy<br>1. Spam<br>2. Khía cạnh<br>3. Cảm xúc]
+        
+        S3 --> S4[Tính toán theo Cửa sổ<br>Sliding Window Aggregation]
+        S4 -->|Bắn cảnh báo| K_Alert[Apache Kafka<br>Topic: alerts]
+    end
+
+    %% Tầng 3: Lưu trữ (Storage)
+    subgraph Storage_Layer [Tầng 3: Lưu trữ - MongoDB]
+        S3 -->|Ghi dữ liệu đã gán nhãn| M_Comments[(Collection: comments)]
+        S4 -->|Ghi số liệu tổng hợp| M_Aggs[(Collection: aggregates)]
+        K_Alert -->|Lưu log cảnh báo| M_Alerts[(Collection: alerts)]
+    end
+
+    %% Tầng 4: Phục vụ & Hiển thị (Serving)
+    subgraph Serving_Layer [Tầng 4: Phục vụ & Trực quan hóa]
+        M_Comments -.-> FastAPI[FastAPI Backend]
+        M_Aggs -.-> FastAPI
+        M_Alerts -.-> FastAPI
+        FastAPI --> Streamlit[Streamlit Dashboard<br>Real-time UI]
+    end
+
+    %% Styling
+    classDef kafka fill:#ff9900,stroke:#333,stroke-width:2px;
+    classDef spark fill:#e67300,stroke:#333,stroke-width:2px,color:#fff;
+    classDef mongo fill:#4db33d,stroke:#333,stroke-width:2px,color:#fff;
+    classDef api fill:#009688,stroke:#333,stroke-width:2px,color:#fff;
+    
+    class K_Raw,K_Alert kafka;
+    class S1,S2,S3,S4 spark;
+    class M_Comments,M_Aggs,M_Alerts mongo;
+    class FastAPI,Streamlit api;
