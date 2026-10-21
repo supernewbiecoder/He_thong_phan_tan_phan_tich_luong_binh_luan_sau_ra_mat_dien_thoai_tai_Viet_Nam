@@ -5,7 +5,7 @@
 ## 📌 Bối cảnh dự án
 Hệ thống được thiết kế để hỗ trợ một hãng điện thoại (giả định) vừa ra mắt mẫu máy mới tại thị trường Việt Nam. Trong giai đoạn đầu ra mắt, hệ thống sẽ thu thập liên tục các bình luận từ các video review, unbox tiếng Việt trên YouTube để giải quyết 3 bài toán nghiệp vụ cốt lõi:
 1. **Lọc dữ liệu rác (Spam Detection):** Tự động loại bỏ bình luận seeding, quảng cáo.
-2. **Phân tích khía cạnh (Aspect-based Sentiment):** Theo dõi tỷ lệ khen/chê về 9 khía cạnh (Pin, Màn hình, Hiệu năng, Camera, v.v.) giữa mẫu máy mới và mẫu đối thủ.
+2. **Phân tích khía cạnh (Aspect-based Sentiment):** Theo dõi tỷ lệ khen/chê về 9 khía cạnh (Pin, Màn hình, Hiệu năng, Camera, Thiết kế và độ bền, Phần mềm, Phần cứng khác, giá, Bảo hành và hậu mãi) giữa mẫu máy mới và mẫu đối thủ.
 3. **Cảnh báo khủng hoảng (Anomaly Alerting):** Phát hiện tức thời khi lượng bình luận tiêu cực về một khía cạnh tăng đột biến trong cửa sổ thời gian ngắn.
 
 ## 🏗️ Kiến trúc Công nghệ (Tech Stack)
