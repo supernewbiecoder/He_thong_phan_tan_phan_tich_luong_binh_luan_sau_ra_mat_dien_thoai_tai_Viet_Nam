@@ -1,0 +1,5 @@
+requests>=2.31
+PyYAML>=6.0
+python-dotenv>=1.0
+APScheduler>=3.10,<4
+confluent-kafka>=2.3

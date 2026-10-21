@@ -1,35 +1,369 @@
 # Mục đích: Cấu hình các tham số vận hành, lưu trữ, chất lượng và quyền riêng tư của pipeline; cập nhật lần cuối: 2026-10-21.
-pipeline:
-  name: phone_launch_comment_stream
-  environment: development
-  timezone: Asia/Ho_Chi_Minh
-  owner_team: data-platform
-  alert_channel: "#phone-launch-data-oncall"
+timezone: Asia/Ho_Chi_Minh
 
-stream:
-  raw_topic: comments.raw.v1
-  normalized_topic: comments.normalized.v1
-  dead_letter_topic: comments.dlq.v1
-  partitions: 12
-  replication_factor: 3
-  checkpoint_interval_seconds: 30
-  watermark_minutes: 15
-  max_retries: 3
+quota:
+  daily_limit: 10000      # hạn mức mặc định của YouTube Data API v3
+  safety_ratio: 0.85      # chỉ dùng tối đa 85% để chừa dư địa
+  search_daily_cap: 80    # search.list rất đắt (100 đơn vị/lần), chặn cứng số lần/ngày
 
-storage:
-  bronze_uri: object://comment-lake/bronze/
-  metrics_table: analytics.comment_metrics_5m
-  daily_table: analytics.comment_insights_daily
+discover:
+  run_budget_units: 600
 
-quality:
-  freshness_warning_minutes: 20
-  consumer_lag_warning_seconds: 300
-  consumer_lag_critical_seconds: 900
-  minimum_contract_validity_ratio: 0.995
-  maximum_null_text_ratio: 0.01
-  maximum_reconciliation_ratio: 0.005
+crawl:
+  run_budget_units: 600          # ngân sách mỗi lần chạy job crawl
+  min_poll_interval_min: 30      # video còn trong cửa sổ theo dõi: tối thiểu bao phút mới cào lại
+  older_streak_stop: 3           # dừng phân trang khi gặp liên tiếp N comment cũ hơn mốc (chịu được comment ghim)
 
-privacy:
-  retain_text_original_days: 30
-  redact_pii_before_analytics: true
-  credentials_from_secret_manager: true
+schedule:
+  discover_cron_hour: 6          # giờ VN, chạy tìm video mới mỗi ngày
+  crawl_every_min: 30
+
+# Bố cục file dữ liệu trong data/raw:
+#   single -> comments.jsonl và videos.jsonl: MỘT file cho mọi mẫu máy, mọi ngày (đang dùng)
+#   daily  -> comments-YYYY-MM-DD.jsonl, ngày tính theo `timezone` ở trên
+# Các mẫu khác nhau luôn phân biệt bằng trường `model`, ghi nối vào cuối file chứ KHÔNG ghi đè.
+output:
+  layout: single
+
+# Cửa sổ dữ liệu theo đề tài: từ ngày ra mắt đến 4 tuần sau
+window_weeks: 4
+video_window_before_days: 7      # nhận cả video hands-on đăng trước ra mắt vài ngày
+
+# === MẪU MÁY CHÍNH VÀ CÁC ĐỐI THỦ ===
+# Mỗi mẫu chính có THỂ CÓ NHIỀU đối thủ (rivals). Sửa file khi `run` đang chạy: lần discover/crawl kế tiếp tự nhận.
+#   name        nhãn ghi vào trường `model` (không dấu, không chứa '|')
+#   title       (tùy chọn) tên hiển thị
+#   aliases     cách gọi trong tiêu đề video (không phân biệt hoa/thường, dấu). Nên đủ cụ thể.
+#   exclude     (tùy chọn) tiêu đề có cụm này thì KHÔNG tính cho mẫu đó
+#   launch_date ngày ra mắt tại VN, YYYY-MM-DD. Rival bỏ trống thì dùng ngày của mẫu chính.
+#   rivals      danh sách đối thủ; viết riêng tên (vd: - p9pro) để tham chiếu mẫu đã khai báo nơi khác
+models:
+  # ==================== APPLE (IPHONE) ====================
+  - name: ip18prm
+    title: iPhone 18 Pro Max
+    aliases: ["iPhone 18 Pro Max", "ip18 prm", "ip18 pro max"]
+    launch_date: "2026-09-15"
+    rivals:
+      - name: s26u
+        title: Samsung Galaxy S26 Ultra
+        aliases: ["Galaxy S26 Ultra", "s26 ultra"]
+        launch_date: "2026-01-15"
+      - name: xiaomi16u
+        title: Xiaomi 16 Ultra
+        aliases: ["Xiaomi 16 Ultra", "xiaomi 16u"]
+        launch_date: "2026-03-01"
+      - name: vivoX100p
+        title: Vivo X100 Pro
+        aliases: ["Vivo X100 Pro"]
+        launch_date: "2024-01-01"
+
+  - name: ip17prm
+    title: iPhone 17 Pro Max
+    aliases: ["iPhone 17 Pro Max", "ip17 prm", "ip17 pro max"]
+    launch_date: "2025-09-15"
+    rivals:
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-15"
+      - name: xiaomi15u
+        title: Xiaomi 15 Ultra
+        aliases: ["Xiaomi 15 Ultra", "xiaomi 15u"]
+        launch_date: "2025-02-25"
+      - name: oppofindX8p
+        title: Oppo Find X8 Pro
+        aliases: ["Find X8 Pro"]
+        launch_date: "2024-10-24"
+
+  - name: ip15prm
+    title: iPhone 15 Pro Max
+    aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm", "15 pro max"]
+    launch_date: "2023-09-12"
+    rivals:
+      - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["samsung s24", "Samsung Galaxy S24 Ultra", "S24 Ultra"]
+        launch_date: "2024-01-10"
+      - name: xiaomi14u
+        title: Xiaomi 14 Ultra
+        aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+        launch_date: "2024-02-22"
+      - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+
+  - name: ip14prm
+    title: iPhone 14 Pro Max
+    aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+    launch_date: "2022-09-16"
+    rivals:
+      - name: s23u
+        title: Samsung Galaxy S23 Ultra
+        aliases: ["Galaxy S23 Ultra", "s23 ultra"]
+        launch_date: "2023-02-02"
+      - name: xiaomi13u
+        title: Xiaomi 13 Ultra
+        aliases: ["Xiaomi 13 Ultra"]
+        launch_date: "2023-04-18"
+      - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+
+  - name: ip13prm
+    title: iPhone 13 Pro Max
+    aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+    launch_date: "2021-09-24"
+    rivals:
+      - name: s22u
+        title: Samsung Galaxy S22 Ultra
+        aliases: ["Galaxy S22 Ultra", "s22 ultra"]
+        launch_date: "2022-02-25"
+      - name: xiaomi12u
+        title: Xiaomi 12S Ultra
+        aliases: ["Xiaomi 12S Ultra"]
+        launch_date: "2022-07-04"
+      - name: findx5pro
+        title: Oppo Find X5 Pro
+        aliases: ["Find X5 Pro"]
+        launch_date: "2022-02-24"
+
+  - name: ip12prm
+    title: iPhone 12 Pro Max
+    aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+    launch_date: "2020-11-13"
+    rivals:
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: mi11ultra
+        title: Xiaomi Mi 11 Ultra
+        aliases: ["Mi 11 Ultra"]
+        launch_date: "2021-03-29"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+
+  - name: ip11pro
+    title: iPhone 11 Pro
+    aliases: ["iPhone 11 Pro", "ip11 pro"]
+    launch_date: "2019-09-20"
+    rivals:
+      - name: notefive
+        title: Samsung Galaxy Note 20 Ultra
+        aliases: ["Note 20 Ultra", "note20u"]
+        launch_date: "2020-08-21"
+      - name: mi11
+        title: Xiaomi Mi 11
+        aliases: ["Mi 11"]
+        launch_date: "2020-12-28"
+      - name: p40pro
+        title: Huawei P40 Pro
+        aliases: ["Huawei P40 Pro"]
+        launch_date: "2020-03-26"
+
+  - name: ipx
+    title: iPhone X
+    aliases: ["iPhone X", "ip x"]
+    launch_date: "2017-11-03"
+    rivals:
+      - name: s9plus
+        title: Samsung Galaxy S9 Plus
+        aliases: ["Galaxy S9+", "s9 plus"]
+        launch_date: "2018-03-16"
+      - name: note8
+        title: Samsung Galaxy Note 8
+        aliases: ["Note 8"]
+        launch_date: "2017-09-15"
+      - name: mi8
+        title: Xiaomi Mi 8
+        aliases: ["Mi 8"]
+        launch_date: "2018-05-31"
+
+  - name: ip8
+    title: iPhone 8
+    aliases: ["iPhone 8", "ip 8"]
+    launch_date: "2017-09-22"
+    rivals:
+      - name: s8
+        title: Samsung Galaxy S8
+        aliases: ["Galaxy S8", "s8"]
+        launch_date: "2017-04-21"
+      - name: note7fe
+        title: Samsung Galaxy Note Fan Edition
+        aliases: ["Note FE"]
+        launch_date: "2017-07-07"
+      - name: mi6
+        title: Xiaomi Mi 6
+        aliases: ["Mi 6"]
+        launch_date: "2017-04-28"
+
+  - name: ip7
+    title: iPhone 7
+    aliases: ["iPhone 7", "ip 7"]
+    launch_date: "2016-09-16"
+    rivals:
+      - name: s7edge
+        title: Samsung Galaxy S7 Edge
+        aliases: ["S7 Edge"]
+        launch_date: "2016-03-11"
+      - name: note5
+        title: Samsung Galaxy Note 5
+        aliases: ["Note 5"]
+        launch_date: "2015-08-21"
+      - name: mi5
+        title: Xiaomi Mi 5
+        aliases: ["Mi 5"]
+        launch_date: "2016-03-01"
+
+  - name: ip6
+    title: iPhone 6
+    aliases: ["iPhone 6", "ip 6"]
+    launch_date: "2014-09-19"
+    rivals:
+      - name: s5
+        title: Samsung Galaxy S5
+        aliases: ["Galaxy S5", "s5"]
+        launch_date: "2014-04-11"
+      - name: note4
+        title: Samsung Galaxy Note 4
+        aliases: ["Note 4"]
+        launch_date: "2014-10-17"
+      - name: mi4
+        title: Xiaomi Mi 4
+        aliases: ["Mi 4"]
+        launch_date: "2014-08-01"
+
+
+  # ==================== SAMSUNG ====================
+  - name: s24u
+    title: Samsung Galaxy S24 Ultra
+    aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+    launch_date: "2024-01-10"
+    rivals:
+      - name: ip15prm
+      - name: xiaomi14u
+      - name: findx7u
+
+  - name: s23u
+    title: Samsung Galaxy S23 Ultra
+    aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
+    launch_date: "2023-02-02"
+    rivals:
+      - name: ip14prm
+      - name: xiaomi13u
+      - name: x90proplus
+
+  - name: s22u
+    title: Samsung Galaxy S22 Ultra
+    aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
+    launch_date: "2022-02-25"
+    rivals:
+      - name: ip13prm
+      - name: xiaomi12u
+      - name: findx5pro
+
+  - name: note20u
+    title: Samsung Galaxy Note 20 Ultra
+    aliases: ["Galaxy Note 20 Ultra", "Note 20 Ultra"]
+    launch_date: "2020-08-21"
+    rivals:
+      - name: ip11pro
+      - name: mi11ultra
+      - name: p40pro
+
+  - name: a52
+    title: Samsung Galaxy A52
+    aliases: ["Galaxy A52", "A52"]
+    launch_date: "2021-03-17"
+    rivals:
+      - name: redminote10pro
+        title: Redmi Note 10 Pro
+        aliases: ["Redmi Note 10 Pro"]
+        launch_date: "2021-03-24"
+      - name: reno5
+        title: Oppo Reno5
+        aliases: ["Reno 5"]
+        launch_date: "2020-12-30"
+      - name: realme8pro
+        title: Realme 8 Pro
+        aliases: ["Realme 8 Pro"]
+        launch_date: "2021-03-24"
+
+
+  # ==================== XIAOMI ====================
+  - name: xiaomi14u
+    title: Xiaomi 14 Ultra
+    aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+    launch_date: "2024-02-22"
+    rivals:
+      - name: s24u
+      - name: ip15prm
+      - name: findx7u
+
+  - name: xiaomi13u
+    title: Xiaomi 13 Ultra
+    aliases: ["Xiaomi 13 Ultra", "xiaomi 13u"]
+    launch_date: "2023-04-18"
+    rivals:
+      - name: s23u
+      - name: ip14prm
+      - name: x90proplus
+
+  - name: xiaomi12u
+    title: Xiaomi 12S Ultra
+    aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
+    launch_date: "2022-07-04"
+    rivals:
+      - name: s22u
+      - name: ip13prm
+      - name: findx5pro
+
+  - name: mi11ultra
+    title: Xiaomi Mi 11 Ultra
+    aliases: ["Mi 11 Ultra", "mi 11 ultra"]
+    launch_date: "2021-03-29"
+    rivals:
+      - name: note20u
+      - name: ip11pro
+      - name: p40pro
+
+  - name: redminote13pro
+    title: Redmi Note 13 Pro
+    aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+    launch_date: "2023-09-21"
+    rivals:
+      - name: a52
+      - name: reno10
+        title: Oppo Reno10
+        aliases: ["Reno 10"]
+        launch_date: "2023-05-24"
+      - name: galaxya54
+        title: Samsung Galaxy A54
+        aliases: ["Galaxy A54"]
+        launch_date: "2023-03-15"
+
+# Kênh công nghệ (10-20 kênh). channel_id điền UC... hoặc @handle; để trống thì chạy:
+#   python -m src.main resolve-names     (tốn ~100 đơn vị/kênh, ghi gợi ý ra config/channels.suggested.yaml)
+# Tên dưới đây là ỨNG VIÊN lấy từ các bài tổng hợp, chưa kiểm tra bằng API. tags tạm, sửa tùy ý.
+channels:
+  - {channel_id: "UCEeXA5Tu7n9X5_zkOgGsyww", name: "Vật Vờ Studio",    enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCOygiQNXiiQ_rpRjHU5ri-A", name: "Duy Thẩm",         enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCvJ8leyn7YWgqmbmw1R5ZVg", name: "Dương Dê",         enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UC0W4geJiYGuQeO5KhRBzXBQ", name: "Tân Một Cú",       enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UC7CplVVDYKBeraVcPuI3xUQ", name: "Tony Phùng",       enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCyQobySFx_h9oFwsBV0KGdg", name: "Tinh tế",          enabled: true, tags: ["technology", "comparison"]}
+  - {channel_id: "UCJm_GdFJzT8h1odq1oMu_7Q", name: "Hoàng Hà Mobile",  enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCkv1DN-G2KP3D5RFFrEOW1Q", name: "CellphoneS",       enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UClAoXGpwSi4bgwBLuZKxsnQ", name: "Thế Giới Di Động", enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCReIrO3npnrMpRzB5xgE7fQ", name: "FPT Shop",         enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCQ0jSGgYMLmRMeTE6UaPPXg", name: "Duy Luân Dễ Thương", enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UC9Pj0EUibBF295jWHRSDJqg", name: "Schannel",           enabled: true, tags: ["technology", "review"]}
+  - {channel_id: "UCDri2yZO_tqdD70bK-D7iQg", name: "AnhEm TV",           enabled: true, tags: ["technology", "review"]}
+  - {channel_id: "UCKOlBXzWA1PVOFd-MwC8AWQ", name: "Rương Công Nghệ",    enabled: true, tags: ["technology", "smartphone"]}
+
+
+  
