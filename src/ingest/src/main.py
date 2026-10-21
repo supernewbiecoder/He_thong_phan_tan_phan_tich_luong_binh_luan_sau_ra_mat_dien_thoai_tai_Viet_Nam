@@ -1,6 +1,7 @@
 import argparse
 import functools
 import logging
+import sys
 import threading
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -134,6 +135,9 @@ def cmd_status(cfg):
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     p = argparse.ArgumentParser(prog="yt-crawler")
     sp = p.add_subparsers(dest="cmd", required=True)
