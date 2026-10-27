@@ -173,4 +173,4 @@ Pseudo-label từ Teacher không được trộn vào test set. Các comment có
 
 - Crawler và archive raw: [`src/ingest/README.md`](../src/ingest/README.md)
 - Luồng Kafka/Spark/MongoDB: [`pipeline.md`](./pipeline.md)
-- Phân tích EDA snapshot YouTube: [`Phan_tich_binh_luan_tong_hop.ipynb`](../src/processing/Phan_tich_binh_luan_tong_hop.ipynb)
+- Phân tích EDA snapshot YouTube: [`eda_smartphone_comments.ipynb`](../src/processing/eda_smartphone_comments.ipynb)

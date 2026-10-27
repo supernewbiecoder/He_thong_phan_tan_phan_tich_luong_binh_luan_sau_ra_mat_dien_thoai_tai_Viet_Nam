@@ -1,0 +1,36 @@
+# Large dataset files (GitHub hard limit is 100MB)
+data/
+*.jsonl
+*.csv
+*.parquet
+*.zip
+*.tar.gz
+
+# Python & Jupyter
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# OS and Editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Local runtime logs and credentials
+*.log
+.env
+
