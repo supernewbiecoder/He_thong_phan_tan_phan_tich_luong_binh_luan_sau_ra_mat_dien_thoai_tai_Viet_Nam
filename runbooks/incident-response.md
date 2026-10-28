@@ -1,6 +1,8 @@
 # Kịch bản Ứng phó Sự cố (Incident Response Runbook)
 
-> Mục đích: Hướng dẫn nhận diện và xử lý các sự cố vận hành hoặc demo của hệ thống; cập nhật lần cuối: 2026-10-21.
+> Mục đích: Hướng dẫn nhận diện và xử lý các sự cố vận hành hoặc demo của hệ thống; cập nhật lần cuối: 2026-10-28.
+
+> **Trạng thái:** kịch bản dự kiến cho Giai đoạn 2 (streaming, tùy chọn) trong [docs/pipeline.md](../docs/pipeline.md#3-giai-đoạn-2-streaming-tùy-chọn). Cụm Kafka nhiều broker, Spark worker và MongoDB **chưa được dựng**; các lệnh dưới đây chưa chạy được.
 
 Tài liệu này hướng dẫn cách xử lý nhanh các sự cố kỹ thuật có thể xảy ra trong quá trình vận hành hệ thống hoặc trong lúc demo bảo vệ đồ án. Hệ thống được thiết kế theo kiến trúc phân tán nên đa số các lỗi node mạng đều có cơ chế tự phục hồi.
 

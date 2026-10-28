@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phone Talk Analytics · 109K bình luận YouTube về smartphone</title>
+  <meta name="description" content="Dashboard trực quan hóa hơn 109 nghìn bình luận YouTube tiếng Việt về iPhone, Samsung, Xiaomi, OPPO, vivo, Huawei: xu hướng theo thời gian, khía cạnh sản phẩm, từ khóa và mức độ tương tác.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <style>:root {
+  --bg: #070912;
+  --bg-2: #0d1120;
+  --card: rgba(22, 27, 48, 0.62);
+  --card-border: rgba(148, 163, 255, 0.12);
+  --card-hover: rgba(148, 163, 255, 0.28);
+  --text: #e7e9f5;
+  --muted: #8d93b5;
+  --dim: #5b6188;
+  --accent: #8b7cff;
+  --accent-2: #3dd6f5;
+  --accent-3: #ff7ab6;
+  --radius: 20px;
+  --shadow: 0 20px 50px -20px rgba(0, 0, 0, 0.7);
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { color-scheme: dark; scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background: radial-gradient(1200px 700px at 10% -10%, #1b1a4a 0%, transparent 60%),
+              radial-gradient(900px 600px at 110% 10%, #0d3346 0%, transparent 55%),
+              var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  overflow-x: hidden;
+}
+
+/* ---------- Ambient orbs ---------- */
+.bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+.bg-orbs span {
+  position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.35;
+  animation: float 22s ease-in-out infinite alternate;
+}
+.bg-orbs span:nth-child(1) { width: 420px; height: 420px; background: #6d5cff; top: 8%; left: -6%; }
+.bg-orbs span:nth-child(2) { width: 360px; height: 360px; background: #19b8d8; top: 40%; right: -8%; animation-delay: -7s; }
+.bg-orbs span:nth-child(3) { width: 300px; height: 300px; background: #ff4f9a; bottom: -8%; left: 35%; animation-delay: -14s; opacity: 0.22; }
+@keyframes float {
+  to { transform: translate3d(60px, -40px, 0) scale(1.15); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-orbs span { animation: none; }
+  * { transition: none !important; animation: none !important; }
+}
+
+/* ---------- Hero ---------- */
+.hero, main, .foot { position: relative; z-index: 1; max-width: 1440px; margin: 0 auto; padding-inline: clamp(16px, 3vw, 40px); }
+.hero { padding-top: 48px; padding-bottom: 28px; display: grid; gap: 24px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted);
+  padding: 6px 14px; border: 1px solid var(--card-border); border-radius: 999px; background: rgba(255,255,255,0.03);
+  width: fit-content;
+}
+.eyebrow code { font-family: var(--mono); color: var(--accent-2); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,.6); animation: pulse 2s infinite; }
+@keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
+h1 {
+  font-size: clamp(30px, 4.6vw, 58px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin-top: 16px;
+  max-width: 18ch;
+}
+.grad {
+  background: linear-gradient(100deg, var(--accent) 0%, var(--accent-2) 50%, var(--accent-3) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  background-size: 200% auto; animation: shine 8s linear infinite;
+}
+@keyframes shine { to { background-position: 200% center; } }
+.sub { color: var(--muted); font-size: clamp(14px, 1.3vw, 17px); margin-top: 14px; max-width: 70ch; }
+.sub b { color: var(--text); font-weight: 600; }
+
+/* ---------- Filters ---------- */
+.filters { display: flex; flex-wrap: wrap; gap: 10px; }
+.pill {
+  --c: var(--accent);
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 16px; border-radius: 999px; border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.03); backdrop-filter: blur(10px);
+  transition: all .25s ease;
+}
+.pill i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.pill small { font-family: var(--mono); font-size: 11px; color: var(--dim); }
+.pill:hover { color: var(--text); border-color: var(--card-hover); transform: translateY(-1px); }
+.pill:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 2px; }
+.pill[aria-pressed="true"] {
+  color: #fff; border-color: transparent;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--c) 55%, transparent), color-mix(in srgb, var(--c) 20%, transparent));
+  box-shadow: 0 8px 24px -10px var(--c);
+}
+.pill[aria-pressed="true"] small { color: rgba(255,255,255,.75); }
+
+/* ---------- KPI ---------- */
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.kpi {
+  position: relative; overflow: hidden; padding: 20px 22px; border-radius: var(--radius);
+  background: var(--card); border: 1px solid var(--card-border); backdrop-filter: blur(16px);
+  box-shadow: var(--shadow); transition: transform .3s ease, border-color .3s ease;
+}
+.kpi::after {
+  content: ""; position: absolute; inset: auto -30% -60% auto; width: 140px; height: 140px; border-radius: 50%;
+  background: var(--glow, var(--accent)); filter: blur(50px); opacity: .25;
+}
+.kpi:hover { transform: translateY(-3px); border-color: var(--card-hover); }
+.kpi .label { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.kpi .ico { font-size: 16px; }
+.kpi .value { font-size: clamp(24px, 2.4vw, 32px); font-weight: 700; letter-spacing: -0.02em; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.kpi .note { font-size: 12px; color: var(--dim); margin-top: 2px; }
+
+/* ---------- Grid & cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 20px; padding-bottom: 40px; }
+.card {
+  grid-column: span 12; min-width: 0;
+  background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius);
+  backdrop-filter: blur(16px); box-shadow: var(--shadow); padding: 22px 24px;
+  transition: border-color .3s ease, transform .3s ease;
+  opacity: 0; transform: translateY(18px); animation: rise .7s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.card:hover { border-color: var(--card-hover); }
+@keyframes rise { to { opacity: 1; transform: none; } }
+.card > header { margin-bottom: 16px; }
+.card h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.card header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+@media (min-width: 980px) {
+  .span-4 { grid-column: span 4; } .span-5 { grid-column: span 5; } .span-6 { grid-column: span 6; }
+  .span-7 { grid-column: span 7; } .span-8 { grid-column: span 8; } .span-12 { grid-column: span 12; }
+}
+.chart-box { position: relative; height: 280px; }
+.chart-box.tall { height: 340px; }
+.chart-box.xtall { height: 460px; }
+
+/* ---------- Heatmap ---------- */
+.heatmap { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 3px; font-size: 11px; color: var(--dim); }
+.heatmap .cell {
+  aspect-ratio: 1; border-radius: 4px; background: rgba(139,124,255,.08);
+  transition: transform .15s ease, outline-color .15s; cursor: default; outline: 1px solid transparent;
+}
+.heatmap .cell:hover { transform: scale(1.35); outline-color: #fff; position: relative; z-index: 2; }
+.heatmap .rlab { display: flex; align-items: center; }
+.heatmap .clab { text-align: center; }
+.heat-legend { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 12px; font-size: 12px; color: var(--dim); }
+.heat-legend i { width: 140px; height: 8px; border-radius: 99px; background: linear-gradient(90deg, rgba(139,124,255,.08), #8b7cff, #3dd6f5, #fef08a); }
+
+/* ---------- Word cloud ---------- */
+.cloud { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px 14px; min-height: 280px; padding: 8px; }
+.cloud span {
+  font-weight: 600; line-height: 1.1; cursor: default; letter-spacing: -0.01em;
+  transition: transform .2s ease, text-shadow .2s ease; white-space: nowrap;
+}
+.cloud span:hover { transform: scale(1.12); text-shadow: 0 0 18px currentColor; }
+.emoji-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--card-border); }
+.emoji-strip .em {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--card-border); font-size: 13px;
+}
+.emoji-strip .em b { font-size: 18px; font-weight: 400; }
+.emoji-strip .em small { color: var(--muted); font-family: var(--mono); font-size: 11px; }
+
+/* ---------- Matrix ---------- */
+.matrix-wrap { overflow-x: auto; }
+.matrix { border-collapse: separate; border-spacing: 3px; width: 100%; font-size: 12.5px; }
+.matrix th { font-weight: 500; color: var(--muted); padding: 6px 8px; text-align: center; white-space: nowrap; }
+.matrix th.row { text-align: left; color: var(--text); display: flex; align-items: center; gap: 8px; }
+.matrix th.row i { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.matrix td {
+  text-align: center; padding: 7px 6px; border-radius: 6px; font-variant-numeric: tabular-nums;
+  font-family: var(--mono); font-size: 11.5px; transition: transform .15s;
+}
+.matrix td:hover { transform: scale(1.08); outline: 1px solid #fff; }
+.matrix tr.dimmed { opacity: .28; }
+
+/* ---------- Lists ---------- */
+.top-list, .video-list { list-style: none; display: grid; gap: 10px; max-height: 560px; overflow-y: auto; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--dim) transparent; }
+.top-list li {
+  display: grid; grid-template-columns: 62px 1fr; gap: 14px; padding: 14px; border-radius: 14px;
+  background: rgba(255,255,255,.025); border: 1px solid var(--card-border); transition: background .2s, transform .2s;
+}
+.top-list li:hover { background: rgba(255,255,255,.05); transform: translateX(3px); }
+.likes { display: grid; place-items: center; align-content: center; border-radius: 12px; background: linear-gradient(135deg, rgba(255,122,182,.22), rgba(139,124,255,.18)); }
+.likes b { font-size: 17px; font-weight: 700; }
+.likes small { font-size: 10px; color: var(--muted); }
+.top-list q { display: block; font-size: 14px; quotes: "“" "”"; overflow-wrap: anywhere; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 12px; color: var(--dim); margin-top: 6px; }
+.meta a { color: var(--accent-2); text-decoration: none; }
+.meta a:hover { text-decoration: underline; }
+.tag { padding: 1px 8px; border-radius: 99px; background: rgba(139,124,255,.15); color: #c4bcff; }
+
+.video-list li a {
+  display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 12px; padding: 10px 12px;
+  border-radius: 12px; text-decoration: none; color: inherit; border: 1px solid transparent; transition: all .2s;
+}
+.video-list li a:hover { border-color: var(--card-border); background: rgba(255,255,255,.04); }
+.rank { font-family: var(--mono); color: var(--dim); font-size: 13px; }
+.vtitle { font-size: 14px; font-weight: 500; }
+.vsub { font-size: 12px; color: var(--dim); }
+.vbar { height: 4px; border-radius: 99px; margin-top: 6px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.vcount { font-family: var(--mono); font-size: 13px; color: var(--text); text-align: right; }
+
+.foot { padding-bottom: 40px; color: var(--dim); font-size: 12.5px; text-align: center; }
+
+/* ---------- Executive report add-on ---------- */
+.report-jump {
+  justify-self: start; display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 15px; border-radius: 999px; border: 1px solid var(--card-border);
+  color: var(--text); text-decoration: none; font-size: 13px; font-weight: 600;
+  background: rgba(255,255,255,.045); transition: border-color .2s, background .2s, transform .2s;
+}
+.report-jump:hover { border-color: var(--accent-2); background: rgba(61,214,245,.08); transform: translateY(-1px); }
+.exec-report {
+  margin: 28px 0 40px; padding: clamp(16px, 2.5vw, 28px); border-radius: 24px;
+  border: 1px solid var(--card-border);
+  background: linear-gradient(145deg, rgba(25, 31, 56, .92), rgba(11, 16, 31, .88));
+  box-shadow: var(--shadow); scroll-margin-top: 18px;
+}
+.exec-report-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin-bottom: 20px; }
+.exec-report-eyebrow { color: var(--accent-2); text-transform: uppercase; letter-spacing: .12em; font: 700 11px var(--mono); }
+.exec-report-head h2 { margin-top: 7px; font-size: clamp(23px, 3vw, 32px); line-height: 1.2; }
+.exec-report-head p { color: var(--muted); margin-top: 8px; max-width: 78ch; font-size: 13px; }
+.exec-report-back { color: var(--muted); text-decoration: none; white-space: nowrap; font-size: 13px; }
+.exec-report-back:hover { color: var(--accent-2); }
+.exec-report-models { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 20px; }
+.exec-report-models span { padding: 6px 10px; border: 1px solid var(--card-border); border-radius: 999px; color: var(--muted); background: rgba(255,255,255,.025); font-size: 12px; }
+.exec-report-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 12px; border-bottom: 1px solid var(--card-border); scrollbar-width: thin; }
+.exec-report-tab { flex: 0 0 auto; border: 1px solid var(--card-border); border-radius: 11px; padding: 9px 13px; color: var(--muted); background: rgba(255,255,255,.025); font: 600 12px var(--font); cursor: pointer; transition: all .2s; }
+.exec-report-tab:hover { color: var(--text); border-color: var(--card-hover); }
+.exec-report-tab[aria-selected="true"] { color: #fff; border-color: transparent; background: linear-gradient(120deg, rgba(139,124,255,.48), rgba(61,214,245,.24)); }
+.exec-report-panel { padding-top: 20px; }
+.exec-report-panel[hidden] { display: none; }
+.exec-report-panel > header { margin-bottom: 16px; }
+.exec-report-panel > header h3 { font-size: 19px; font-weight: 700; }
+.exec-report-panel > header p { color: var(--muted); margin-top: 4px; font-size: 13px; }
+.exec-report-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr); gap: 16px; }
+.exec-report-card { min-width: 0; padding: 18px; border-radius: 16px; border: 1px solid var(--card-border); background: rgba(255,255,255,.025); }
+.exec-report-card h4 { margin-bottom: 12px; font-size: 14px; font-weight: 600; }
+.exec-report-card > p { color: var(--muted); font-size: 12px; line-height: 1.6; margin: -4px 0 12px; }
+.exec-report-chart { position: relative; height: 320px; }
+.exec-report-chart.compact { height: 270px; }
+.exec-report-wide { grid-column: 1 / -1; }
+.exec-report-table-wrap { overflow-x: auto; }
+.exec-report-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 100%; font-size: 12px; }
+.exec-report-table th { padding: 10px 9px; color: var(--muted); font-weight: 600; text-align: left; border-bottom: 1px solid var(--card-border); white-space: nowrap; }
+.exec-report-table td { padding: 10px 9px; color: var(--text); vertical-align: top; border-bottom: 1px solid rgba(148,163,255,.08); }
+.exec-report-table tbody tr:last-child td { border-bottom: 0; }
+.exec-report-table .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.exec-report-table .best { color: #71e7c5; font-weight: 700; }
+.exec-report-table .status-good { color: #6ee7b7; }
+.exec-report-table .status-watch { color: #fbbf24; }
+.exec-report-quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.exec-report-quote { padding: 13px 14px; border: 1px solid var(--card-border); border-radius: 13px; background: rgba(255,255,255,.025); min-width: 0; }
+.exec-report-quote h4 { margin: 0 0 8px; color: var(--accent-2); font-size: 13px; }
+.exec-report-quote p { margin-top: 7px; color: var(--muted); font-size: 12px; line-height: 1.55; overflow-wrap: anywhere; }
+.exec-report-quote b { color: var(--text); }
+.exec-report-note { margin-top: 14px; padding: 11px 13px; border-left: 3px solid var(--accent-2); border-radius: 0 10px 10px 0; color: var(--muted); background: rgba(61,214,245,.055); font-size: 12px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .exec-report-head { display: block; }
+  .exec-report-back { display: inline-block; margin-top: 12px; }
+  .exec-report-grid, .exec-report-quotes { grid-template-columns: 1fr; }
+  .exec-report-wide { grid-column: auto; }
+  .exec-report-chart { height: 280px; }
+}
+</style>
+</head>
+<body>
+  <div class="bg-orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+  <header class="hero">
+    <div class="hero-text">
+      <p class="eyebrow"><span class="dot"></span> Phone Talk Analytics · nguồn <code>clean_data.json</code></p>
+      <h1>Người Việt bàn gì về <span class="grad">smartphone</span> trên YouTube?</h1>
+      <p class="sub" id="subtitle">Đang tải dữ liệu…</p>
+    </div>
+    <nav class="filters" id="brandFilters" aria-label="Lọc theo hãng"></nav>
+    <a class="report-jump" href="#executive-report">Mở báo cáo Galaxy S23 Ultra</a>
+  </header>
+
+  <main>
+    <section class="kpis" id="kpis" aria-label="Chỉ số tổng quan"></section>
+
+    <section class="grid">
+      <article class="card span-8" id="card-timeline">
+        <header><h2>Lượng bình luận theo tháng</h2><p>Theo giờ Việt Nam · xếp chồng theo hãng</p></header>
+        <div class="chart-box tall"><canvas id="timelineChart"></canvas></div>
+      </article>
+
+      <article class="card span-4" id="card-share">
+        <header><h2>Thị phần thảo luận</h2><p>Tỷ trọng bình luận theo hãng</p></header>
+        <div class="chart-box tall"><canvas id="shareChart"></canvas></div>
+      </article>
+
+      <article class="card span-12" id="card-models">
+        <header><h2>Bình luận theo dòng máy</h2><p id="modelsHint">Top dòng máy được bàn tán nhiều nhất</p></header>
+        <div class="chart-box xtall"><canvas id="modelsChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-aspects">
+        <header><h2>Người dùng quan tâm khía cạnh nào?</h2><p>% bình luận nhắc tới từng khía cạnh (so với toàn bộ)</p></header>
+        <div class="chart-box tall"><canvas id="aspectChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-mentions">
+        <header><h2>Hãng nào được nhắc tên?</h2><p>% bình luận có nhắc tới tên hãng – kể cả trong video của hãng khác</p></header>
+        <div class="chart-box tall"><canvas id="mentionChart"></canvas></div>
+      </article>
+
+      <article class="card span-7" id="card-heat">
+        <header><h2>Nhịp bình luận trong tuần</h2><p>Số bình luận theo thứ × giờ (GMT+7)</p></header>
+        <div class="heatmap" id="heatmap"></div>
+        <div class="heat-legend"><span>Ít</span><i></i><span>Nhiều</span></div>
+      </article>
+
+      <article class="card span-5" id="card-likes">
+        <header><h2>Phân bố lượt thích</h2><p>Phần lớn bình luận không có like – trục log</p></header>
+        <div class="chart-box"><canvas id="likeChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-replies">
+        <header><h2>Mức độ tạo thảo luận (Reply)</h2><p id="replyHint">Phân bố số phản hồi trên mỗi bình luận gốc</p></header>
+        <div class="chart-box"><canvas id="replyChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-brand-sent">
+        <header><h2>Sắc thái Khen / Chê theo khía cạnh</h2><p id="brandSentHint">Net Sentiment (% Khen − % Chê) trên 8 khía cạnh</p></header>
+        <div class="chart-box"><canvas id="brandSentChart"></canvas></div>
+      </article>
+
+      <article class="card span-7" id="card-cloud">
+        <header><h2>Cụm từ nổi bật</h2><p>Cặp từ (bigram) xuất hiện trong nhiều bình luận nhất · rê chuột để xem số lượng</p></header>
+        <div class="cloud" id="cloud"></div>
+        <div class="emoji-strip" id="emojis"></div>
+      </article>
+
+      <article class="card span-5" id="card-words">
+        <header><h2>Từ đơn phổ biến</h2><p>Sau khi loại stopword tiếng Việt</p></header>
+        <div class="chart-box tall"><canvas id="wordChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-length">
+        <header><h2>Độ dài bình luận</h2><p>Số ký tự mỗi bình luận</p></header>
+        <div class="chart-box"><canvas id="lenChart"></canvas></div>
+      </article>
+
+      <article class="card span-6" id="card-authors">
+        <header><h2>Mức độ hoạt động của người bình luận</h2><p id="authorHint">Số bình luận mỗi tài khoản</p></header>
+        <div class="chart-box"><canvas id="authorChart"></canvas></div>
+      </article>
+
+      <article class="card span-12" id="card-bubble">
+        <header><h2>Độ “hot” vs. độ tương tác của từng dòng máy</h2><p>Trục X: số bình luận (log) · Trục Y: like trung bình/bình luận · kích thước: số người bình luận</p></header>
+        <div class="chart-box xtall"><canvas id="bubbleChart"></canvas></div>
+      </article>
+
+      <article class="card span-12" id="card-matrix">
+        <header><h2>Ma trận khía cạnh × dòng máy</h2><p>% bình luận của mỗi dòng máy nhắc tới khía cạnh – màu càng đậm càng được bàn nhiều (chỉ dòng máy ≥ 500 bình luận)</p></header>
+        <div class="matrix-wrap"><table class="matrix" id="matrix"></table></div>
+      </article>
+
+      <article class="card span-7" id="card-top">
+        <header><h2>Bình luận được thích nhiều nhất</h2><p>Theo bộ lọc hiện tại</p></header>
+        <ol class="top-list" id="topComments"></ol>
+      </article>
+
+      <article class="card span-5" id="card-videos">
+        <header><h2>Video có nhiều bình luận nhất</h2><p id="videoHint">Toàn bộ dữ liệu</p></header>
+        <ol class="video-list" id="topVideos"></ol>
+      </article>
+    </section>
+
+    <section class="exec-report" id="executive-report" aria-labelledby="exec-report-title">
+      <div class="exec-report-head">
+        <div>
+          <p class="exec-report-eyebrow">Báo cáo bổ sung</p>
+          <h2 id="exec-report-title">Galaxy S23 Ultra qua 5 câu hỏi</h2>
+          <p>So sánh cùng một cửa sổ bốn tuần đầu kể từ Ngày 0, giữa máy X, thế hệ trước và hai đối thủ cùng phân khúc.</p>
+        </div>
+        <a class="exec-report-back" href="#card-timeline">Quay lại dashboard tổng quan</a>
+      </div>
+      <div class="exec-report-models" aria-label="Bốn model được đối chiếu">
+        <span>Galaxy S23 Ultra · Model X</span>
+        <span>Galaxy S22 Ultra · đời trước</span>
+        <span>iPhone 14 Pro Max</span>
+        <span>Xiaomi 13 Ultra</span>
+      </div>
+
+      <div class="exec-report-tabs" role="tablist" aria-label="Câu hỏi báo cáo">
+        <button class="exec-report-tab" id="exec-tab-q1" type="button" role="tab" aria-selected="true" aria-controls="exec-panel-q1" data-report-tab="q1">1 · Tiếp nhận</button>
+        <button class="exec-report-tab" id="exec-tab-q2" type="button" role="tab" aria-selected="false" aria-controls="exec-panel-q2" data-report-tab="q2">2 · Ưu và nhược điểm</button>
+        <button class="exec-report-tab" id="exec-tab-q3" type="button" role="tab" aria-selected="false" aria-controls="exec-panel-q3" data-report-tab="q3">3 · So với đối thủ</button>
+        <button class="exec-report-tab" id="exec-tab-q4" type="button" role="tab" aria-selected="false" aria-controls="exec-panel-q4" data-report-tab="q4">4 · Cải thiện theo thế hệ</button>
+        <button class="exec-report-tab" id="exec-tab-q5" type="button" role="tab" aria-selected="false" aria-controls="exec-panel-q5" data-report-tab="q5">5 · Ưu tiên lỗi</button>
+      </div>
+
+      <section class="exec-report-panel" id="exec-panel-q1" role="tabpanel" aria-labelledby="exec-tab-q1">
+        <header><h3>Máy X được đón nhận tốt hay dở?</h3><p>Net Sentiment theo tuần kể từ Ngày 0 và so sánh tổng thể giữa bốn Model.</p></header>
+        <div class="exec-report-grid">
+          <article class="exec-report-card">
+            <h4>Net Sentiment theo tuần</h4>
+            <div class="exec-report-chart"><canvas id="exec-q1-chart" aria-label="Net Sentiment theo tuần của bốn Model"></canvas></div>
+          </article>
+          <article class="exec-report-card">
+            <h4>Kết quả trong cửa sổ ra mắt</h4>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-q1-table"></table></div>
+            <p class="exec-report-note">Net Sentiment = tỷ lệ khen trừ tỷ lệ chê. Giá trị dương thể hiện tỷ lệ khen cao hơn tỷ lệ chê.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="exec-report-panel" id="exec-panel-q2" role="tabpanel" aria-labelledby="exec-tab-q2" hidden>
+        <header><h3>Ưu điểm và nhược điểm của Model X là gì?</h3><p>Tỷ lệ khen và chê theo từng Aspect; chê nằm bên trái, khen nằm bên phải.</p></header>
+        <div class="exec-report-grid">
+          <article class="exec-report-card exec-report-wide">
+            <h4>Sentiment theo Aspect</h4>
+            <div class="exec-report-chart"><canvas id="exec-q2-chart" aria-label="Tỷ lệ khen và chê theo Aspect"></canvas></div>
+          </article>
+          <article class="exec-report-card exec-report-wide">
+            <h4>Bình luận thực tế theo Aspect</h4>
+            <div class="exec-report-quotes" id="exec-q2-quotes"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="exec-report-panel" id="exec-panel-q3" role="tabpanel" aria-labelledby="exec-tab-q3" hidden>
+        <header><h3>Model X mạnh và yếu ở đâu so với đối thủ?</h3><p>Đối chiếu tỷ lệ khen trên từng Aspect và kết quả trong các bình luận so sánh trực tiếp.</p></header>
+        <div class="exec-report-grid">
+          <article class="exec-report-card">
+            <h4>Tỷ lệ khen · Aspect × Model</h4>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-q3-matrix"></table></div>
+          </article>
+          <article class="exec-report-card">
+            <h4>So sánh trực tiếp</h4>
+            <div class="exec-report-chart compact"><canvas id="exec-q3-chart" aria-label="Tỷ lệ phần trăm trong so sánh trực tiếp"></canvas></div>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-q3-h2h"></table></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="exec-report-panel" id="exec-panel-q4" role="tabpanel" aria-labelledby="exec-tab-q4" hidden>
+        <header><h3>Thế hệ mới đã cải thiện những điểm bị chê nào?</h3><p>So sánh tỷ lệ chê theo Aspect giữa Galaxy S22 Ultra → S23 Ultra và nhóm đối chứng iPhone 13 PM → iPhone 14 PM.</p></header>
+        <div class="exec-report-grid">
+          <article class="exec-report-card">
+            <h4>Tỷ lệ chê · S22 Ultra → S23 Ultra (Máy X)</h4>
+            <div class="exec-report-chart"><canvas id="exec-q4-chart" aria-label="Slope chart tỷ lệ chê giữa hai thế hệ Galaxy S Ultra"></canvas></div>
+          </article>
+          <article class="exec-report-card">
+            <h4>Đối chứng · iPhone 13 PM → iPhone 14 PM</h4>
+            <div class="exec-report-chart"><canvas id="exec-q4-ip-chart" aria-label="Slope chart tỷ lệ chê giữa hai thế hệ iPhone Pro Max"></canvas></div>
+          </article>
+          <article class="exec-report-card exec-report-wide">
+            <h4>Thay đổi tỷ lệ chê theo Aspect (Samsung vs. Đối chứng Apple)</h4>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-q4-table"></table></div>
+            <p class="exec-report-note">Tỷ lệ chê giảm (↓) ở thế hệ mới thể hiện mức cải thiện thực tế trên Aspect tương ứng (S23 Ultra giảm chê rõ ở Nhiệt độ −7,2 điểm % và Pin &amp; sạc −2,6 điểm %).</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="exec-report-panel" id="exec-panel-q5" role="tabpanel" aria-labelledby="exec-tab-q5" hidden>
+        <header><h3>Lỗi nào cần được ưu tiên xử lý?</h3><p>Chỉ tổng hợp báo cáo lỗi từ người đã trải nghiệm máy; sắp xếp theo số lần nhắc và xu hướng.</p></header>
+        <div class="exec-report-grid">
+          <article class="exec-report-card exec-report-wide">
+            <h4>Tần suất báo lỗi từ người đã dùng máy &amp; riêng trên S23 Ultra</h4>
+            <div class="exec-report-chart compact"><canvas id="exec-q5-chart" aria-label="Biểu đồ tần suất báo lỗi từ người dùng thực tế"></canvas></div>
+          </article>
+          <article class="exec-report-card exec-report-wide">
+            <h4>Bảng phân loại mức ưu tiên &amp; bằng chứng bình luận</h4>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-q5-table"></table></div>
+          </article>
+        </div>
+      </section>
+
+    </section>
+
+    <section class="exec-report" id="forecast-report" aria-labelledby="forecast-report-title">
+      <div class="exec-report-head">
+        <div>
+          <p class="exec-report-eyebrow">Phân tích mở rộng · Ngoài 5 câu hỏi trọng tâm</p>
+          <h2 id="forecast-report-title">Dự báo xu hướng tuyến tính (Linear Regression)</h2>
+          <p>Mô hình hồi quy tuyến tính cơ bản được fit trên Net Sentiment tuần 1–4 kể từ Ngày 0 và phóng chiếu qua tuần 5–8 để tham khảo xu hướng ngắn hạn giữa bốn dòng máy.</p>
+        </div>
+        <a class="exec-report-back" href="#executive-report">Lên báo cáo 5 câu hỏi</a>
+      </div>
+      <div class="exec-report-panel" id="exec-panel-q6">
+        <div class="exec-report-grid">
+          <article class="exec-report-card">
+            <h4>Galaxy S23 Ultra · dữ liệu thực tế và đường hồi quy</h4>
+            <div class="exec-report-chart"><canvas id="exec-lr-s23-chart" aria-label="Net Sentiment thực tế và dự báo tuyến tính của S23 Ultra"></canvas></div>
+            <p class="exec-report-note">Đường xanh: S23 Ultra thực tế ở tuần 1–4. Đường xám: Linear Regression fit trên dữ liệu này. Đường vàng kéo dài dự báo tuần 5–8; dữ liệu hiện tại chưa có quan sát S23 Ultra đủ điều kiện sau tuần 4.</p>
+          </article>
+          <article class="exec-report-card">
+            <h4>Dự báo Net Sentiment ở tuần 8</h4>
+            <div class="exec-report-chart"><canvas id="exec-lr-model-chart" aria-label="Dự báo tuyến tính tuần 8 giữa bốn Model"></canvas></div>
+          </article>
+          <article class="exec-report-card exec-report-wide">
+            <h4>Độ dốc và mức dự báo của từng Model</h4>
+            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-lr-table"></table></div>
+            <p class="exec-report-note" id="exec-lr-insight"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot">
+    <p id="footnote"></p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="eda_smartphone_outputs/executive_report_data.js"></script>
+  <script>window.DASH = {"meta": {"source": "clean_data.json", "generated": "2026-10-20 11:05", "rows": 109344, "emptyText": 9, "start": "2014-09", "end": "2026-10", "brands": ["Apple", "Samsung", "Xiaomi", "OPPO", "Huawei", "vivo", "Đa hãng"], "aspects": ["Camera", "Pin & sạc", "Màn hình", "Giá cả", "Hiệu năng", "Thiết kế", "Phần mềm", "Ý định mua"], "mentions": ["Apple", "Samsung", "Xiaomi", "OPPO", "Huawei", "vivo", "Google"]}, "all": {"kpi": {"comments": 109344, "replies": 47311, "topLevel": 62033, "videos": 654, "authors": 53521, "likes": 167859, "avgLikes": 1.54, "avgLen": 72.4}, "monthly": {"2014-09": 287, "2014-10": 679, "2014-11": 326, "2015-08": 599, "2015-09": 338, "2016-03": 1600, "2016-04": 360, "2016-09": 4116, "2016-10": 289, "2017-04": 2661, "2017-05": 1238, "2017-07": 348, "2017-08": 7, "2017-09": 4454, "2017-10": 1225, "2017-11": 4553, "2018-03": 440, "2018-04": 20, "2018-06": 809, "2019-09": 7191, "2019-10": 1984, "2020-03": 1372, "2020-04": 584, "2020-08": 1164, "2020-09": 783, "2020-11": 5769, "2020-12": 2942, "2021-01": 4630, "2021-02": 1614, "2021-03": 2514, "2021-04": 3925, "2021-09": 4751, "2021-10": 4566, "2022-02": 549, "2022-03": 2159, "2022-07": 2014, "2022-09": 6970, "2022-10": 1671, "2022-12": 267, "2023-02": 7182, "2023-03": 1266, "2023-04": 1417, "2023-05": 345, "2023-10": 860, "2024-01": 43, "2024-02": 1529, "2024-03": 1245, "2024-10": 14, "2024-11": 20, "2025-01": 2692, "2025-02": 2691, "2025-03": 1936, "2025-09": 3866, "2025-10": 2143, "2026-01": 160, "2026-02": 58, "2026-10": 109}, "heat": [[420, 229, 144, 91, 54, 106, 204, 319, 394, 438, 448, 483, 814, 746, 506, 584, 477, 483, 709, 1185, 1894, 1625, 1215, 768], [372, 186, 128, 72, 64, 123, 233, 344, 473, 439, 589, 635, 768, 536, 571, 580, 618, 777, 1016, 1223, 1455, 1455, 1082, 706], [384, 219, 133, 81, 59, 111, 197, 339, 453, 417, 538, 670, 882, 654, 619, 576, 542, 716, 954, 1182, 1405, 1170, 895, 519], [341, 199, 148, 81, 64, 100, 211, 337, 425, 526, 580, 790, 914, 564, 441, 424, 485, 543, 834, 1282, 1681, 1841, 1263, 764], [503, 226, 127, 94, 92, 133, 240, 392, 524, 659, 738, 734, 854, 677, 601, 613, 565, 662, 791, 961, 1253, 1508, 1170, 808], [378, 252, 157, 71, 75, 118, 249, 511, 658, 608, 888, 1190, 1344, 1364, 1006, 887, 849, 918, 946, 1264, 1862, 1735, 1385, 907], [535, 280, 134, 113, 84, 121, 309, 501, 644, 729, 868, 991, 1124, 933, 779, 758, 717, 768, 984, 1331, 1518, 1408, 1106, 728]], "lenHist": [["0–10", 5000], ["10–20", 10101], ["20–40", 27567], ["40–60", 21074], ["60–80", 13868], ["80–100", 9052], ["100–150", 11831], ["150–200", 4996], ["200–300", 3768], ["300–500", 1615], ["500–1000", 413], ["1000+", 59]], "likeHist": [["0", 75225], ["1", 17641], ["2–5", 11620], ["6–10", 2386], ["11–50", 2062], ["51–100", 252], ["101–500", 145], ["500+", 13]], "authorHist": [["1", 37560], ["2", 7833], ["3–5", 5462], ["6–10", 1687], ["11–20", 679], ["21–50", 251], ["50+", 49]], "topAuthorsShare": 16.8, "words": [["mua", 13361], ["iphone", 10648], ["ip", 8339], ["pro", 6449], ["giá", 6367], ["note", 5597], ["hình", 4836], ["đẹp", 4820], ["màn", 4655], ["pin", 4630], ["samsung", 4595], ["tiền", 4495], ["game", 4358], ["ngon", 4229], ["nhìn", 4155], ["chơi", 4142], ["thích", 3591], ["max", 3533], ["tốt", 3353], ["ss", 3338], ["ultra", 3309], ["xiaomi", 3173], ["xài", 3034], ["trong", 2969], ["công", 2856], ["chụp", 2808], ["video", 2800], ["năng", 2791], ["camera", 2780], ["hàng", 2756], ["bán", 2750], ["apple", 2739], ["mi", 2658], ["cứ", 2648], ["điện", 2600], ["tầm", 2529], ["hãng", 2519], ["android", 2492], ["bản", 2473], ["đúng", 2465], ["nhanh", 2455], ["tay", 2451], ["bằng", 2442], ["sánh", 2440], ["cảm", 2429], ["thoại", 2419], ["hiệu", 2403], ["ảnh", 2364], ["sạc", 2361], ["đấy", 2350], ["hỏi", 2328], ["đt", 2306], ["nghe", 2278], ["cam", 2258], ["cao", 2255], ["bảo", 2253], ["chính", 2235], ["độ", 2223], ["test", 2200], ["thua", 2187]], "bigrams": [["màn hình", 2788], ["pro max", 2715], ["điện thoại", 2308], ["chơi game", 2306], ["thiết kế", 1685], ["hiệu năng", 1536], ["công nghệ", 1194], ["chính hãng", 1160], ["iphone pro", 1098], ["tối ưu", 1034], ["cảm ơn", 1005], ["sử dụng", 953], ["chụp ảnh", 904], ["trải nghiệm", 894], ["mua iphone", 859], ["tư vấn", 851], ["quan trọng", 820], ["đánh giá", 767], ["tiền mua", 740], ["tính năng", 694], ["ổn định", 668], ["tầm giá", 660], ["xách tay", 619], ["phần mềm", 618], ["mua ip", 615], ["sạc nhanh", 606], ["bình thường", 605], ["cấu hình", 594], ["tai thỏ", 593], ["quay video", 585], ["sam sung", 584], ["vấn đề", 582], ["thời gian", 581], ["nâng cấp", 568], ["thương hiệu", 563], ["việt nam", 555], ["thực tế", 549], ["pin trâu", 546], ["chi tiết", 542], ["vật vờ", 541]], "emojis": [["😂", 8485], ["🤣", 3030], ["😅", 1474], ["😁", 1352], ["❤", 890], ["😆", 791], ["👍", 604], ["😊", 538], ["😢", 455], ["🌟", 428], ["😄", 345], ["😍", 305], ["😀", 273], ["🤔", 260], ["😏", 255], ["🎉", 215]], "aspects": {"Camera": 7.02, "Pin & sạc": 5.74, "Màn hình": 4.87, "Giá cả": 13.89, "Hiệu năng": 9.96, "Thiết kế": 8.73, "Phần mềm": 4.88, "Ý định mua": 13.82}, "aspectCounts": {"Camera": 7673, "Pin & sạc": 6274, "Màn hình": 5330, "Giá cả": 15187, "Hiệu năng": 10895, "Thiết kế": 9546, "Phần mềm": 5332, "Ý định mua": 15106}, "mentions": {"Apple": 16.44, "Samsung": 12.06, "Xiaomi": 5.46, "OPPO": 1.28, "Huawei": 0.58, "vivo": 0.62, "Google": 0.69}, "top": [{"likes": 1786, "text": "Sếp Huy kiểu: như này mới là cùng đẳng cấp", "model": "iPhone 14 Pro Max", "date": "2022-09-26", "video": "jWcI_q7d_Rk", "reply": false}, {"likes": 957, "text": "1/20 1/15 doanh số bán phở trong 1 tiếng =)))) đỉnh vl", "model": "iPhone 13 Pro Max", "date": "2021-09-27", "video": "ZgFOPUDaCVI", "reply": false}, {"likes": 841, "text": "1/20, 1/15 doanh số bán phở trong 1 tiếng =))))", "model": "iPhone 13 Pro Max", "date": "2021-09-27", "video": "ZgFOPUDaCVI", "reply": false}, {"likes": 817, "text": "Tướng chạy của người đàn ông sau khi lấy vợ nó lạ lắm😢😢", "model": "iPhone 14 Pro Max", "date": "2022-09-21", "video": "W06ooZS3Ik0", "reply": false}, {"likes": 797, "text": "Có ai dùng 6s đang cảm thấy tự hào như tôi ko.", "model": "Galaxy S8", "date": "2017-04-25", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 764, "text": "*Fan của iphone X*\n*Nhìn là thích*\n*Xem là nghiền*\n*tiếc là không có tiền*\n*không là mua liền 1 con*\n*ngày đêm trông ngóng dép mòn*\n*hôm nay xuất hiện, ôi con của mình*", "model": "iPhone X", "date": "2017-11-03", "video": "NZCkhxhHBto", "reply": false}, {"likes": 743, "text": "Anh em có vẻ thích từ cà khịa nhỉ, mình biết làm speedtest sẽ bị chửi là không công bằng nên tự chửi chứ có rảnh đâu mà đi cà khịa làm gì :) vãi thật.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 617, "text": "Khó tin vcl 🤣🤣 cảm thấy tự hào với con 6s đang dùng 😂😂", "model": "Galaxy S8", "date": "2017-04-25", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 613, "text": "Thích Iphone 11 Pro hơn. Nhỏ hơn mà giá chỉ bằng một cái chân đế màn hình.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 571, "text": "Đang thấy chán con ip 6s vãi lồng tự dưng xem xong video này yêu đời hẳn lên =))", "model": "Galaxy S8", "date": "2017-04-27", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 552, "text": "Luôn có 2 loại người mua điện thoại:\nLoại thứ nhất mua điện thoại để phục vụ bản thân\nLoại thứ hai thì mua điện thoại về để bản thân phục vụ điện thoại.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 525, "text": "Nhà cháu cũng có 1 con xe như này nhưng hết pin mất r", "model": "Galaxy S22 Ultra", "date": "2022-03-04", "video": "QoiXkx2KNn8", "reply": false}]}, "byBrand": {"Apple": {"kpi": {"comments": 51184, "replies": 20843, "topLevel": 30341, "videos": 259, "authors": 29798, "likes": 94722, "avgLikes": 1.85, "avgLen": 71.1}, "monthly": {"2014-09": 287, "2014-10": 197, "2016-09": 4116, "2016-10": 289, "2017-09": 814, "2017-10": 896, "2017-11": 4553, "2019-09": 7191, "2019-10": 1984, "2020-11": 5769, "2020-12": 1012, "2021-09": 4751, "2021-10": 4566, "2022-09": 6970, "2022-10": 1671, "2025-09": 3866, "2025-10": 2143, "2026-10": 109}, "heat": [[261, 130, 82, 57, 32, 71, 107, 187, 214, 241, 266, 290, 474, 380, 257, 271, 252, 236, 364, 575, 897, 682, 485, 333], [177, 87, 65, 48, 36, 70, 121, 141, 202, 238, 305, 373, 445, 310, 229, 199, 236, 359, 478, 537, 582, 558, 428, 295], [157, 90, 52, 45, 25, 48, 86, 152, 199, 170, 211, 296, 433, 333, 255, 248, 250, 348, 386, 501, 523, 466, 342, 186], [159, 67, 37, 21, 25, 47, 78, 115, 156, 178, 189, 245, 343, 204, 151, 141, 169, 165, 205, 272, 519, 482, 333, 227], [164, 85, 35, 27, 35, 43, 75, 128, 170, 280, 351, 368, 405, 280, 243, 265, 265, 303, 412, 511, 698, 852, 673, 435], [228, 129, 70, 35, 42, 70, 137, 277, 429, 392, 460, 533, 631, 728, 518, 433, 493, 472, 540, 733, 990, 896, 688, 475], [238, 143, 70, 50, 43, 65, 148, 277, 352, 396, 452, 537, 663, 570, 433, 426, 452, 439, 607, 776, 907, 699, 554, 392]], "lenHist": [["0–10", 2386], ["10–20", 4820], ["20–40", 13271], ["40–60", 9932], ["60–80", 6368], ["80–100", 4106], ["100–150", 5363], ["150–200", 2278], ["200–300", 1709], ["300–500", 737], ["500–1000", 193], ["1000+", 21]], "likeHist": [["0", 35136], ["1", 8180], ["2–5", 5361], ["6–10", 1153], ["11–50", 1086], ["51–100", 161], ["101–500", 98], ["500+", 9]], "authorHist": [["1", 22275], ["2", 3981], ["3–5", 2562], ["6–10", 654], ["11–20", 244], ["21–50", 68], ["50+", 14]], "topAuthorsShare": 13.1, "words": [["mua", 6386], ["iphone", 6149], ["ip", 4586], ["pro", 3517], ["max", 2579], ["giá", 2501], ["tiền", 2437], ["note", 2358], ["pin", 2338], ["hình", 2176], ["game", 2130], ["chơi", 2082], ["màn", 2051], ["đẹp", 2020], ["nhìn", 1821], ["apple", 1778], ["thích", 1652], ["ngon", 1509], ["xài", 1373], ["công", 1368], ["samsung", 1366], ["trong", 1321], ["android", 1292], ["tốt", 1276], ["cứ", 1238], ["hàng", 1231], ["bán", 1220], ["video", 1216], ["điện", 1188], ["năng", 1165], ["đúng", 1151], ["đấy", 1123], ["test", 1119], ["sạc", 1119], ["tay", 1118], ["nhanh", 1113], ["màu", 1111], ["bằng", 1110], ["bảo", 1103], ["thoại", 1093], ["hỏi", 1076], ["nghe", 1064], ["đầu", 1018], ["đt", 1017], ["camera", 1015], ["cảm", 1000], ["sánh", 998], ["độ", 997], ["qua", 980], ["thể", 977], ["chụp", 976], ["bản", 964], ["ng", 960], ["ss", 949], ["plus", 942], ["ios", 942], ["dương", 939], ["hiệu", 926], ["nhau", 920], ["hãng", 909]], "bigrams": [["pro max", 2056], ["màn hình", 1302], ["chơi game", 1103], ["điện thoại", 1029], ["iphone pro", 798], ["thiết kế", 685], ["hiệu năng", 593], ["công nghệ", 590], ["mua iphone", 515], ["tai thỏ", 478], ["sử dụng", 445], ["tối ưu", 443], ["cảm ơn", 426], ["tiền mua", 424], ["ip pro", 372], ["chính hãng", 357], ["tư vấn", 356], ["mua ip", 346], ["quan trọng", 341], ["trải nghiệm", 341], ["tính năng", 312], ["nâng cấp", 309], ["chụp ảnh", 306], ["đánh giá", 297], ["pin trâu", 297], ["xs max", 286], ["việt nam", 282], ["bình thường", 282], ["thời gian", 278], ["ổn định", 277], ["sạc nhanh", 272], ["thực tế", 262], ["vấn đề", 249], ["vật vờ", 243], ["cấu hình", 234], ["phân vân", 230], ["công nhận", 224], ["quan tâm", 218], ["thay đổi", 209], ["sức khỏe", 201]], "emojis": [["😂", 3995], ["🤣", 1547], ["😅", 640], ["😆", 452], ["❤", 416], ["😁", 400], ["👍", 288], ["😊", 243], ["😢", 178], ["😄", 156], ["😏", 146], ["😍", 131], ["🤔", 123], ["😀", 117], ["🙂", 115], ["😌", 111]], "aspects": {"Camera": 5.38, "Pin & sạc": 6.16, "Màn hình": 5.01, "Giá cả": 13.46, "Hiệu năng": 8.84, "Thiết kế": 8.43, "Phần mềm": 4.81, "Ý định mua": 14.09}, "aspectCounts": {"Camera": 2756, "Pin & sạc": 3151, "Màn hình": 2563, "Giá cả": 6889, "Hiệu năng": 4526, "Thiết kế": 4313, "Phần mềm": 2462, "Ý định mua": 7214}, "mentions": {"Apple": 20.68, "Samsung": 8.76, "Xiaomi": 2.34, "OPPO": 0.56, "Huawei": 0.51, "vivo": 0.21, "Google": 0.66}, "top": [{"likes": 1786, "text": "Sếp Huy kiểu: như này mới là cùng đẳng cấp", "model": "iPhone 14 Pro Max", "date": "2022-09-26", "video": "jWcI_q7d_Rk", "reply": false}, {"likes": 957, "text": "1/20 1/15 doanh số bán phở trong 1 tiếng =)))) đỉnh vl", "model": "iPhone 13 Pro Max", "date": "2021-09-27", "video": "ZgFOPUDaCVI", "reply": false}, {"likes": 841, "text": "1/20, 1/15 doanh số bán phở trong 1 tiếng =))))", "model": "iPhone 13 Pro Max", "date": "2021-09-27", "video": "ZgFOPUDaCVI", "reply": false}, {"likes": 817, "text": "Tướng chạy của người đàn ông sau khi lấy vợ nó lạ lắm😢😢", "model": "iPhone 14 Pro Max", "date": "2022-09-21", "video": "W06ooZS3Ik0", "reply": false}, {"likes": 764, "text": "*Fan của iphone X*\n*Nhìn là thích*\n*Xem là nghiền*\n*tiếc là không có tiền*\n*không là mua liền 1 con*\n*ngày đêm trông ngóng dép mòn*\n*hôm nay xuất hiện, ôi con của mình*", "model": "iPhone X", "date": "2017-11-03", "video": "NZCkhxhHBto", "reply": false}, {"likes": 743, "text": "Anh em có vẻ thích từ cà khịa nhỉ, mình biết làm speedtest sẽ bị chửi là không công bằng nên tự chửi chứ có rảnh đâu mà đi cà khịa làm gì :) vãi thật.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 613, "text": "Thích Iphone 11 Pro hơn. Nhỏ hơn mà giá chỉ bằng một cái chân đế màn hình.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 552, "text": "Luôn có 2 loại người mua điện thoại:\nLoại thứ nhất mua điện thoại để phục vụ bản thân\nLoại thứ hai thì mua điện thoại về để bản thân phục vụ điện thoại.", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 524, "text": "Kết cả 2em nhưng chỉ dám đứng nhìn xa vì k có xiền😣😣😣", "model": "iPhone 11 Pro", "date": "2019-09-21", "video": "qReOShDjjKI", "reply": false}, {"likes": 456, "text": "Tân một cú said: xin lỗi anh chỉ là thằng bán phở :))", "model": "iPhone 13 Pro Max", "date": "2021-09-28", "video": "ZgFOPUDaCVI", "reply": false}, {"likes": 453, "text": "Đang phân vân giữa 7plus và 8plus, may nhờ video này mà em đã quyết định lấy note 8 :)))))))", "model": "iPhone 8", "date": "2017-10-15", "video": "ajBb2vp3-9A", "reply": false}, {"likes": 453, "text": "Sếp huy thề đáng yeuu vãi 🤣\nXem cứ có sếp huy cứ bị cuốn bởi mặt xếp huy ý 🤣", "model": "iPhone 14 Pro Max", "date": "2022-09-28", "video": "jWcI_q7d_Rk", "reply": false}]}, "Samsung": {"kpi": {"comments": 33234, "replies": 14684, "topLevel": 18550, "videos": 267, "authors": 17853, "likes": 44669, "avgLikes": 1.34, "avgLen": 75.4}, "monthly": {"2014-10": 482, "2014-11": 326, "2015-08": 599, "2015-09": 338, "2016-03": 1600, "2016-04": 360, "2017-04": 2661, "2017-05": 1142, "2017-07": 348, "2017-08": 7, "2017-09": 2481, "2017-10": 247, "2018-03": 440, "2018-04": 20, "2020-08": 1164, "2020-09": 783, "2021-01": 373, "2021-02": 1614, "2021-03": 1337, "2021-04": 186, "2022-02": 549, "2022-03": 2159, "2023-02": 7182, "2023-03": 1266, "2023-04": 350, "2025-01": 2692, "2025-02": 2310, "2026-01": 160, "2026-02": 58}, "heat": [[98, 50, 31, 22, 8, 19, 52, 73, 97, 131, 99, 102, 135, 130, 117, 130, 130, 103, 118, 287, 528, 558, 452, 258], [99, 47, 32, 10, 18, 36, 55, 69, 112, 105, 110, 155, 211, 127, 129, 121, 142, 164, 254, 419, 453, 560, 364, 247], [132, 85, 55, 26, 23, 27, 58, 84, 122, 112, 139, 165, 255, 170, 194, 213, 183, 222, 311, 311, 464, 331, 261, 177], [96, 85, 76, 44, 24, 41, 89, 135, 141, 176, 192, 269, 318, 190, 111, 129, 136, 177, 301, 615, 702, 670, 483, 322], [202, 66, 46, 35, 37, 53, 101, 139, 178, 222, 176, 227, 320, 289, 247, 249, 208, 283, 263, 298, 415, 523, 368, 295], [118, 94, 38, 23, 26, 38, 88, 165, 156, 143, 290, 347, 420, 393, 330, 300, 246, 322, 296, 419, 614, 561, 481, 310], [181, 95, 41, 46, 35, 37, 98, 135, 172, 213, 253, 252, 276, 210, 190, 155, 149, 165, 195, 273, 381, 336, 296, 183]], "lenHist": [["0–10", 1546], ["10–20", 2971], ["20–40", 8034], ["40–60", 6438], ["60–80", 4282], ["80–100", 2781], ["100–150", 3680], ["150–200", 1539], ["200–300", 1215], ["300–500", 573], ["500–1000", 142], ["1000+", 33]], "likeHist": [["0", 22953], ["1", 5253], ["2–5", 3620], ["6–10", 732], ["11–50", 589], ["51–100", 50], ["101–500", 33], ["500+", 4]], "authorHist": [["1", 12838], ["2", 2568], ["3–5", 1761], ["6–10", 448], ["11–20", 176], ["21–50", 49], ["50+", 13]], "topAuthorsShare": 14.7, "words": [["mua", 3660], ["iphone", 2631], ["note", 2332], ["samsung", 2295], ["ip", 2184], ["giá", 1890], ["ss", 1699], ["ultra", 1641], ["đẹp", 1606], ["màn", 1565], ["hình", 1547], ["pin", 1435], ["ngon", 1399], ["nhìn", 1278], ["tiền", 1194], ["tốt", 1172], ["game", 1168], ["thích", 1148], ["năng", 1044], ["chơi", 1037], ["pro", 1037], ["xài", 1023], ["video", 945], ["trong", 929], ["bản", 913], ["chụp", 911], ["sánh", 865], ["hiệu", 842], ["camera", 837], ["công", 837], ["bằng", 822], ["độ", 809], ["hàng", 808], ["nhanh", 806], ["thua", 805], ["cứ", 791], ["bán", 787], ["ảnh", 782], ["đúng", 780], ["tay", 776], ["cao", 766], ["chip", 763], ["điện", 751], ["plus", 744], ["tầm", 735], ["sam", 734], ["hãng", 733], ["thiết", 729], ["cảm", 724], ["thoại", 709], ["qua", 708], ["quay", 699], ["đt", 687], ["chọn", 684], ["đấy", 678], ["thể", 673], ["bảo", 667], ["tính", 667], ["test", 653], ["chính", 650]], "bigrams": [["màn hình", 908], ["điện thoại", 681], ["thiết kế", 620], ["hiệu năng", 594], ["chơi game", 562], ["tối ưu", 374], ["pro max", 348], ["sử dụng", 333], ["trải nghiệm", 331], ["công nghệ", 319], ["chính hãng", 312], ["đánh giá", 301], ["chụp ảnh", 293], ["cảm ơn", 272], ["sam sung", 271], ["tính năng", 268], ["quan trọng", 260], ["note ultra", 256], ["đa nhiệm", 245], ["phần mềm", 242], ["ổn định", 234], ["vật vờ", 223], ["chi tiết", 222], ["quay video", 213], ["long ngọng", 213], ["cao cấp", 211], ["nâng cấp", 206], ["ứng dụng", 203], ["samsung galaxy", 203], ["chất lượng", 200], ["vấn đề", 194], ["bình thường", 188], ["tiền mua", 188], ["tốc độ", 187], ["cấu hình", 184], ["iphone plus", 180], ["tư vấn", 180], ["tầm giá", 179], ["thời gian", 177], ["thực tế", 173]], "emojis": [["😂", 2483], ["🤣", 845], ["😁", 684], ["😅", 479], ["🌟", 426], ["❤", 238], ["👍", 202], ["😆", 172], ["😢", 154], ["😊", 151], ["😄", 138], ["😍", 111], ["😀", 103], ["🎉", 71], ["😃", 68], ["👌", 65]], "aspects": {"Camera": 6.85, "Pin & sạc": 5.5, "Màn hình": 4.9, "Giá cả": 12.57, "Hiệu năng": 11.6, "Thiết kế": 9.46, "Phần mềm": 4.81, "Ý định mua": 12.83}, "aspectCounts": {"Camera": 2276, "Pin & sạc": 1827, "Màn hình": 1627, "Giá cả": 4178, "Hiệu năng": 3855, "Thiết kế": 3144, "Phần mềm": 1600, "Ý định mua": 4265}, "mentions": {"Apple": 13.03, "Samsung": 18.72, "Xiaomi": 2.31, "OPPO": 1.35, "Huawei": 0.21, "vivo": 0.32, "Google": 0.53}, "top": [{"likes": 797, "text": "Có ai dùng 6s đang cảm thấy tự hào như tôi ko.", "model": "Galaxy S8", "date": "2017-04-25", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 617, "text": "Khó tin vcl 🤣🤣 cảm thấy tự hào với con 6s đang dùng 😂😂", "model": "Galaxy S8", "date": "2017-04-25", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 571, "text": "Đang thấy chán con ip 6s vãi lồng tự dưng xem xong video này yêu đời hẳn lên =))", "model": "Galaxy S8", "date": "2017-04-27", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 525, "text": "Nhà cháu cũng có 1 con xe như này nhưng hết pin mất r", "model": "Galaxy S22 Ultra", "date": "2022-03-04", "video": "QoiXkx2KNn8", "reply": false}, {"likes": 400, "text": "Mới mua 6s được 1 tháng. Định đổi đt. Xem clip xong bỏ ý định luôn. Ai fan 6s và iphone like cái nào", "model": "Galaxy S8", "date": "2017-04-25", "video": "eP8i7Q6g2hI", "reply": false}, {"likes": 257, "text": "đang xem bằng s8 plus :))", "model": "Galaxy S8", "date": "2017-05-10", "video": "LFgpocXK_w8", "reply": false}, {"likes": 255, "text": "mình có con bạn đến giờ vẫn xài note 7 chưa đem đi trả ^^ đi gần nó hồi hộp vl", "model": "Galaxy Note FE", "date": "2017-07-29", "video": "nMmpyW_Wqdc", "reply": false}, {"likes": 251, "text": "Team éo có tiền mua giơ tay =))", "model": "Galaxy Note 8", "date": "2017-09-28", "video": "OC3wRbpmpac", "reply": false}, {"likes": 244, "text": "XT về mấy con siêu phẩm đỉnh của LG và Samsung nhanh như cách U22 về nước", "model": "Galaxy Note 8", "date": "2017-09-15", "video": "gfBP9oT-Llg", "reply": false}, {"likes": 231, "text": "ôi thiết kế, camera, pin, chống nước, tất cả các thứ đều toàn diện phải nói năm nay SS làm xuất sắc dễ sợ. Chỉ còn thiếu mỗi tiền nữa là mua được em nó rồi =)))", "model": "Galaxy S7 Edge", "date": "2016-03-31", "video": "OCAeMov07-s", "reply": false}, {"likes": 227, "text": "Chưa một lần đc hơn 15 like khi cmt trên kênh Vật Vờ😔", "model": "Galaxy S8", "date": "2017-04-21", "video": "ECvSwpM34eU", "reply": false}, {"likes": 207, "text": "Mình thích Mi6 hơn, có ai giống không:))", "model": "Galaxy S8", "date": "2017-05-01", "video": "NDgec20haQs", "reply": false}]}, "Xiaomi": {"kpi": {"comments": 19608, "replies": 9759, "topLevel": 9849, "videos": 103, "authors": 10172, "likes": 21350, "avgLikes": 1.09, "avgLen": 73.8}, "monthly": {"2017-05": 96, "2018-06": 809, "2020-12": 1451, "2021-01": 3893, "2021-03": 358, "2021-04": 3695, "2022-07": 2014, "2023-04": 1067, "2023-05": 345, "2023-10": 860, "2024-02": 1458, "2024-03": 1245, "2025-02": 381, "2025-03": 1936}, "heat": [[45, 28, 21, 8, 10, 10, 30, 37, 60, 49, 56, 52, 107, 119, 89, 156, 63, 117, 191, 284, 452, 311, 244, 158], [90, 49, 29, 10, 10, 15, 52, 129, 155, 93, 166, 97, 104, 75, 195, 245, 217, 232, 274, 257, 322, 266, 239, 136], [80, 36, 20, 10, 8, 32, 49, 96, 116, 113, 169, 192, 181, 121, 142, 91, 90, 133, 176, 276, 319, 331, 253, 125], [75, 42, 32, 14, 14, 11, 36, 78, 112, 158, 169, 244, 216, 125, 150, 129, 164, 175, 299, 359, 434, 372, 281, 142], [97, 52, 34, 23, 13, 24, 44, 96, 144, 117, 123, 88, 89, 79, 80, 86, 73, 62, 109, 132, 117, 108, 112, 57], [24, 26, 15, 5, 7, 8, 21, 62, 56, 64, 130, 151, 138, 166, 116, 122, 73, 83, 77, 78, 211, 242, 192, 99], [89, 37, 21, 10, 5, 19, 57, 65, 89, 107, 114, 168, 152, 93, 99, 84, 56, 104, 105, 176, 126, 271, 185, 107]], "lenHist": [["0–10", 803], ["10–20", 1638], ["20–40", 4763], ["40–60", 3677], ["60–80", 2587], ["80–100", 1770], ["100–150", 2338], ["150–200", 987], ["200–300", 712], ["300–500", 263], ["500–1000", 66], ["1000+", 4]], "likeHist": [["0", 13379], ["1", 3353], ["2–5", 2148], ["6–10", 396], ["11–50", 297], ["51–100", 28], ["101–500", 7], ["500+", 0]], "authorHist": [["1", 7253], ["2", 1500], ["3–5", 988], ["6–10", 281], ["11–20", 102], ["21–50", 41], ["50+", 7]], "topAuthorsShare": 16.1, "words": [["mua", 2763], ["xiaomi", 1939], ["mi", 1820], ["giá", 1634], ["iphone", 1568], ["pro", 1501], ["ip", 1281], ["ultra", 1149], ["ngon", 1102], ["hình", 853], ["chơi", 832], ["đẹp", 829], ["màn", 826], ["game", 824], ["chụp", 818], ["hãng", 756], ["pin", 752], ["tốt", 749], ["nhìn", 747], ["tầm", 743], ["samsung", 728], ["tiền", 716], ["camera", 676], ["chính", 657], ["ảnh", 632], ["thích", 625], ["bán", 624], ["cam", 610], ["note", 599], ["dương", 598], ["trong", 594], ["hàng", 592], ["cảm", 580], ["hỏi", 568], ["điện", 565], ["ss", 559], ["sạc", 543], ["xài", 534], ["thoại", 529], ["video", 529], ["công", 528], ["bản", 527], ["cứ", 525], ["đt", 512], ["nghe", 511], ["chọn", 510], ["quay", 490], ["hiệu", 486], ["cao", 479], ["android", 473], ["tay", 465], ["đấy", 462], ["sánh", 456], ["đúng", 449], ["chip", 432], ["bảo", 421], ["năng", 418], ["thua", 415], ["đầu", 414], ["bằng", 413]], "bigrams": [["điện thoại", 516], ["chơi game", 516], ["màn hình", 445], ["chính hãng", 425], ["pro max", 277], ["chụp ảnh", 269], ["mi ultra", 264], ["tư vấn", 257], ["cảm ơn", 254], ["thiết kế", 244], ["hiệu năng", 243], ["công nghệ", 242], ["xách tay", 238], ["tầm giá", 221], ["thu âm", 195], ["thương hiệu", 191], ["redmi note", 191], ["tối ưu", 191], ["note pro", 189], ["trải nghiệm", 186], ["quay video", 177], ["quan trọng", 175], ["phần mềm", 167], ["sạc nhanh", 164], ["mua iphone", 159], ["sử dụng", 143], ["đánh giá", 143], ["ổn định", 140], ["mi pro", 135], ["giá rẻ", 131], ["xiaomi ultra", 129], ["sức khỏe", 127], ["cấu hình", 124], ["cảm biến", 123], ["cao cấp", 121], ["vấn đề", 121], ["lâu dài", 121], ["chi tiết", 120], ["việt nam", 120], ["chất lượng", 117]], "emojis": [["😂", 1689], ["🤣", 520], ["😅", 312], ["😁", 216], ["😆", 136], ["❤", 133], ["😊", 122], ["😢", 119], ["👍", 85], ["😮", 69], ["🤔", 65], ["😍", 44], ["😄", 42], ["🎉", 40], ["😀", 39], ["😏", 39]], "aspects": {"Camera": 10.47, "Pin & sạc": 5.79, "Màn hình": 4.56, "Giá cả": 17.5, "Hiệu năng": 9.85, "Thiết kế": 7.77, "Phần mềm": 5.44, "Ý định mua": 15.46}, "aspectCounts": {"Camera": 2053, "Pin & sạc": 1136, "Màn hình": 895, "Giá cả": 3432, "Hiệu năng": 1932, "Thiết kế": 1523, "Phần mềm": 1066, "Ý định mua": 3031}, "mentions": {"Apple": 12.6, "Samsung": 9.5, "Xiaomi": 19.11, "OPPO": 2.13, "Huawei": 0.76, "vivo": 1.97, "Google": 0.56}, "top": [{"likes": 322, "text": "Mãi mới lên. Làm t hóng từ hôm qua 😰", "model": "Xiaomi Mi 11", "date": "2021-01-05", "video": "nYZaxaoxG9M", "reply": false}, {"likes": 204, "text": "Do video quay 4K nên anh em đợi một lúc youtube mới load được hết độ phân giải nha!", "model": "Xiaomi Mi 8", "date": "2018-06-07", "video": "zxuyI8bHq3s", "reply": false}, {"likes": 189, "text": "Uớc gì tiền chất đống, con nào cũng mua trải nghiệm rồi để chưng", "model": "Xiaomi Mi 11 Ultra", "date": "2021-04-05", "video": "LSRwwGpZzmY", "reply": false}, {"likes": 158, "text": "Đm đang sài mi5 , bao giờ có tiền để lên đời đây , điện thoại cứ như kinh nguyệt vậy tháng nào cũg có cái mới", "model": "Xiaomi Mi 8", "date": "2018-06-07", "video": "zxuyI8bHq3s", "reply": false}, {"likes": 142, "text": "mặc dù ko có tiền nhưng vẫn thích xem review điện thoại", "model": "Xiaomi 15 Ultra", "date": "2025-03-08", "video": "EUVXI2cEA9U", "reply": false}, {"likes": 138, "text": "Tiêu đề ngắn nhất lịch sử kênh", "model": "Xiaomi Mi 8", "date": "2018-06-07", "video": "zxuyI8bHq3s", "reply": false}, {"likes": 131, "text": "7:10 cái tay hư", "model": "Xiaomi Mi 11", "date": "2021-01-05", "video": "nYZaxaoxG9M", "reply": false}, {"likes": 100, "text": "Instagram 18 + 😂", "model": "Xiaomi Mi 11", "date": "2021-01-05", "video": "nYZaxaoxG9M", "reply": false}, {"likes": 86, "text": "Tuy Fan Xiaomi, mà Vivo X100 Pro làm quá tốt...Chúc mừng anh em Fan ViVo 😊😊😊", "model": "Xiaomi 14 Ultra", "date": "2024-03-04", "video": "vdCdo_oH5_Y", "reply": false}, {"likes": 85, "text": "cụm cam của Mi 11U hơi dày quá, bù lại chất lượng rất khá, năm nay Xiaomi căng phết", "model": "Xiaomi Mi 11 Ultra", "date": "2021-04-05", "video": "kXZrnuypFZk", "reply": false}, {"likes": 83, "text": "Mi14u cũng rất ngon. Nhưng bỏ hơn 20 triệu ra mua đt thì chủ yếu là dùng làm máy chính chứ k mấy người mua về làm máy phụ. Mà dùng làm máy chính thì cứ s24u mà quất thôi.", "model": "Xiaomi 14 Ultra", "date": "2024-02-28", "video": "EbsibG68NP0", "reply": false}, {"likes": 82, "text": "7:11 bậy rồi nha", "model": "Xiaomi Mi 11", "date": "2021-01-05", "video": "nYZaxaoxG9M", "reply": false}]}, "OPPO": {"kpi": {"comments": 1606, "replies": 606, "topLevel": 1000, "videos": 10, "authors": 1114, "likes": 1737, "avgLikes": 1.08, "avgLen": 61.7}, "monthly": {"2020-12": 479, "2021-01": 364, "2021-03": 650, "2021-04": 8, "2024-02": 71, "2024-10": 14, "2024-11": 20}, "heat": [[2, 7, 4, 3, 4, 1, 4, 4, 10, 2, 9, 5, 82, 107, 38, 20, 22, 22, 25, 29, 11, 68, 22, 13], [3, 0, 2, 4, 0, 0, 2, 4, 2, 2, 6, 7, 2, 6, 3, 3, 2, 3, 1, 2, 1, 1, 4, 5], [0, 0, 0, 0, 0, 2, 0, 0, 5, 0, 3, 1, 1, 3, 0, 1, 1, 1, 3, 51, 55, 17, 16, 8], [9, 4, 0, 0, 0, 1, 5, 4, 8, 11, 25, 29, 35, 39, 27, 20, 14, 21, 25, 27, 23, 21, 16, 18], [8, 6, 3, 1, 1, 1, 8, 7, 5, 7, 8, 4, 4, 3, 3, 5, 2, 4, 1, 4, 1, 5, 7, 7], [1, 2, 1, 0, 0, 0, 1, 4, 3, 3, 2, 1, 1, 2, 6, 6, 1, 0, 1, 6, 2, 3, 4, 7], [3, 1, 1, 0, 0, 0, 1, 2, 6, 2, 13, 18, 10, 24, 13, 18, 17, 14, 16, 9, 35, 57, 37, 18]], "lenHist": [["0–10", 89], ["10–20", 252], ["20–40", 469], ["40–60", 275], ["60–80", 170], ["80–100", 105], ["100–150", 115], ["150–200", 64], ["200–300", 45], ["300–500", 14], ["500–1000", 7], ["1000+", 1]], "likeHist": [["0", 1091], ["1", 313], ["2–5", 155], ["6–10", 24], ["11–50", 20], ["51–100", 2], ["101–500", 1], ["500+", 0]], "authorHist": [["1", 922], ["2", 122], ["3–5", 59], ["6–10", 7], ["11–20", 3], ["21–50", 0], ["50+", 1]], "topAuthorsShare": 14.7, "words": [["mua", 203], ["oppo", 168], ["pro", 155], ["giá", 148], ["reno", 94], ["đẹp", 91], ["ngon", 89], ["camera", 83], ["tầm", 81], ["nhìn", 81], ["game", 79], ["hình", 78], ["iphone", 76], ["dương", 76], ["chơi", 74], ["mi", 73], ["chip", 64], ["cam", 63], ["ip", 63], ["hỏi", 62], ["màn", 57], ["tốt", 57], ["hãng", 55], ["trong", 54], ["chính", 52], ["xấu", 52], ["chúc", 50], ["ăn", 49], ["công", 48], ["bán", 48], ["thiết", 46], ["pin", 45], ["xiaomi", 45], ["kế", 44], ["video", 44], ["hàng", 43], ["thích", 42], ["mong", 42], ["cảm", 41], ["vấn", 41], ["find", 41], ["sạc", 38], ["note", 38], ["triệu", 38], ["chọn", 37], ["tư", 37], ["ơn", 37], ["nhái", 37], ["chụp", 36], ["tay", 36], ["cao", 36], ["sức", 36], ["điện", 35], ["sánh", 34], ["max", 33], ["hiệu", 33], ["đúng", 32], ["thoại", 32], ["năng", 31], ["tiền", 31]], "bigrams": [["chơi game", 55], ["thiết kế", 44], ["chính hãng", 42], ["màn hình", 38], ["tầm giá", 37], ["tư vấn", 35], ["oppo reno", 34], ["điện thoại", 31], ["cảm ơn", 31], ["trong tầm", 24], ["sức khỏe", 23], ["sạc nhanh", 21], ["pro max", 21], ["xách tay", 20], ["công nghệ", 19], ["chụp ảnh", 17], ["cấu hình", 16], ["hiệu năng", 16], ["reno pro", 15], ["thương hiệu", 15], ["phân vân", 14], ["oppo find", 14], ["cụm cam", 14], ["ăn trưa", 14], ["quan trọng", 13], ["redmi note", 13], ["quay video", 12], ["mua iphone", 12], ["lựa chọn", 12], ["sức khoẻ", 12], ["công nhận", 11], ["đánh giá", 11], ["iphone pro", 11], ["lâu dài", 11], ["cháo thỏ", 10], ["tính năng", 10], ["ăn cơm", 10], ["ốp lưng", 10], ["thất vọng", 10], ["thành công", 10]], "emojis": [["😂", 176], ["❤", 101], ["🤣", 43], ["😅", 24], ["😁", 17], ["🥰", 12], ["👍", 11], ["😆", 11], ["🤔", 8], ["😏", 7], ["😭", 5], ["🤮", 4], ["😢", 4], ["😍", 4], ["💋", 4], ["💝", 4]], "aspects": {"Camera": 10.96, "Pin & sạc": 4.36, "Màn hình": 3.99, "Giá cả": 16.75, "Hiệu năng": 12.14, "Thiết kế": 8.66, "Phần mềm": 1.93, "Ý định mua": 13.26}, "aspectCounts": {"Camera": 176, "Pin & sạc": 70, "Màn hình": 64, "Giá cả": 269, "Hiệu năng": 195, "Thiết kế": 139, "Phần mềm": 31, "Ý định mua": 213}, "mentions": {"Apple": 7.53, "Samsung": 5.48, "Xiaomi": 9.53, "OPPO": 12.2, "Huawei": 0.37, "vivo": 1.0, "Google": 0.19}, "top": [{"likes": 288, "text": "Coi review công nghệ cũng không yên với tụi có bồ :(", "model": "OPPO Reno5", "date": "2020-12-30", "video": "weUBayIBEO4", "reply": false}, {"likes": 78, "text": "Khi tôi chưa đeo kính tưởng 12 pro max khi đeo vào thì ối dồi ôi fine x 3", "model": "OPPO Find X3 Pro", "date": "2021-03-22", "video": "obqWurPFdJY", "reply": false}, {"likes": 56, "text": "2:39 Baka :))", "model": "OPPO Find X3 Pro", "date": "2021-03-22", "video": "obqWurPFdJY", "reply": false}, {"likes": 38, "text": "Video mang tính kích động tụi FA 😢😢 như mình", "model": "OPPO Reno5", "date": "2020-12-31", "video": "weUBayIBEO4", "reply": false}, {"likes": 37, "text": "4:00 :))))", "model": "OPPO Find X3 Pro", "date": "2021-03-22", "video": "obqWurPFdJY", "reply": false}, {"likes": 29, "text": "Ngày đầu năm mới, xem review công nghệ mà vẫn phải ăn cơm tró ạ =))) cơm tró muôn nơi là có thật", "model": "OPPO Reno5", "date": "2021-01-01", "video": "weUBayIBEO4", "reply": false}, {"likes": 25, "text": "cứ Oppo  là ko review nào chê được :D", "model": "OPPO Reno5", "date": "2020-12-31", "video": "Mfc0sFs0mrU", "reply": false}, {"likes": 25, "text": "Đang dùng oppo find x6 pro, khoản chụp ảnh thì rất tốt, nhất là camera tele. Có đứa em xài ip 15 prm nhưng nó chỉ nhờ mình chụp hình cho nó bằng đt của mình. Ip nước ảnh xấu lắm. Nói thật ip chỉ cho công an chụp tội phạm vì nó chân thật. Ai can đảm nói dùng ip chụp ảnh mà không dùng app thứ 3 để chỉnh sửa mà dám đăng lên mạng xh ngay? Chụp chân dung thì đảm bảo oppo ăn liền đc ngay. Chỉ có quay fi", "model": "OPPO Find X7 Ultra", "date": "2024-02-04", "video": "avt98wrJ_g4", "reply": false}, {"likes": 24, "text": "Với người không chơi game mình vẫn ưu tiên mua s24u với iphone 15promax", "model": "OPPO Find X7 Ultra", "date": "2024-02-04", "video": "avt98wrJ_g4", "reply": false}, {"likes": 23, "text": "❤️ Anh em muốn sở hữu iPhone 12 Pro Max thì tham khảo ngay nhé: https://didongviet.vn/iphone-12#ip12pro", "model": "OPPO Find X3 Pro", "date": "2021-03-22", "video": "obqWurPFdJY", "reply": false}, {"likes": 22, "text": "Ai có người yêu xinh như ông đâu mà biết", "model": "OPPO Reno5", "date": "2020-12-30", "video": "weUBayIBEO4", "reply": false}, {"likes": 20, "text": "Ai thích xem vật vờ 🥰🥰🥰\n👇👇👇", "model": "OPPO Find X3 Pro", "date": "2021-03-22", "video": "obqWurPFdJY", "reply": false}]}, "Huawei": {"kpi": {"comments": 1956, "replies": 632, "topLevel": 1324, "videos": 7, "authors": 1431, "likes": 2217, "avgLikes": 1.13, "avgLen": 53.1}, "monthly": {"2020-03": 1372, "2020-04": 584}, "heat": [[8, 8, 2, 0, 0, 1, 3, 4, 5, 9, 9, 12, 3, 3, 1, 3, 4, 3, 5, 3, 1, 2, 7, 2], [1, 2, 0, 0, 0, 0, 1, 0, 0, 1, 2, 2, 0, 2, 1, 3, 4, 2, 0, 1, 83, 61, 37, 21], [10, 7, 6, 0, 2, 2, 4, 7, 10, 15, 12, 12, 6, 7, 9, 7, 3, 6, 65, 39, 28, 15, 16, 12], [0, 1, 1, 0, 0, 0, 1, 5, 2, 0, 1, 0, 0, 3, 1, 2, 0, 1, 1, 3, 2, 290, 147, 52], [28, 16, 8, 8, 6, 12, 10, 20, 26, 33, 77, 46, 34, 25, 27, 8, 15, 9, 6, 16, 22, 20, 7, 9], [7, 1, 31, 8, 0, 1, 2, 3, 12, 5, 4, 15, 5, 2, 2, 1, 4, 6, 4, 3, 6, 8, 2, 3], [1, 1, 0, 1, 0, 0, 2, 6, 1, 1, 4, 2, 8, 3, 2, 1, 3, 2, 6, 67, 36, 23, 17, 11]], "lenHist": [["0–10", 122], ["10–20", 269], ["20–40", 589], ["40–60", 394], ["60–80", 215], ["80–100", 138], ["100–150", 138], ["150–200", 50], ["200–300", 33], ["300–500", 8], ["500–1000", 0], ["1000+", 0]], "likeHist": [["0", 1429], ["1", 281], ["2–5", 171], ["6–10", 31], ["11–50", 40], ["51–100", 2], ["101–500", 2], ["500+", 0]], "authorHist": [["1", 1195], ["2", 156], ["3–5", 56], ["6–10", 19], ["11–20", 3], ["21–50", 2], ["50+", 0]], "topAuthorsShare": 9.9, "words": [["đẹp", 168], ["pro", 166], ["nhìn", 159], ["mua", 157], ["cam", 153], ["huawei", 139], ["camera", 129], ["mặt", 114], ["google", 99], ["giá", 97], ["xấu", 97], ["samsung", 88], ["hình", 88], ["màn", 82], ["ngon", 71], ["game", 64], ["tiền", 62], ["thuốc", 59], ["viên", 59], ["vl", 56], ["quả", 51], ["chơi", 49], ["to", 48], ["realme", 46], ["thích", 46], ["mate", 45], ["ss", 44], ["giống", 44], ["thiết", 43], ["cảm", 43], ["công", 42], ["kế", 41], ["xài", 39], ["vãi", 39], ["ip", 38], ["video", 38], ["sự", 38], ["tốt", 37], ["hàng", 37], ["đt", 37], ["hãng", 37], ["chán", 36], ["iphone", 36], ["bán", 35], ["chụp", 35], ["pin", 35], ["điện", 34], ["ultra", 34], ["cụm", 34], ["intro", 33], ["thoại", 33], ["thời", 33], ["hóng", 33], ["plus", 32], ["ăn", 32], ["play", 31], ["cứ", 31], ["mong", 31], ["nhanh", 30], ["qua", 30]], "bigrams": [["viên thuốc", 56], ["màn hình", 46], ["thiết kế", 39], ["điện thoại", 30], ["chơi game", 29], ["ch play", 24], ["mate pro", 22], ["cụm cam", 22], ["tai thỏ", 20], ["tư vấn", 19], ["công nghệ", 16], ["cảm ơn", 16], ["heo quay", 16], ["nốt ruồi", 14], ["thời sự", 14], ["mặt lưng", 14], ["công nhận", 14], ["quả intro", 14], ["trần duy", 13], ["duy hưng", 13], ["dịch vụ", 13], ["phân vân", 13], ["cam trc", 12], ["sử dụng", 12], ["ăn cắp", 12], ["trải nghiệm", 11], ["tầm giá", 11], ["hải sản", 11], ["pro plus", 11], ["oppo find", 11], ["cảm biến", 10], ["nhái samsung", 10], ["cấu hình", 10], ["thuốc nhìn", 10], ["tiền mua", 10], ["hiệu năng", 10], ["việt nam", 10], ["realme pro", 9], ["đánh giá", 9], ["quan trọng", 9]], "emojis": [["🤣", 53], ["😂", 50], ["😁", 24], ["😆", 18], ["😍", 12], ["😭", 10], ["👍", 8], ["😌", 8], ["😀", 8], ["😷", 6], ["😅", 6], ["🙏", 6], ["🥰", 6], ["🤔", 6], ["🙂", 5], ["😑", 5]], "aspects": {"Camera": 16.16, "Pin & sạc": 2.45, "Màn hình": 5.16, "Giá cả": 10.84, "Hiệu năng": 5.57, "Thiết kế": 12.27, "Phần mềm": 1.89, "Ý định mua": 8.44}, "aspectCounts": {"Camera": 316, "Pin & sạc": 48, "Màn hình": 101, "Giá cả": 212, "Hiệu năng": 109, "Thiết kế": 240, "Phần mềm": 37, "Ý định mua": 165}, "mentions": {"Apple": 3.89, "Samsung": 8.18, "Xiaomi": 1.74, "OPPO": 1.84, "Huawei": 7.11, "vivo": 0.56, "Google": 5.88}, "top": [{"likes": 180, "text": "Anh em thấy intro thế nào :3 được của nó không để sau tôi tiếp tục", "model": "Huawei P40 Pro", "date": "2020-04-21", "video": "j7RrmxArydA", "reply": false}, {"likes": 144, "text": "*HẲN LÀ CẦM P40 CHẠY DỌC TRẦN DUY HƯNG XEM GIÁ CẢ HOA QUẢ, HẢI SẢN :))*", "model": "Huawei P40 Pro", "date": "2020-03-26", "video": "jnua-qfFMQg", "reply": false}, {"likes": 95, "text": "Quả intro thời sự đỉnh vl :>", "model": "Huawei P40 Pro", "date": "2020-03-26", "video": "jnua-qfFMQg", "reply": false}, {"likes": 51, "text": "Tưởng giá 6,5tr😂😂😂", "model": "Huawei P40 Pro", "date": "2020-04-22", "video": "eoNJVjLN4So", "reply": false}, {"likes": 49, "text": "Team đéo có tiền, like :)))", "model": "Huawei P40 Pro", "date": "2020-03-26", "video": "jnua-qfFMQg", "reply": false}, {"likes": 39, "text": "Ko có google thì miễn bàn. :(", "model": "Huawei P40 Pro", "date": "2020-03-29", "video": "R6YhprU5WO0", "reply": false}, {"likes": 36, "text": "3:40 nhanh trí lấy ảnh ny ra thử và.... :)))", "model": "Huawei P40 Pro", "date": "2020-03-27", "video": "jnua-qfFMQg", "reply": false}, {"likes": 32, "text": "2:00 Creppy vl", "model": "Huawei P40 Pro", "date": "2020-03-26", "video": "jnua-qfFMQg", "reply": false}, {"likes": 31, "text": "Tưởng giảm còn 6tr5 :v", "model": "Huawei P40 Pro", "date": "2020-04-22", "video": "eoNJVjLN4So", "reply": false}, {"likes": 30, "text": "S20 Ultra + S10 plus = P40 pro :))", "model": "Huawei P40 Pro", "date": "2020-03-26", "video": "jnua-qfFMQg", "reply": false}, {"likes": 28, "text": "Nhưng mặt trước nó cho con nhộng to quá 🤣", "model": "Huawei P40 Pro", "date": "2020-03-29", "video": "R6YhprU5WO0", "reply": false}, {"likes": 25, "text": "bỏ qua mấy cái lùm xùm bí mật công nghệ quốc gia thì Huawei đáng mua hơn Samsung á!!!", "model": "Huawei P40 Pro", "date": "2020-03-27", "video": "jnua-qfFMQg", "reply": false}]}, "vivo": {"kpi": {"comments": 310, "replies": 119, "topLevel": 191, "videos": 4, "authors": 254, "likes": 431, "avgLikes": 1.39, "avgLen": 59.0}, "monthly": {"2022-12": 267, "2024-01": 43}, "heat": [[0, 2, 1, 1, 0, 2, 2, 4, 3, 4, 2, 2, 3, 0, 0, 2, 2, 0, 1, 3, 1, 0, 1, 2], [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 5, 13, 11, 7, 17, 14, 9, 5, 7, 7, 6, 1], [4, 0, 0, 0, 1, 0, 0, 0, 1, 4, 2, 1, 3, 1, 2, 3, 2, 1, 1, 3, 2, 0, 2, 0], [0, 0, 2, 0, 0, 0, 0, 0, 2, 1, 0, 1, 0, 1, 0, 1, 2, 2, 2, 4, 0, 0, 1, 1], [0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 2, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 2, 1], [0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 23, 13, 16, 7, 9, 9, 7, 4, 3, 3, 2]], "lenHist": [["0–10", 13], ["10–20", 25], ["20–40", 94], ["40–60", 66], ["60–80", 48], ["80–100", 27], ["100–150", 24], ["150–200", 8], ["200–300", 4], ["300–500", 0], ["500–1000", 1], ["1000+", 0]], "likeHist": [["0", 188], ["1", 61], ["2–5", 41], ["6–10", 15], ["11–50", 5], ["51–100", 0], ["101–500", 0], ["500+", 0]], "authorHist": [["1", 216], ["2", 25], ["3–5", 13], ["6–10", 0], ["11–20", 0], ["21–50", 0], ["50+", 0]], "topAuthorsShare": 2.9, "words": [["vivo", 43], ["pro", 38], ["đẹp", 26], ["mua", 20], ["giá", 18], ["camera", 17], ["báo", 15], ["nhìn", 15], ["iphone", 15], ["cam", 15], ["thông", 14], ["quay", 13], ["video", 12], ["ip", 12], ["chụp", 12], ["ngon", 11], ["bằng", 11], ["chính", 11], ["hãng", 11], ["ultra", 11], ["cảm", 10], ["thua", 10], ["cao", 10], ["mi", 10], ["cấp", 10], ["xiaomi", 10], ["ảnh", 10], ["fix", 9], ["thể", 9], ["plus", 9], ["hàng", 9], ["nhau", 9], ["xài", 8], ["ta", 8], ["samsung", 8], ["tầm", 8], ["tay", 8], ["hóng", 8], ["mặt", 8], ["chơi", 8], ["chán", 8], ["vn", 7], ["flagship", 7], ["hiệu", 7], ["mượt", 7], ["sự", 7], ["pin", 7], ["tốt", 7], ["tiền", 7], ["đặt", 7], ["địa", 7], ["nội", 7], ["màu", 7], ["bản", 7], ["thực", 6], ["game", 6], ["bỏ", 6], ["android", 6], ["huawei", 6], ["đấy", 6]], "bigrams": [["thông báo", 13], ["chính hãng", 7], ["nội địa", 7], ["pro plus", 6], ["pro max", 5], ["cảm biến", 5], ["quay video", 5], ["đẳng cấp", 4], ["chơi game", 4], ["ip pro", 4], ["điện thoại", 4], ["ầm ầm", 4], ["cảm ơn", 3], ["thực tế", 3], ["mặc dù", 3], ["mặt lưng", 3], ["cụm cam", 3], ["màu xanh", 3], ["cao cấp", 3], ["cụm camera", 3], ["giá rẻ", 3], ["giấu tên", 3], ["quan tâm", 3], ["ngày càng", 3], ["phần mềm", 3], ["sử dụng", 3], ["tối ưu", 3], ["biểu đồ", 3], ["hiệu năng", 3], ["origin os", 2], ["thời gian", 2], ["chống rung", 2], ["hiệu ứng", 2], ["tuyệt vời", 2], ["bá cháy", 2], ["thực sự", 2], ["khách hàng", 2], ["reno pro", 2], ["cuộc gọi", 2], ["hàng nội", 2]], "emojis": [["😂", 24], ["😊", 15], ["🤣", 10], ["😅", 8], ["👍", 6], ["🤔", 4], ["😍", 3], ["🪣", 3], ["😃", 2], ["❤", 2], ["🎁", 2], ["⚡", 2], ["😘", 2], ["🙂", 1], ["👐", 1], ["👆", 1]], "aspects": {"Camera": 13.87, "Pin & sạc": 2.58, "Màn hình": 1.94, "Giá cả": 12.9, "Hiệu năng": 7.1, "Thiết kế": 12.26, "Phần mềm": 4.52, "Ý định mua": 7.74}, "aspectCounts": {"Camera": 43, "Pin & sạc": 8, "Màn hình": 6, "Giá cả": 40, "Hiệu năng": 22, "Thiết kế": 38, "Phần mềm": 14, "Ý định mua": 24}, "mentions": {"Apple": 8.39, "Samsung": 4.19, "Xiaomi": 6.77, "OPPO": 1.61, "Huawei": 1.94, "vivo": 13.55, "Google": 1.94}, "top": [{"likes": 49, "text": "Có 1 anh chơi rất thân, giấu tên... tên là Vinh 🤣🙏", "model": "vivo X90 Pro+", "date": "2022-12-13", "video": "azaJpWJudFc", "reply": false}, {"likes": 48, "text": "Vivo làm Flagship quá đẳng cấp", "model": "vivo X90 Pro+", "date": "2022-12-11", "video": "eCpxDDqHDCM", "reply": false}]}, "Đa hãng": {"kpi": {"comments": 1446, "replies": 668, "topLevel": 778, "videos": 4, "authors": 1034, "likes": 2733, "avgLikes": 1.89, "avgLen": 73.6}, "monthly": {"2017-09": 1159, "2017-10": 82, "2021-03": 169, "2021-04": 36}, "heat": [[6, 4, 3, 0, 0, 2, 6, 10, 5, 2, 7, 20, 10, 7, 4, 2, 4, 2, 5, 4, 4, 4, 4, 2], [2, 0, 0, 0, 0, 2, 1, 1, 2, 0, 0, 1, 1, 3, 3, 2, 0, 3, 0, 2, 7, 2, 4, 1], [1, 1, 0, 0, 0, 0, 0, 0, 0, 3, 2, 3, 3, 19, 17, 13, 13, 5, 12, 1, 14, 10, 5, 11], [2, 0, 0, 2, 1, 0, 2, 0, 4, 2, 4, 2, 2, 2, 1, 2, 0, 2, 1, 2, 1, 6, 2, 2], [4, 0, 1, 0, 0, 0, 2, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 4], [0, 0, 2, 0, 0, 0, 0, 0, 2, 0, 0, 143, 149, 73, 34, 25, 32, 35, 27, 25, 39, 25, 18, 13], [23, 3, 1, 6, 1, 0, 3, 16, 23, 9, 32, 14, 15, 10, 29, 58, 33, 35, 46, 23, 29, 19, 14, 15]], "lenHist": [["0–10", 41], ["10–20", 126], ["20–40", 347], ["40–60", 292], ["60–80", 198], ["80–100", 125], ["100–150", 173], ["150–200", 70], ["200–300", 50], ["300–500", 20], ["500–1000", 4], ["1000+", 0]], "likeHist": [["0", 1049], ["1", 200], ["2–5", 124], ["6–10", 35], ["11–50", 25], ["51–100", 9], ["101–500", 4], ["500+", 0]], "authorHist": [["1", 825], ["2", 122], ["3–5", 70], ["6–10", 13], ["11–20", 4], ["21–50", 0], ["50+", 0]], "topAuthorsShare": 6.4, "words": [["note", 240], ["ip", 175], ["iphone", 173], ["mua", 172], ["năng", 108], ["hình", 92], ["hiệu", 91], ["game", 87], ["samsung", 82], ["đẹp", 80], ["giá", 79], ["plus", 76], ["ios", 76], ["thích", 72], ["màn", 69], ["nhanh", 66], ["ss", 61], ["chơi", 60], ["sánh", 58], ["tốt", 55], ["sam", 55], ["nhìn", 54], ["thiết", 54], ["kế", 54], ["android", 53], ["thua", 52], ["nhau", 50], ["ngon", 48], ["ifan", 48], ["tiền", 48], ["đa", 47], ["apple", 46], ["trong", 41], ["ngu", 40], ["cứ", 39], ["vinh", 39], ["ng", 37], ["chip", 37], ["ram", 37], ["do", 37], ["hàng", 36], ["nghe", 36], ["quan", 35], ["minh", 35], ["nhiệm", 35], ["pro", 35], ["lg", 34], ["cao", 34], ["vô", 34], ["ăn", 34], ["nguyễn", 34], ["bán", 32], ["giây", 32], ["bằng", 32], ["chạy", 32], ["đầu", 32], ["tầm", 31], ["vl", 31], ["xài", 31], ["công", 31]], "bigrams": [["hiệu năng", 77], ["thiết kế", 52], ["màn hình", 49], ["chơi game", 37], ["đa nhiệm", 32], ["cấu hình", 26], ["iphone plus", 23], ["quan trọng", 21], ["tính năng", 21], ["mua note", 19], ["điện thoại", 17], ["vài giây", 17], ["sam sung", 16], ["tầm giá", 15], ["tối ưu", 15], ["note đẹp", 15], ["vật vờ", 15], ["trải nghiệm", 14], ["tốc độ", 14], ["vô đối", 14], ["note pro", 14], ["tiền mua", 13], ["xách tay", 13], ["ứng dụng", 12], ["sử dụng", 12], ["liên quân", 12], ["khởi động", 11], ["bình thường", 11], ["ip plus", 11], ["redmi note", 11], ["dat huynh", 10], ["ổn định", 10], ["bá đạo", 10], ["ăn đứt", 10], ["thực tế", 10], ["chụp ảnh", 10], ["cu ng", 9], ["gb ram", 9], ["galaxy note", 9], ["chạy ios", 9]], "emojis": [["😂", 68], ["🤣", 12], ["😁", 10], ["😏", 8], ["😅", 5], ["😌", 5], ["👌", 4], ["😀", 4], ["👍", 4], ["😜", 4], ["😊", 3], ["😶", 3], ["😑", 3], ["😱", 3], ["😲", 3], ["🙂", 3]], "aspects": {"Camera": 3.67, "Pin & sạc": 2.35, "Màn hình": 5.12, "Giá cả": 11.55, "Hiệu năng": 17.7, "Thiết kế": 10.3, "Phần mềm": 8.44, "Ý định mua": 13.42}, "aspectCounts": {"Camera": 53, "Pin & sạc": 34, "Màn hình": 74, "Giá cả": 167, "Hiệu năng": 256, "Thiết kế": 149, "Phần mềm": 122, "Ý định mua": 194}, "mentions": {"Apple": 25.03, "Samsung": 25.03, "Xiaomi": 3.18, "OPPO": 0.41, "Huawei": 0.21, "vivo": 0.14, "Google": 0.14}, "top": [{"likes": 318, "text": "Hiệu năng mãi,  tất cả deu thua xa laptop cùng tầm giá", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 159, "text": "Android thì sung.ios thì táo thôi.mk thjk ăn táo hơn sung.cơ mà mk lại thjk android hơn.kết luận dang dùng máy tàu xíaòmì", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 159, "text": "cái đáng giá nhất là jack 3,5 :))", "model": "iPhone 8 vs Note 8", "date": "2017-09-24", "video": "uKoeTXQn8E8", "reply": false}, {"likes": 110, "text": "Note 8 đẹp toàn diện hơn ip X . Ai giống mình ko", "model": "iPhone 8 vs Note 8", "date": "2017-09-24", "video": "uKoeTXQn8E8", "reply": false}, {"likes": 95, "text": "fan samsung k bơi vô chửi nữa đi :)))))", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 92, "text": "Bao giờ BPhone đc như Apple hay Sam. Mà nói thật iPhone 8/8+ hay Note 8 cái nào cũng tốt. Thích nào mua thôi tùy nhu cầu của mỗi người. Fan làm đéo gì suốt ngày chửi nhau.", "model": "iPhone 8 vs Note 8", "date": "2017-09-24", "video": "uKoeTXQn8E8", "reply": false}, {"likes": 81, "text": "Mua NOte 8 là quá tuyệt vời rồi ,  ip tuổi j sánh vai :))", "model": "iPhone 8 vs Note 8", "date": "2017-09-24", "video": "uKoeTXQn8E8", "reply": false}, {"likes": 71, "text": "vẫn thích thiết kế của note hơn....", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 68, "text": "Nhìn 2cái màn hình như kiểu 1 cái từ thời pharaong cởi chuồng với ngọc trinh không thèm mặc quần 😀😀😀", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 63, "text": "*khỏi so sanh cũg piéc ip ăn đứt samsung rồi*", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 54, "text": "Những video so sánh kiểu này nhàm quá rồi. Nhanh hơn vài giây cũng ko thể làm lu mờ vẻ đẹp note 8.", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}, {"likes": 53, "text": "Android từ 3 năm trc đã hụt hơi khoản hiệu năng rồi , nhưng giờ ai quan tâm hiệu năng nữa , giờ là thời của thiết kế :))", "model": "iPhone 8 vs Note 8", "date": "2017-09-23", "video": "TMLX0miCGyM", "reply": false}]}}, "monthlyByBrand": {"Apple": {"2014-10": 197, "2014-09": 287, "2016-10": 289, "2016-09": 4116, "2017-10": 896, "2017-09": 814, "2017-11": 4553, "2019-10": 1984, "2019-09": 7191, "2020-11": 5769, "2020-12": 1012, "2021-10": 4566, "2021-09": 4751, "2022-09": 6970, "2022-10": 1671, "2025-10": 2143, "2025-09": 3866, "2026-10": 109}, "Samsung": {"2014-10": 482, "2014-11": 326, "2015-09": 338, "2015-08": 599, "2016-03": 1600, "2016-04": 360, "2017-04": 2661, "2017-05": 1142, "2017-07": 348, "2017-08": 7, "2017-10": 247, "2017-09": 2481, "2018-04": 20, "2018-03": 440, "2020-09": 783, "2020-08": 1164, "2021-02": 1614, "2021-01": 373, "2021-03": 1337, "2021-04": 186, "2022-03": 2159, "2022-02": 549, "2023-02": 7182, "2023-03": 1266, "2023-04": 350, "2025-01": 2692, "2025-02": 2310, "2026-02": 58, "2026-01": 160}, "Xiaomi": {"2017-05": 96, "2018-06": 809, "2020-12": 1451, "2021-01": 3893, "2021-04": 3695, "2021-03": 358, "2022-07": 2014, "2023-04": 1067, "2023-05": 345, "2023-10": 860, "2024-02": 1458, "2024-03": 1245, "2025-02": 381, "2025-03": 1936}, "OPPO": {"2021-01": 364, "2020-12": 479, "2021-03": 650, "2021-04": 8, "2024-02": 71, "2024-11": 20, "2024-10": 14}, "Huawei": {"2020-04": 584, "2020-03": 1372}, "vivo": {"2022-12": 267, "2024-01": 43}, "Đa hãng": {"2017-09": 1159, "2017-10": 82, "2021-03": 169, "2021-04": 36}}, "models": [{"key": "ip13prm", "label": "iPhone 13 Pro Max", "brand": "Apple", "comments": 9317, "likes": 17117, "avgLikes": 1.84, "replyShare": 40.1, "authors": 5921, "videos": 41, "first": "2021-09-24", "last": "2021-10-21", "aspects": {"Camera": 4.3, "Pin & sạc": 8.7, "Màn hình": 5.3, "Giá cả": 15.0, "Hiệu năng": 11.3, "Thiết kế": 6.2, "Phần mềm": 3.9, "Ý định mua": 16.6}}, {"key": "ip11pro", "label": "iPhone 11 Pro", "brand": "Apple", "comments": 9175, "likes": 19725, "avgLikes": 2.15, "replyShare": 44.1, "authors": 5541, "videos": 35, "first": "2019-09-19", "last": "2019-10-17", "aspects": {"Camera": 8.2, "Pin & sạc": 5.4, "Màn hình": 3.2, "Giá cả": 12.8, "Hiệu năng": 11.5, "Thiết kế": 8.4, "Phần mềm": 5.4, "Ý định mua": 11.5}}, {"key": "ip14prm", "label": "iPhone 14 Pro Max", "brand": "Apple", "comments": 8641, "likes": 16730, "avgLikes": 1.94, "replyShare": 41.2, "authors": 5447, "videos": 54, "first": "2022-09-15", "last": "2022-10-13", "aspects": {"Camera": 5.6, "Pin & sạc": 4.5, "Màn hình": 7.2, "Giá cả": 12.0, "Hiệu năng": 7.3, "Thiết kế": 8.2, "Phần mềm": 5.1, "Ý định mua": 14.8}}, {"key": "s23u", "label": "Galaxy S23 Ultra", "brand": "Samsung", "comments": 7227, "likes": 7685, "avgLikes": 1.06, "replyShare": 55.2, "authors": 3326, "videos": 56, "first": "2023-02-01", "last": "2023-03-01", "aspects": {"Camera": 7.9, "Pin & sạc": 7.6, "Màn hình": 5.6, "Giá cả": 13.6, "Hiệu năng": 12.4, "Thiết kế": 8.6, "Phần mềm": 6.3, "Ý định mua": 15.2}}, {"key": "ip12prm", "label": "iPhone 12 Pro Max", "brand": "Apple", "comments": 6781, "likes": 9314, "avgLikes": 1.37, "replyShare": 40.4, "authors": 4018, "videos": 39, "first": "2020-11-13", "last": "2020-12-10", "aspects": {"Camera": 4.0, "Pin & sạc": 7.9, "Màn hình": 5.3, "Giá cả": 19.0, "Hiệu năng": 9.5, "Thiết kế": 9.7, "Phần mềm": 3.2, "Ý định mua": 21.4}}, {"key": "ip17prm", "label": "iPhone 17 Pro Max", "brand": "Apple", "comments": 6009, "likes": 7667, "avgLikes": 1.28, "replyShare": 42.5, "authors": 3936, "videos": 44, "first": "2025-09-14", "last": "2025-10-12", "aspects": {"Camera": 6.9, "Pin & sạc": 10.0, "Màn hình": 3.2, "Giá cả": 15.0, "Hiệu năng": 6.5, "Thiết kế": 12.7, "Phần mềm": 6.1, "Ý định mua": 13.2}}, {"key": "mi11", "label": "Xiaomi Mi 11", "brand": "Xiaomi", "comments": 5344, "likes": 5205, "avgLikes": 0.97, "replyShare": 50.3, "authors": 2768, "videos": 21, "first": "2020-12-28", "last": "2021-01-24", "aspects": {"Camera": 5.3, "Pin & sạc": 5.7, "Màn hình": 5.6, "Giá cả": 21.6, "Hiệu năng": 13.5, "Thiết kế": 6.3, "Phần mềm": 4.5, "Ý định mua": 19.1}}, {"key": "s25u", "label": "Galaxy S25 Ultra", "brand": "Samsung", "comments": 5002, "likes": 5817, "avgLikes": 1.16, "replyShare": 52.0, "authors": 2778, "videos": 29, "first": "2025-01-22", "last": "2025-02-11", "aspects": {"Camera": 9.4, "Pin & sạc": 7.9, "Màn hình": 5.4, "Giá cả": 13.5, "Hiệu năng": 7.3, "Thiết kế": 15.0, "Phần mềm": 4.6, "Ý định mua": 14.4}}, {"key": "ipx", "label": "iPhone X", "brand": "Apple", "comments": 4553, "likes": 11568, "avgLikes": 2.54, "replyShare": 38.7, "authors": 3106, "videos": 16, "first": "2017-11-03", "last": "2017-11-30", "aspects": {"Camera": 2.4, "Pin & sạc": 1.8, "Màn hình": 8.4, "Giá cả": 12.8, "Hiệu năng": 5.5, "Thiết kế": 8.1, "Phần mềm": 3.4, "Ý định mua": 10.9}}, {"key": "ip7", "label": "iPhone 7", "brand": "Apple", "comments": 4405, "likes": 7936, "avgLikes": 1.8, "replyShare": 39.7, "authors": 2770, "videos": 16, "first": "2016-09-16", "last": "2016-10-13", "aspects": {"Camera": 5.8, "Pin & sạc": 1.3, "Màn hình": 3.0, "Giá cả": 6.8, "Hiệu năng": 7.9, "Thiết kế": 7.6, "Phần mềm": 6.6, "Ý định mua": 8.5}}, {"key": "s8", "label": "Galaxy S8", "brand": "Samsung", "comments": 3803, "likes": 11061, "avgLikes": 2.91, "replyShare": 48.6, "authors": 2266, "videos": 21, "first": "2017-04-20", "last": "2017-05-18", "aspects": {"Camera": 3.6, "Pin & sạc": 2.3, "Màn hình": 5.4, "Giá cả": 8.2, "Hiệu năng": 19.4, "Thiết kế": 8.8, "Phần mềm": 9.2, "Ý định mua": 9.5}}, {"key": "mi11ultra", "label": "Xiaomi Mi 11 Ultra", "brand": "Xiaomi", "comments": 3368, "likes": 4024, "avgLikes": 1.19, "replyShare": 43.9, "authors": 2011, "videos": 11, "first": "2021-03-30", "last": "2021-04-25", "aspects": {"Camera": 13.4, "Pin & sạc": 2.9, "Màn hình": 4.5, "Giá cả": 16.3, "Hiệu năng": 7.6, "Thiết kế": 7.7, "Phần mềm": 3.2, "Ý định mua": 14.6}}, {"key": "note8", "label": "Galaxy Note 8", "brand": "Samsung", "comments": 2728, "likes": 5348, "avgLikes": 1.96, "replyShare": 34.2, "authors": 1944, "videos": 17, "first": "2017-09-14", "last": "2017-10-12", "aspects": {"Camera": 6.0, "Pin & sạc": 1.6, "Màn hình": 4.7, "Giá cả": 13.7, "Hiệu năng": 5.3, "Thiết kế": 10.0, "Phần mềm": 3.1, "Ý định mua": 12.6}}, {"key": "s22u", "label": "Galaxy S22 Ultra", "brand": "Samsung", "comments": 2708, "likes": 3339, "avgLikes": 1.23, "replyShare": 33.6, "authors": 1969, "videos": 30, "first": "2022-02-24", "last": "2022-03-24", "aspects": {"Camera": 5.8, "Pin & sạc": 6.8, "Màn hình": 4.4, "Giá cả": 12.2, "Hiệu năng": 11.1, "Thiết kế": 7.0, "Phần mềm": 4.2, "Ý định mua": 13.5}}, {"key": "xiaomi14u", "label": "Xiaomi 14 Ultra", "brand": "Xiaomi", "comments": 2703, "likes": 3354, "avgLikes": 1.24, "replyShare": 53.2, "authors": 1533, "videos": 14, "first": "2024-02-23", "last": "2024-03-20", "aspects": {"Camera": 13.7, "Pin & sạc": 8.4, "Màn hình": 3.5, "Giá cả": 17.6, "Hiệu năng": 8.4, "Thiết kế": 8.5, "Phần mềm": 7.8, "Ý định mua": 15.4}}, {"key": "xiaomi15u", "label": "Xiaomi 15 Ultra", "brand": "Xiaomi", "comments": 2317, "likes": 2428, "avgLikes": 1.05, "replyShare": 54.1, "authors": 1403, "videos": 12, "first": "2025-02-27", "last": "2025-03-24", "aspects": {"Camera": 14.0, "Pin & sạc": 4.3, "Màn hình": 2.7, "Giá cả": 14.3, "Hiệu năng": 5.5, "Thiết kế": 9.3, "Phần mềm": 6.8, "Ý định mua": 12.5}}, {"key": "xiaomi12u", "label": "Xiaomi 12S Ultra", "brand": "Xiaomi", "comments": 2014, "likes": 1880, "avgLikes": 0.93, "replyShare": 53.7, "authors": 1117, "videos": 12, "first": "2022-07-04", "last": "2022-07-31", "aspects": {"Camera": 12.3, "Pin & sạc": 11.2, "Màn hình": 4.7, "Giá cả": 13.7, "Hiệu năng": 10.2, "Thiết kế": 7.5, "Phần mềm": 8.4, "Ý định mua": 10.3}}, {"key": "s21u", "label": "Galaxy S21 Ultra", "brand": "Samsung", "comments": 1987, "likes": 1734, "avgLikes": 0.87, "replyShare": 43.5, "authors": 1286, "videos": 15, "first": "2021-01-29", "last": "2021-02-25", "aspects": {"Camera": 5.8, "Pin & sạc": 4.6, "Màn hình": 4.4, "Giá cả": 14.2, "Hiệu năng": 11.3, "Thiết kế": 6.0, "Phần mềm": 3.2, "Ý định mua": 12.4}}, {"key": "s7edge", "label": "Galaxy S7 Edge", "brand": "Samsung", "comments": 1960, "likes": 1285, "avgLikes": 0.66, "replyShare": 28.1, "authors": 1340, "videos": 17, "first": "2016-03-13", "last": "2016-04-07", "aspects": {"Camera": 3.1, "Pin & sạc": 3.1, "Màn hình": 1.2, "Giá cả": 6.2, "Hiệu năng": 10.5, "Thiết kế": 7.2, "Phần mềm": 2.4, "Ý định mua": 7.1}}, {"key": "p40pro", "label": "Huawei P40 Pro", "brand": "Huawei", "comments": 1956, "likes": 2217, "avgLikes": 1.13, "replyShare": 32.3, "authors": 1431, "videos": 7, "first": "2020-03-26", "last": "2020-04-22", "aspects": {"Camera": 16.2, "Pin & sạc": 2.5, "Màn hình": 5.2, "Giá cả": 10.8, "Hiệu năng": 5.6, "Thiết kế": 12.3, "Phần mềm": 1.9, "Ý định mua": 8.4}}, {"key": "note20u|notefive", "label": "Galaxy Note 20U / Note 5", "brand": "Samsung", "comments": 1947, "likes": 1979, "avgLikes": 1.02, "replyShare": 38.7, "authors": 1273, "videos": 17, "first": "2020-08-20", "last": "2020-09-17", "aspects": {"Camera": 5.4, "Pin & sạc": 4.5, "Màn hình": 5.3, "Giá cả": 10.8, "Hiệu năng": 16.3, "Thiết kế": 7.7, "Phần mềm": 2.5, "Ý định mua": 12.8}}, {"key": "ip8", "label": "iPhone 8", "brand": "Apple", "comments": 1710, "likes": 3866, "avgLikes": 2.26, "replyShare": 32.0, "authors": 1348, "videos": 7, "first": "2017-09-22", "last": "2017-10-19", "aspects": {"Camera": 2.2, "Pin & sạc": 9.4, "Màn hình": 2.7, "Giá cả": 7.7, "Hiệu năng": 6.4, "Thiết kế": 4.1, "Phần mềm": 5.0, "Ý định mua": 8.5}}, {"key": "galaxya54", "label": "Galaxy A54", "brand": "Samsung", "comments": 1571, "likes": 1781, "avgLikes": 1.13, "replyShare": 52.5, "authors": 835, "videos": 19, "first": "2023-03-15", "last": "2023-04-11", "aspects": {"Camera": 6.3, "Pin & sạc": 6.8, "Màn hình": 6.4, "Giá cả": 21.1, "Hiệu năng": 20.0, "Thiết kế": 11.1, "Phần mềm": 4.7, "Ý định mua": 16.4}}, {"key": "a52", "label": "Galaxy A52", "brand": "Samsung", "comments": 1523, "likes": 1478, "avgLikes": 0.97, "replyShare": 37.8, "authors": 975, "videos": 10, "first": "2021-03-18", "last": "2021-04-13", "aspects": {"Camera": 4.0, "Pin & sạc": 5.6, "Màn hình": 4.1, "Giá cả": 19.6, "Hiệu năng": 8.3, "Thiết kế": 6.5, "Phần mềm": 3.2, "Ý định mua": 16.9}}, {"key": "xiaomi13u", "label": "Xiaomi 13 Ultra", "brand": "Xiaomi", "comments": 1412, "likes": 1432, "avgLikes": 1.01, "replyShare": 53.7, "authors": 790, "videos": 11, "first": "2023-04-18", "last": "2023-05-15", "aspects": {"Camera": 14.2, "Pin & sạc": 5.4, "Màn hình": 3.5, "Giá cả": 15.4, "Hiệu năng": 6.7, "Thiết kế": 8.9, "Phần mềm": 6.9, "Ý định mua": 12.3}}, {"key": "ip8|note8", "label": "iPhone 8 vs Note 8", "brand": "Đa hãng", "comments": 1241, "likes": 2507, "avgLikes": 2.02, "replyShare": 45.9, "authors": 901, "videos": 2, "first": "2017-09-23", "last": "2017-10-19", "aspects": {"Camera": 2.8, "Pin & sạc": 2.1, "Màn hình": 4.7, "Giá cả": 10.2, "Hiệu năng": 18.0, "Thiết kế": 10.8, "Phần mềm": 9.4, "Ý định mua": 12.7}}, {"key": "note5", "label": "Galaxy Note 5", "brand": "Samsung", "comments": 937, "likes": 713, "avgLikes": 0.76, "replyShare": 30.6, "authors": 679, "videos": 14, "first": "2015-08-20", "last": "2015-09-17", "aspects": {"Camera": 2.9, "Pin & sạc": 2.1, "Màn hình": 4.4, "Giá cả": 7.3, "Hiệu năng": 4.8, "Thiết kế": 7.4, "Phần mềm": 1.8, "Ý định mua": 8.4}}, {"key": "redminote13pro", "label": "Redmi Note 13 Pro", "brand": "Xiaomi", "comments": 860, "likes": 989, "avgLikes": 1.15, "replyShare": 47.6, "authors": 591, "videos": 8, "first": "2023-10-02", "last": "2023-10-17", "aspects": {"Camera": 7.3, "Pin & sạc": 4.2, "Màn hình": 5.2, "Giá cả": 19.9, "Hiệu năng": 14.2, "Thiết kế": 8.4, "Phần mềm": 3.4, "Ý định mua": 22.6}}, {"key": "reno5", "label": "OPPO Reno5", "brand": "OPPO", "comments": 843, "likes": 1005, "avgLikes": 1.19, "replyShare": 43.3, "authors": 574, "videos": 5, "first": "2020-12-30", "last": "2021-01-26", "aspects": {"Camera": 8.1, "Pin & sạc": 5.6, "Màn hình": 5.8, "Giá cả": 20.0, "Hiệu năng": 16.3, "Thiết kế": 6.4, "Phần mềm": 1.9, "Ý định mua": 15.4}}, {"key": "mi8", "label": "Xiaomi Mi 8", "brand": "Xiaomi", "comments": 809, "likes": 1269, "avgLikes": 1.57, "replyShare": 42.0, "authors": 615, "videos": 3, "first": "2018-06-07", "last": "2018-06-26", "aspects": {"Camera": 4.8, "Pin & sạc": 2.1, "Màn hình": 6.3, "Giá cả": 12.1, "Hiệu năng": 4.4, "Thiết kế": 10.4, "Phần mềm": 3.7, "Ý định mua": 10.1}}, {"key": "note4", "label": "Galaxy Note 4", "brand": "Samsung", "comments": 808, "likes": 304, "avgLikes": 0.38, "replyShare": 22.3, "authors": 567, "videos": 13, "first": "2014-10-17", "last": "2014-11-13", "aspects": {"Camera": 20.7, "Pin & sạc": 3.1, "Màn hình": 4.3, "Giá cả": 10.1, "Hiệu năng": 16.0, "Thiết kế": 16.2, "Phần mềm": 5.0, "Ý định mua": 3.5}}, {"key": "redminote10pro", "label": "Redmi Note 10 Pro", "brand": "Xiaomi", "comments": 685, "likes": 655, "avgLikes": 0.96, "replyShare": 38.8, "authors": 508, "videos": 10, "first": "2021-03-23", "last": "2021-04-20", "aspects": {"Camera": 9.6, "Pin & sạc": 6.9, "Màn hình": 5.7, "Giá cả": 19.7, "Hiệu năng": 18.5, "Thiết kế": 6.3, "Phần mềm": 2.0, "Ý định mua": 21.2}}, {"key": "findx3pro", "label": "OPPO Find X3 Pro", "brand": "OPPO", "comments": 658, "likes": 555, "avgLikes": 0.84, "replyShare": 30.4, "authors": 484, "videos": 2, "first": "2021-03-22", "last": "2021-04-07", "aspects": {"Camera": 13.1, "Pin & sạc": 3.0, "Màn hình": 1.7, "Giá cả": 12.8, "Hiệu năng": 7.0, "Thiết kế": 11.2, "Phần mềm": 1.7, "Ý định mua": 10.5}}, {"key": "ip6", "label": "iPhone 6", "brand": "Apple", "comments": 484, "likes": 735, "avgLikes": 1.52, "replyShare": 24.2, "authors": 358, "videos": 5, "first": "2014-09-21", "last": "2014-10-16", "aspects": {"Camera": 6.0, "Pin & sạc": 1.9, "Màn hình": 6.0, "Giá cả": 9.1, "Hiệu năng": 6.2, "Thiết kế": 10.7, "Phần mềm": 9.1, "Ý định mua": 9.5}}, {"key": "s9plus", "label": "Galaxy S9+", "brand": "Samsung", "comments": 460, "likes": 926, "avgLikes": 2.01, "replyShare": 28.0, "authors": 387, "videos": 4, "first": "2018-03-15", "last": "2018-04-11", "aspects": {"Camera": 24.8, "Pin & sạc": 2.6, "Màn hình": 1.7, "Giá cả": 9.6, "Hiệu năng": 3.3, "Thiết kế": 11.5, "Phần mềm": 2.8, "Ý định mua": 9.6}}, {"key": "note7fe", "label": "Galaxy Note FE", "brand": "Samsung", "comments": 355, "likes": 1019, "avgLikes": 2.87, "replyShare": 27.9, "authors": 293, "videos": 4, "first": "2017-07-09", "last": "2017-08-03", "aspects": {"Camera": 2.8, "Pin & sạc": 2.3, "Màn hình": 1.4, "Giá cả": 13.2, "Hiệu năng": 4.5, "Thiết kế": 9.0, "Phần mềm": 1.7, "Ý định mua": 13.0}}, {"key": "x90proplus", "label": "vivo X90 Pro+", "brand": "vivo", "comments": 267, "likes": 347, "avgLikes": 1.3, "replyShare": 38.6, "authors": 217, "videos": 3, "first": "2022-12-11", "last": "2022-12-19", "aspects": {"Camera": 12.4, "Pin & sạc": 0.7, "Màn hình": 1.9, "Giá cả": 13.9, "Hiệu năng": 7.9, "Thiết kế": 13.1, "Phần mềm": 4.9, "Ý định mua": 6.7}}, {"key": "s26u", "label": "Galaxy S26 Ultra", "brand": "Samsung", "comments": 218, "likes": 200, "avgLikes": 0.92, "replyShare": 61.9, "authors": 164, "videos": 1, "first": "2026-01-29", "last": "2026-02-11", "aspects": {"Camera": 6.0, "Pin & sạc": 31.2, "Màn hình": 14.2, "Giá cả": 7.8, "Hiệu năng": 6.4, "Thiết kế": 4.1, "Phần mềm": 6.9, "Ý định mua": 11.0}}, {"key": "a52|redminote10pro", "label": "Galaxy A52 vs Redmi Note 10 Pro", "brand": "Đa hãng", "comments": 205, "likes": 226, "avgLikes": 1.1, "replyShare": 47.8, "authors": 133, "videos": 2, "first": "2021-03-20", "last": "2021-04-18", "aspects": {"Camera": 8.8, "Pin & sạc": 3.9, "Màn hình": 7.8, "Giá cả": 20.0, "Hiệu năng": 16.1, "Thiết kế": 7.3, "Phần mềm": 2.4, "Ý định mua": 17.6}}, {"key": "ip18prm", "label": "iPhone 18 Pro Max", "brand": "Apple", "comments": 109, "likes": 64, "avgLikes": 0.59, "replyShare": 24.8, "authors": 99, "videos": 2, "first": "2026-10-10", "last": "2026-10-12", "aspects": {"Camera": 5.5, "Pin & sạc": 11.9, "Màn hình": 3.7, "Giá cả": 26.6, "Hiệu năng": 8.3, "Thiết kế": 5.5, "Phần mềm": 3.7, "Ý định mua": 20.2}}, {"key": "mi6", "label": "Xiaomi Mi 6", "brand": "Xiaomi", "comments": 96, "likes": 114, "avgLikes": 1.19, "replyShare": 50.0, "authors": 72, "videos": 1, "first": "2017-05-20", "last": "2017-05-25", "aspects": {"Camera": 4.2, "Pin & sạc": 3.1, "Màn hình": 8.3, "Giá cả": 24.0, "Hiệu năng": 11.5, "Thiết kế": 5.2, "Phần mềm": 10.4, "Ý định mua": 11.5}}, {"key": "findx7u", "label": "OPPO Find X7 Ultra", "brand": "OPPO", "comments": 71, "likes": 135, "avgLikes": 1.9, "replyShare": 40.8, "authors": 63, "videos": 1, "first": "2024-02-01", "last": "2024-02-04", "aspects": {"Camera": 26.8, "Pin & sạc": 0.0, "Màn hình": 2.8, "Giá cả": 22.5, "Hiệu năng": 16.9, "Thiết kế": 8.5, "Phần mềm": 5.6, "Ý định mua": 19.7}}, {"key": "vivoX100p", "label": "vivo X100 Pro", "brand": "vivo", "comments": 43, "likes": 84, "avgLikes": 1.95, "replyShare": 37.2, "authors": 39, "videos": 1, "first": "2023-12-31", "last": "2024-01-27", "aspects": {"Camera": 23.3, "Pin & sạc": 14.0, "Màn hình": 2.3, "Giá cả": 7.0, "Hiệu năng": 2.3, "Thiết kế": 7.0, "Phần mềm": 2.3, "Ý định mua": 14.0}}, {"key": "oppofindX8p", "label": "OPPO Find X8 Pro", "brand": "OPPO", "comments": 34, "likes": 42, "avgLikes": 1.24, "replyShare": 35.3, "authors": 31, "videos": 2, "first": "2024-10-30", "last": "2024-11-17", "aspects": {"Camera": 8.8, "Pin & sạc": 8.8, "Màn hình": 5.9, "Giá cả": 0.0, "Hiệu năng": 0.0, "Thiết kế": 14.7, "Phần mềm": 0.0, "Ý định mua": 0.0}}], "topVideos": [{"id": "qReOShDjjKI", "n": 1535, "likes": 6155, "label": "iPhone 11 Pro", "first": "2019-09-21"}, {"id": "av5kpvrYW4g", "n": 1050, "likes": 1705, "label": "iPhone 7", "first": "2016-09-17"}, {"id": "eP8i7Q6g2hI", "n": 1029, "likes": 5401, "label": "Galaxy S8", "first": "2017-04-25"}, {"id": "TMLX0miCGyM", "n": 917, "likes": 1768, "label": "iPhone 8 vs Note 8", "first": "2017-09-23"}, {"id": "_z7ro_ee33A", "n": 882, "likes": 3366, "label": "iPhone X", "first": "2017-11-05"}, {"id": "TVhxgzEpoXk", "n": 783, "likes": 1037, "label": "iPhone 17 Pro Max", "first": "2025-10-01"}, {"id": "i8UwleCkdSg", "n": 779, "likes": 551, "label": "Galaxy S25 Ultra", "first": "2025-01-23"}, {"id": "LSRwwGpZzmY", "n": 736, "likes": 1266, "label": "Xiaomi Mi 11 Ultra", "first": "2021-04-05"}, {"id": "jnua-qfFMQg", "n": 710, "likes": 790, "label": "Huawei P40 Pro", "first": "2020-03-26"}, {"id": "EUKXLFyAdM8", "n": 680, "likes": 1894, "label": "iPhone 11 Pro", "first": "2019-09-23"}, {"id": "PbW2lHq5-Vk", "n": 617, "likes": 369, "label": "iPhone 14 Pro Max", "first": "2022-09-16"}, {"id": "WrBOoWezy5Q", "n": 614, "likes": 886, "label": "Xiaomi Mi 11", "first": "2020-12-29"}, {"id": "NZCkhxhHBto", "n": 609, "likes": 2579, "label": "iPhone X", "first": "2017-11-03"}, {"id": "auChpHr4ilk", "n": 593, "likes": 982, "label": "Galaxy S8", "first": "2017-04-24"}, {"id": "BgvzNupZ350", "n": 571, "likes": 547, "label": "iPhone 11 Pro", "first": "2019-09-21"}], "videoSizes": [1535, 1050, 1029, 917, 882, 783, 779, 736, 710, 680, 617, 614, 609, 593, 571, 546, 532, 529, 522, 506, 497, 493, 493, 491, 487, 482, 477, 473, 473, 471, 471, 466, 465, 452, 451, 451, 445, 431, 427, 427, 426, 423, 421, 413, 413, 410, 409, 407, 405, 401, 398, 396, 388, 388, 387, 386, 384, 383, 379, 378, 378, 376, 371, 368, 368, 368, 367, 365, 363, 359, 358, 356, 354, 352, 348, 348, 345, 341, 339, 337, 333, 333, 332, 330, 329, 326, 324, 324, 323, 321, 317, 317, 312, 310, 307, 305, 304, 304, 299, 299, 298, 297, 297, 296, 294, 294, 293, 292, 291, 290, 290, 288, 286, 286, 282, 281, 281, 278, 277, 276, 276, 275, 274, 271, 270, 269, 267, 265, 262, 262, 261, 260, 257, 255, 254, 253, 253, 252, 251, 249, 249, 248, 245, 245, 245, 245, 241, 241, 240, 238, 237, 236, 234, 234, 234, 234, 231, 231, 230, 229, 229, 228, 225, 225, 225, 224, 224, 224, 222, 222, 221, 221, 221, 220, 219, 219, 218, 215, 215, 214, 214, 213, 212, 212, 210, 210, 209, 208, 208, 208, 207, 205, 205, 204, 203, 201, 200, 200, 200, 199, 198, 197, 196, 196, 195, 194, 194, 193, 192, 192, 191, 191, 191, 191, 191, 190, 189, 188, 188, 188, 187, 187, 187, 186, 186, 186, 185, 185, 185, 184, 184, 183, 182, 181, 180, 179, 179, 179, 179, 177, 177, 176, 175, 175, 174, 174, 173, 173, 172, 172, 171, 170, 170, 170, 169, 169, 168, 168, 168, 167, 167, 166, 165, 164, 163, 163, 162, 162, 161, 160, 160, 159, 158, 158, 158, 157, 157, 156, 154, 154, 154, 153, 153, 152, 152, 152, 151, 151, 150, 149, 149, 149, 149, 148, 148, 148, 147, 146, 146, 146, 145, 145, 145, 145, 145, 144, 142, 141, 141, 140, 139, 139, 139, 138, 138, 138, 137, 135, 135, 134, 134, 134, 134, 133, 133, 133, 132, 132, 132, 132, 132, 131, 131, 129, 129, 128, 127, 126, 126, 126, 125, 124, 124, 124, 123, 123, 122, 122, 122, 122, 122, 121, 121, 120, 119, 119, 119, 117, 117, 116, 115, 115, 115, 114, 114, 113, 113, 112, 111, 110, 110, 109, 108, 108, 108, 107, 107, 106, 106, 105, 105, 104, 104, 104, 103, 103, 102, 101, 101, 100, 99, 99, 99, 98, 97, 96, 96, 96, 95, 94, 94, 93, 93, 92, 91, 91, 91, 90, 90, 89, 89, 89, 88, 87, 87, 87, 87, 87, 86, 85, 84, 84, 83, 82, 82, 81, 80, 80, 80, 80, 80, 77, 77, 76, 75, 73, 73, 73, 72, 71, 71, 70, 70, 69, 69, 68, 68, 68, 67, 66, 66, 65, 65, 65, 65, 65, 64, 64, 64, 63, 63, 63, 63, 63, 61, 61, 61, 60, 60, 60, 60, 60, 59, 59, 59, 59, 59, 58, 58, 58, 58, 58, 58, 57, 57, 57, 56, 56, 56, 56, 54, 53, 52, 52, 51, 51, 51, 51, 50, 50, 49, 49, 49, 48, 48, 48, 47, 47, 47, 47, 46, 46, 46, 45, 45, 44, 44, 44, 44, 43, 43, 43, 42, 42, 42, 42, 41, 41, 41, 40, 40, 40, 39, 39, 38, 37, 37, 36, 36, 36, 35, 34, 34, 33, 33, 33, 33, 33, 32, 32, 31, 31, 30, 30, 30, 29, 29, 28, 28, 27, 27, 27, 25, 23, 23, 22, 22, 22, 22, 21, 21, 20, 20, 19, 19, 19, 19, 18, 18, 18, 17, 17, 16, 16, 15, 15, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11, 11, 11, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 9, 9, 8, 8, 8, 8, 8, 7, 7, 7, 7, 6, 5, 5, 4, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1]};
+</script>
+  <script>/**
+ * Phone Talk Analytics - Interactive Dashboard
+ * Trực quan hóa dữ liệu clean_data.json
+ */
+
+(function () {
+  'use strict';
+
+  if (!window.DASH) {
+    console.error('Không tìm thấy window.DASH từ data.js');
+    return;
+  }
+
+  const { meta, all, byBrand, monthlyByBrand, models, topVideos } = window.DASH;
+
+  // Bảng màu cho từng hãng
+  const BRAND_COLORS = {
+    'Apple': { bg: 'rgba(56, 189, 248, 0.75)', border: '#38bdf8', glow: '#38bdf8' },
+    'Samsung': { bg: 'rgba(99, 102, 241, 0.75)', border: '#6366f1', glow: '#6366f1' },
+    'Xiaomi': { bg: 'rgba(249, 115, 22, 0.75)', border: '#f97316', glow: '#f97316' },
+    'OPPO': { bg: 'rgba(16, 185, 129, 0.75)', border: '#10b981', glow: '#10b981' },
+    'Huawei': { bg: 'rgba(239, 68, 68, 0.75)', border: '#ef4444', glow: '#ef4444' },
+    'vivo': { bg: 'rgba(168, 85, 247, 0.75)', border: '#a855f7', glow: '#a855f7' },
+    'Đa hãng': { bg: 'rgba(236, 72, 153, 0.75)', border: '#ec4899', glow: '#ec4899' },
+    'Khác': { bg: 'rgba(148, 163, 184, 0.75)', border: '#94a3b8', glow: '#94a3b8' }
+  };
+
+  const DEFAULT_PALETTE = [
+    '#8b7cff', '#3dd6f5', '#ff7ab6', '#34d399', '#fbbf24',
+    '#f87171', '#a78bfa', '#2dd4bf', '#fb923c', '#60a5fa'
+  ];
+
+  let currentBrand = 'all'; // 'all' hoặc tên hãng
+  const charts = {}; // lưu instance Chart.js
+
+  // Cấu hình mặc định Chart.js
+  if (window.Chart) {
+    Chart.defaults.color = '#8d93b5';
+    Chart.defaults.borderColor = 'rgba(148, 163, 255, 0.08)';
+    Chart.defaults.font.family = '"Be Vietnam Pro", system-ui, -apple-system, sans-serif';
+    Chart.defaults.font.size = 12;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    Chart.defaults.plugins.legend.labels.boxWidth = 8;
+    Chart.defaults.plugins.legend.labels.boxHeight = 8;
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(13, 17, 32, 0.92)';
+    Chart.defaults.plugins.tooltip.titleColor = '#fff';
+    Chart.defaults.plugins.tooltip.bodyColor = '#e7e9f5';
+    Chart.defaults.plugins.tooltip.borderColor = 'rgba(148, 163, 255, 0.2)';
+    Chart.defaults.plugins.tooltip.borderWidth = 1;
+    Chart.defaults.plugins.tooltip.padding = 10;
+    Chart.defaults.plugins.tooltip.cornerRadius = 8;
+    Chart.defaults.plugins.tooltip.boxPadding = 4;
+  }
+
+  // Tiện ích format số
+  const formatNum = (n) => (n ?? 0).toLocaleString('vi-VN');
+  const formatCompact = (n) => {
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+    return n;
+  };
+
+  // Khởi tạo Hero & Subtitle
+  function initHeader() {
+    const subtitle = document.getElementById('subtitle');
+    if (subtitle) {
+      subtitle.innerHTML = `Phân tích chuyên sâu <b>${formatNum(meta.rows)}</b> bình luận từ <b>654 video</b> YouTube về <b>44 model</b> smartphone (${meta.start} &rarr; ${meta.end}).`;
+    }
+    const footnote = document.getElementById('footnote');
+    if (footnote) {
+      footnote.innerHTML = `Dữ liệu tổng hợp từ <code>clean_data.json</code> (${meta.rows.toLocaleString()} bản ghi, phiên bản schema v2) · Tạo lúc: ${meta.generated} · Intro Data Science`;
+    }
+  }
+
+  // Khởi tạo các nút bộ lọc hãng
+  function initBrandFilters() {
+    const nav = document.getElementById('brandFilters');
+    if (!nav) return;
+    nav.innerHTML = '';
+
+    // Nút "Tất cả"
+    const allBtn = document.createElement('button');
+    allBtn.className = 'pill';
+    allBtn.setAttribute('aria-pressed', 'true');
+    allBtn.style.setProperty('--c', '#8b7cff');
+    allBtn.innerHTML = `<i></i> Tất cả <small>(${formatCompact(meta.rows)})</small>`;
+    allBtn.onclick = () => selectBrand('all');
+    nav.appendChild(allBtn);
+
+    // Nút cho từng hãng
+    meta.brands.forEach((brand) => {
+      const data = byBrand[brand];
+      if (!data) return;
+      const count = data.kpi.comments;
+      const btn = document.createElement('button');
+      btn.className = 'pill';
+      btn.setAttribute('aria-pressed', 'false');
+      const col = BRAND_COLORS[brand]?.border || '#8b7cff';
+      btn.style.setProperty('--c', col);
+      btn.innerHTML = `<i></i> ${brand} <small>(${formatCompact(count)})</small>`;
+      btn.onclick = () => selectBrand(brand);
+      nav.appendChild(btn);
+    });
+  }
+
+  function selectBrand(brand) {
+    currentBrand = brand;
+    // Cập nhật trạng thái nút
+    const buttons = document.querySelectorAll('#brandFilters .pill');
+    buttons.forEach((btn, idx) => {
+      if (idx === 0) {
+        btn.setAttribute('aria-pressed', brand === 'all' ? 'true' : 'false');
+      } else {
+        const text = btn.textContent.trim().split(' ')[0];
+        btn.setAttribute('aria-pressed', brand === text ? 'true' : 'false');
+      }
+    });
+
+    renderAll();
+  }
+
+  function getActiveData() {
+    return currentBrand === 'all' ? all : (byBrand[currentBrand] || all);
+  }
+
+  // Render KPI cards
+  function renderKPIs() {
+    const container = document.getElementById('kpis');
+    if (!container) return;
+    const d = getActiveData();
+    const k = d.kpi;
+    const replyRate = ((k.replies / k.comments) * 100).toFixed(1);
+    const brandLabel = currentBrand === 'all' ? 'toàn bộ thị trường' : currentBrand;
+
+    const cards = [
+      {
+        label: 'Tổng bình luận',
+        ico: '💬',
+        val: formatNum(k.comments),
+        note: `${formatNum(k.topLevel)} gốc + ${formatNum(k.replies)} phản hồi`,
+        glow: '#8b7cff'
+      },
+      {
+        label: 'Tỷ lệ phản hồi',
+        ico: '🔁',
+        val: `${replyRate}%`,
+        note: `${k.replies.toLocaleString()} thảo luận tiếp nối`,
+        glow: '#3dd6f5'
+      },
+      {
+        label: 'Tài khoản bình luận',
+        ico: '👥',
+        val: formatNum(k.authors),
+        note: `Top 1% chiếm ${d.topAuthorsShare}% thảo luận`,
+        glow: '#34d399'
+      },
+      {
+        label: 'Lượt thích (Likes)',
+        ico: '❤️',
+        val: formatNum(k.likes),
+        note: `Trung bình ${k.avgLikes} like/bình luận`,
+        glow: '#ff7ab6'
+      },
+      {
+        label: 'Độ dài trung bình',
+        ico: '📏',
+        val: `${k.avgLen} ký tự`,
+        note: `Thảo luận ngắn gọn, súc tích`,
+        glow: '#fbbf24'
+      },
+      {
+        label: 'Video YouTube',
+        ico: '📺',
+        val: formatNum(k.videos),
+        note: `Bao phủ nhóm ${brandLabel}`,
+        glow: '#a78bfa'
+      }
+    ];
+
+    container.innerHTML = cards.map((c) => `
+      <div class="kpi" style="--glow: ${c.glow}">
+        <div class="label"><span class="ico">${c.ico}</span> ${c.label}</div>
+        <div class="value">${c.val}</div>
+        <div class="note">${c.note}</div>
+      </div>
+    `).join('');
+  }
+
+  // Helper phá hủy chart cũ trước khi vẽ mới
+  function destroyChart(name) {
+    if (charts[name]) {
+      charts[name].destroy();
+      charts[name] = null;
+    }
+  }
+
+  // 1. Chart Timeline theo tháng
+  function renderTimeline() {
+    destroyChart('timeline');
+    const ctx = document.getElementById('timelineChart')?.getContext('2d');
+    if (!ctx) return;
+
+    // Lấy toàn bộ các tháng từ meta
+    const months = Object.keys(all.monthly).sort();
+
+    let datasets = [];
+    if (currentBrand === 'all') {
+      // Xếp chồng theo từng hãng
+      datasets = meta.brands.map((b) => {
+        const bm = monthlyByBrand[b] || {};
+        const col = BRAND_COLORS[b] || { bg: 'rgba(139,124,255,0.7)', border: '#8b7cff' };
+        return {
+          label: b,
+          data: months.map((m) => bm[m] || 0),
+          backgroundColor: col.bg,
+          borderColor: col.border,
+          borderWidth: 1.5,
+          fill: true,
+          tension: 0.35,
+          pointRadius: 0,
+          pointHoverRadius: 4
+        };
+      });
+    } else {
+      const activeMonthly = byBrand[currentBrand]?.monthly || {};
+      const col = BRAND_COLORS[currentBrand] || { bg: 'rgba(61,214,245,0.7)', border: '#3dd6f5' };
+      datasets = [{
+        label: currentBrand,
+        data: months.map((m) => activeMonthly[m] || 0),
+        backgroundColor: col.bg,
+        borderColor: col.border,
+        borderWidth: 2,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 1,
+        pointHoverRadius: 5
+      }];
+    }
+
+    charts.timeline = new Chart(ctx, {
+      type: 'line',
+      data: { labels: months, datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: {
+              maxTicksLimit: 14,
+              callback: function (val, idx) {
+                const label = this.getLabelForValue(val);
+                return label.endsWith('-01') ? label.slice(0, 4) : '';
+              }
+            }
+          },
+          y: {
+            stacked: currentBrand === 'all',
+            beginAtZero: true,
+            ticks: { callback: (v) => formatCompact(v) }
+          }
+        },
+        plugins: {
+          legend: { position: 'top', align: 'end' }
+        }
+      }
+    });
+  }
+
+  // 2. Chart Thị phần thảo luận (Doughnut)
+  function renderShare() {
+    destroyChart('share');
+    const ctx = document.getElementById('shareChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const brandLabels = meta.brands;
+    const counts = brandLabels.map((b) => byBrand[b]?.kpi.comments || 0);
+    const bgColors = brandLabels.map((b) => BRAND_COLORS[b]?.border || '#8b7cff');
+
+    charts.share = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: brandLabels,
+        datasets: [{
+          data: counts,
+          backgroundColor: bgColors,
+          borderWidth: 2,
+          borderColor: '#0d1120',
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '68%',
+        plugins: {
+          legend: { position: 'right' },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const val = ctx.raw;
+                const pct = ((val / meta.rows) * 100).toFixed(1);
+                return ` ${ctx.label}: ${formatNum(val)} (${pct}%)`;
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 3. Chart Bình luận theo dòng máy (Horizontal Bar)
+  function renderModels() {
+    destroyChart('models');
+    const ctx = document.getElementById('modelsChart')?.getContext('2d');
+    if (!ctx) return;
+
+    let filteredModels = models;
+    const hint = document.getElementById('modelsHint');
+    if (currentBrand !== 'all') {
+      filteredModels = models.filter((m) => m.brand === currentBrand);
+      if (hint) hint.textContent = `Dòng máy thuộc hãng ${currentBrand} (${filteredModels.length} model)`;
+    } else {
+      filteredModels = models.slice(0, 20); // Top 20 khi chọn tất cả
+      if (hint) hint.textContent = 'Top 20 dòng máy được bàn tán sôi nổi nhất';
+    }
+
+    const labels = filteredModels.map((m) => m.label);
+    const counts = filteredModels.map((m) => m.comments);
+    const bgColors = filteredModels.map((m) => BRAND_COLORS[m.brand]?.border || '#8b7cff');
+
+    charts.models = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số bình luận',
+          data: counts,
+          backgroundColor: bgColors,
+          borderRadius: 6,
+          barPercentage: 0.75
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { callback: (v) => formatCompact(v) }
+          },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              afterLabel: (ctx) => {
+                const item = filteredModels[ctx.dataIndex];
+                return [
+                  `Lượt thích: ${formatNum(item.likes)} (TB: ${item.avgLikes}/cmt)`,
+                  `Tỷ lệ phản hồi: ${item.replyShare}%`,
+                  `Video liên quan: ${item.videos}`
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 4. Chart Khía cạnh quan tâm (Radar hoặc Polar Bar)
+  function renderAspects() {
+    destroyChart('aspects');
+    const ctx = document.getElementById('aspectChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const aspectKeys = meta.aspects;
+    const pcts = aspectKeys.map((a) => d.aspects[a] || 0);
+
+    const brandCol = currentBrand === 'all' ? '#8b7cff' : (BRAND_COLORS[currentBrand]?.border || '#8b7cff');
+
+    charts.aspects = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: aspectKeys,
+        datasets: [{
+          label: currentBrand === 'all' ? 'Toàn bộ' : currentBrand,
+          data: pcts,
+          backgroundColor: currentBrand === 'all' ? 'rgba(139, 124, 255, 0.25)' : `${brandCol}44`,
+          borderColor: brandCol,
+          pointBackgroundColor: brandCol,
+          pointBorderColor: '#fff',
+          pointHoverRadius: 6,
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            beginAtZero: true,
+            angleLines: { color: 'rgba(148, 163, 255, 0.12)' },
+            grid: { color: 'rgba(148, 163, 255, 0.08)' },
+            pointLabels: {
+              font: { size: 12, weight: 600 },
+              color: '#c4bcff'
+            },
+            ticks: {
+              backdropColor: 'transparent',
+              color: '#8d93b5',
+              callback: (v) => `${v}%`
+            }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.label}: ${ctx.raw}% bình luận nhắc đến`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 5. Chart Nhắc tên thương hiệu chéo (Mentions)
+  function renderMentions() {
+    destroyChart('mentions');
+    const ctx = document.getElementById('mentionChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const mentionKeys = meta.mentions;
+    const pcts = mentionKeys.map((k) => d.mentions[k] || 0);
+    const bgColors = mentionKeys.map((k) => BRAND_COLORS[k]?.border || '#3dd6f5');
+
+    charts.mentions = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: mentionKeys,
+        datasets: [{
+          label: '% bình luận nhắc tên',
+          data: pcts,
+          backgroundColor: bgColors,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => `${v}%` }
+          },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.raw}% bình luận có nhắc tới "${ctx.label}"`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 6. Heatmap nhịp bình luận (Thứ x Giờ)
+  function renderHeatmap() {
+    const el = document.getElementById('heatmap');
+    if (!el) return;
+    const d = getActiveData();
+    const heat = d.heat; // [7][24]
+
+    // Tìm max value để tính gradient
+    let maxVal = 1;
+    heat.forEach((row) => row.forEach((v) => { if (v > maxVal) maxVal = v; }));
+
+    const days = ['Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7', 'CN'];
+    let html = '<div class="cell clab"></div>';
+    for (let h = 0; h < 24; h++) {
+      html += `<div class="clab" style="font-size:10px;">${h % 4 === 0 ? h + 'h' : ''}</div>`;
+    }
+
+    days.forEach((day, r) => {
+      html += `<div class="rlab">${day}</div>`;
+      for (let c = 0; c < 24; c++) {
+        const val = heat[r][c];
+        const ratio = Math.pow(val / maxVal, 0.65); // tăng tương phản
+        const alpha = Math.max(0.08, ratio * 0.95);
+        // Biến thiên màu từ tím sang cyan/vàng
+        let bg = `rgba(139, 124, 255, ${alpha})`;
+        if (ratio > 0.7) {
+          bg = `rgba(61, 214, 245, ${alpha})`;
+        }
+        if (ratio > 0.88) {
+          bg = `rgba(254, 240, 138, ${alpha})`;
+        }
+
+        html += `<div class="cell" style="background: ${bg}" title="${day}, ${c}:00: ${val.toLocaleString()} bình luận"></div>`;
+      }
+    });
+
+    el.innerHTML = html;
+  }
+
+  // 7. Chart Phân bố lượt thích (Like distribution)
+  function renderLikes() {
+    destroyChart('likes');
+    const ctx = document.getElementById('likeChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const hist = d.likeHist; // [ [label, count], ... ]
+    const labels = hist.map((item) => item[0]);
+    const values = hist.map((item) => item[1]);
+
+    charts.likes = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số lượng bình luận',
+          data: values,
+          backgroundColor: '#ff7ab6',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'logarithmic',
+            ticks: {
+              callback: (v) => [1, 10, 100, 1000, 10000, 100000].includes(v) ? formatCompact(v) : null
+            }
+          },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${formatNum(ctx.raw)} bình luận (${((ctx.raw / d.kpi.comments) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 8. Cụm từ nổi bật (Bigrams & Emojis)
+  function renderCloud() {
+    const cloudEl = document.getElementById('cloud');
+    const emojiEl = document.getElementById('emojis');
+    if (!cloudEl) return;
+
+    const d = getActiveData();
+    const bigrams = d.bigrams.slice(0, 36);
+    if (!bigrams.length) {
+      cloudEl.innerHTML = '<p style="color:var(--dim)">Không có dữ liệu cụm từ.</p>';
+      return;
+    }
+
+    const maxCount = bigrams[0][1];
+    const minCount = bigrams[bigrams.length - 1][1];
+
+    cloudEl.innerHTML = bigrams.map(([term, count], i) => {
+      const ratio = (count - minCount) / Math.max(1, maxCount - minCount);
+      const fs = 13 + ratio * 20; // 13px -> 33px
+      const color = DEFAULT_PALETTE[i % DEFAULT_PALETTE.length];
+      const opacity = 0.65 + ratio * 0.35;
+      return `<span style="font-size: ${fs.toFixed(1)}px; color: ${color}; opacity: ${opacity};" title="${count.toLocaleString()} bình luận">${term}</span>`;
+    }).join(' ');
+
+    if (emojiEl) {
+      const emojis = d.emojis.slice(0, 14);
+      emojiEl.innerHTML = emojis.map(([em, cnt]) => `
+        <span class="em"><b>${em}</b> <small>${formatCompact(cnt)}</small></span>
+      `).join('');
+    }
+  }
+
+  // 9. Chart Từ đơn phổ biến (Word Chart)
+  function renderWords() {
+    destroyChart('words');
+    const ctx = document.getElementById('wordChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const words = d.words.slice(0, 15);
+    const labels = words.map((w) => w[0]);
+    const counts = words.map((w) => w[1]);
+
+    charts.words = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số lần xuất hiện',
+          data: counts,
+          backgroundColor: '#3dd6f5',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            beginAtZero: true,
+            ticks: { callback: (v) => formatCompact(v) }
+          },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  // 10. Chart Độ dài bình luận (Length histogram)
+  function renderLength() {
+    destroyChart('length');
+    const ctx = document.getElementById('lenChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const hist = d.lenHist; // [ [label, count], ... ]
+    const labels = hist.map((item) => item[0]);
+    const values = hist.map((item) => item[1]);
+
+    charts.length = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số bình luận',
+          data: values,
+          backgroundColor: '#34d399',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: (v) => formatCompact(v) }
+          },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${formatNum(ctx.raw)} bình luận (${((ctx.raw / d.kpi.comments) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 11. Chart Mức độ hoạt động của tác giả (Author distribution)
+  function renderAuthorHist() {
+    destroyChart('authors');
+    const ctx = document.getElementById('authorChart')?.getContext('2d');
+    if (!ctx) return;
+
+    const d = getActiveData();
+    const hist = d.authorHist;
+    const labels = hist.map((item) => item[0] + ' cmt');
+    const values = hist.map((item) => item[1]);
+
+    charts.authors = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số tài khoản',
+          data: values,
+          backgroundColor: '#fbbf24',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'logarithmic',
+            ticks: {
+              callback: (v) => [1, 10, 100, 1000, 10000, 50000].includes(v) ? formatCompact(v) : null
+            }
+          },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${formatNum(ctx.raw)} người (${((ctx.raw / d.kpi.authors) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 12. Bubble Chart: Độ hot vs. Engagement từng model
+  function renderBubble() {
+    destroyChart('bubble');
+    const ctx = document.getElementById('bubbleChart')?.getContext('2d');
+    if (!ctx) return;
+
+    let targetModels = models;
+    if (currentBrand !== 'all') {
+      targetModels = models.filter((m) => m.brand === currentBrand);
+    }
+
+    // data: x = comments, y = avgLikes, r = scaled authors
+    const datasets = meta.brands.map((b) => {
+      const bModels = targetModels.filter((m) => m.brand === b);
+      const col = BRAND_COLORS[b]?.border || '#8b7cff';
+      return {
+        label: b,
+        data: bModels.map((m) => ({
+          x: m.comments,
+          y: m.avgLikes,
+          r: Math.max(5, Math.min(28, Math.sqrt(m.authors) / 4)),
+          meta: m
+        })),
+        backgroundColor: `${col}66`,
+        borderColor: col,
+        borderWidth: 1.5
+      };
+    }).filter((ds) => ds.data.length > 0);
+
+    charts.bubble = new Chart(ctx, {
+      type: 'bubble',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'logarithmic',
+            title: { display: true, text: 'Tổng số bình luận (trục log)', color: '#8d93b5' },
+            ticks: {
+              callback: (v) => [50, 100, 500, 1000, 5000, 10000].includes(v) ? formatCompact(v) : null
+            }
+          },
+          y: {
+            beginAtZero: true,
+            title: { display: true, text: 'Like trung bình mỗi bình luận', color: '#8d93b5' }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              title: (ctx) => ctx[0].raw.meta.label,
+              label: (ctx) => {
+                const m = ctx.raw.meta;
+                return [
+                  `Hãng: ${m.brand}`,
+                  `Bình luận: ${formatNum(m.comments)}`,
+                  `Like trung bình: ${m.avgLikes}`,
+                  `Tác giả duy nhất: ${formatNum(m.authors)}`,
+                  `Tỷ lệ thảo luận (reply): ${m.replyShare}%`
+                ];
+              }
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 13. Ma trận Khía cạnh x Dòng máy
+  function renderMatrix() {
+    const table = document.getElementById('matrix');
+    if (!table) return;
+
+    let targetModels = models.filter((m) => m.comments >= 400);
+    if (currentBrand !== 'all') {
+      targetModels = targetModels.filter((m) => m.brand === currentBrand);
+    }
+
+    const aspects = meta.aspects;
+
+    let html = '<thead><tr><th style="text-align:left;min-width:180px;">Dòng máy</th><th style="min-width:70px;">Số cmt</th>';
+    aspects.forEach((a) => { html += `<th>${a}</th>`; });
+    html += '</tr></thead><tbody>';
+
+    targetModels.forEach((m) => {
+      const col = BRAND_COLORS[m.brand]?.border || '#8b7cff';
+      html += `<tr><th class="row"><i style="background:${col}"></i> ${m.label}</th>`;
+      html += `<td style="color:var(--muted)">${formatCompact(m.comments)}</td>`;
+
+      aspects.forEach((a) => {
+        const val = m.aspects[a] || 0;
+        // tính độ đậm nhạt (0 -> 25%)
+        const alpha = Math.min(0.85, Math.max(0.04, val / 22));
+        let cellBg = `rgba(139, 124, 255, ${alpha})`;
+        if (val > 15) {
+          cellBg = `rgba(61, 214, 245, ${alpha})`;
+        }
+        html += `<td style="background:${cellBg}" title="${m.label} - ${a}: ${val}%">${val}%</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody>';
+
+    table.innerHTML = html;
+  }
+
+  // 14. Top bình luận được yêu thích nhất
+  function renderTopComments() {
+    const el = document.getElementById('topComments');
+    if (!el) return;
+    const d = getActiveData();
+    const items = d.top || [];
+
+    if (!items.length) {
+      el.innerHTML = '<li style="color:var(--dim);padding:20px;">Không có bình luận nổi bật cho bộ lọc này.</li>';
+      return;
+    }
+
+    el.innerHTML = items.map((item) => `
+      <li>
+        <div class="likes">
+          <b>${formatNum(item.likes)}</b>
+          <small>thích</small>
+        </div>
+        <div>
+          <q>${escapeHtml(item.text)}</q>
+          <div class="meta">
+            <span class="tag">${item.model}</span>
+            <span>📅 ${item.date}</span>
+            ${item.reply ? '<span>↩️ Phản hồi</span>' : '<span>💬 Bình luận gốc</span>'}
+            <a href="https://www.youtube.com/watch?v=${item.video}" target="_blank" rel="noopener">Xem video ↗</a>
+          </div>
+        </div>
+      </li>
+    `).join('');
+  }
+
+  // 15. Top video YouTube có nhiều bình luận nhất
+  function renderTopVideos() {
+    const el = document.getElementById('topVideos');
+    if (!el) return;
+
+    let items = topVideos;
+    const hint = document.getElementById('videoHint');
+    if (currentBrand !== 'all') {
+      const brandModelKeys = new Set(models.filter((m) => m.brand === currentBrand).map((m) => m.label));
+      items = topVideos.filter((v) => brandModelKeys.has(v.label));
+      if (hint) hint.textContent = `Video nổi bật thuộc ${currentBrand}`;
+    } else {
+      if (hint) hint.textContent = 'Top video có lượng tương tác cao nhất';
+    }
+
+    if (!items.length) {
+      el.innerHTML = '<li style="color:var(--dim);padding:20px;">Chưa có video cụ thể trong top tổng hợp cho bộ lọc này.</li>';
+      return;
+    }
+
+    const maxN = items[0].n;
+
+    el.innerHTML = items.map((v, idx) => {
+      const pct = ((v.n / maxN) * 100).toFixed(0);
+      return `
+        <li>
+          <a href="https://www.youtube.com/watch?v=${v.id}" target="_blank" rel="noopener">
+            <span class="rank">#${idx + 1}</span>
+            <div>
+              <div class="vtitle">${v.label}</div>
+              <div class="vsub">${v.first} · ${formatNum(v.likes)} likes</div>
+              <div class="vbar" style="width: ${pct}%"></div>
+            </div>
+            <div class="vcount">${formatNum(v.n)} <small style="display:block;font-size:10px;color:var(--dim)">cmt</small></div>
+          </a>
+        </li>
+      `;
+    }).join('');
+  }
+
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  // 7b. Chart Mức độ tạo thảo luận (Reply distribution on top-level comments)
+  function renderReplies() {
+    destroyChart('replies');
+    const ctx = document.getElementById('replyChart')?.getContext('2d');
+    if (!ctx || !window.EDA_REPORT || !window.EDA_REPORT.reply_stats) return;
+
+    const key = currentBrand === 'all' ? 'all' : currentBrand;
+    const stats = window.EDA_REPORT.reply_stats[key] || window.EDA_REPORT.reply_stats.all;
+    const hist = stats.replyHist || [];
+    const labels = hist.map((item) => item[0]);
+    const values = hist.map((item) => item[1]);
+    const totalTop = values.reduce((acc, v) => acc + v, 0) || 1;
+
+    const hintEl = document.getElementById('replyHint');
+    if (hintEl) {
+      hintEl.textContent = `${stats.hasReplyPct}% bình luận gốc có phản hồi · Like TB: Gốc (${stats.topAvgLikes}) vs Phản hồi (${stats.replyAvgLikes})`;
+    }
+
+    charts.replies = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Số bình luận gốc',
+          data: values,
+          backgroundColor: ['#64748b', '#3dd6f5', '#8b7cff', '#34d399', '#fbbf24', '#ff7ab6'],
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'logarithmic',
+            ticks: {
+              callback: (v) => [1, 10, 100, 1000, 10000, 100000].includes(v) ? formatCompact(v) : null
+            }
+          },
+          x: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${formatNum(ctx.raw)} bình luận gốc (${((ctx.raw / totalTop) * 100).toFixed(1)}%)`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // 7c. Chart Sắc thái Khen/Chê (Net Sentiment) theo Khía cạnh & Hãng
+  function renderBrandSentiment() {
+    destroyChart('brandSent');
+    const ctx = document.getElementById('brandSentChart')?.getContext('2d');
+    if (!ctx || !window.EDA_REPORT || !window.EDA_REPORT.brand_net_sentiment) return;
+
+    const rows = window.EDA_REPORT.brand_net_sentiment;
+    const aspectKeys = ['Camera', 'Pin & sạc', 'Phần mềm', 'Giá bán', 'Màn hình', 'Hiệu năng', 'Thiết kế', 'Nhiệt độ'];
+    let values = [];
+    const hintEl = document.getElementById('brandSentHint');
+
+    if (currentBrand !== 'all') {
+      const found = rows.find((r) => r.context_brand === currentBrand);
+      values = aspectKeys.map((k) => Number(found ? found[k] || 0 : 0));
+      if (hintEl) hintEl.textContent = `Net Sentiment (% Khen − % Chê) của ${currentBrand}`;
+    } else {
+      const weights = { Apple: 0.47, Samsung: 0.30, Xiaomi: 0.18, Huawei: 0.02, OPPO: 0.015, 'Đa hãng': 0.015 };
+      values = aspectKeys.map((k) => {
+        let sum = 0;
+        rows.forEach((r) => {
+          const w = weights[r.context_brand] || 0;
+          sum += Number(r[k] || 0) * w;
+        });
+        return Number(sum.toFixed(1));
+      });
+      if (hintEl) hintEl.textContent = 'Net Sentiment (% Khen − % Chê) tổng hợp toàn bộ dữ liệu';
+    }
+
+    charts.brandSent = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: aspectKeys,
+        datasets: [{
+          label: 'Net Sentiment (%)',
+          data: values,
+          backgroundColor: values.map((v) => v >= 0 ? 'rgba(52, 211, 153, 0.82)' : 'rgba(248, 113, 113, 0.82)'),
+          borderRadius: 5
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            min: -65,
+            max: 90,
+            ticks: { callback: (v) => `${v > 0 ? '+' : ''}${v}%` }
+          },
+          y: { grid: { display: false } }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` Net Sentiment: ${ctx.raw > 0 ? '+' : ''}${ctx.raw}% (${ctx.raw >= 0 ? 'Khen nhiều hơn Chê' : 'Chê nhiều hơn Khen'})`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // Render toàn bộ dashboard
+  function renderAll() {
+    renderKPIs();
+    renderTimeline();
+    renderShare();
+    renderModels();
+    renderAspects();
+    renderMentions();
+    renderHeatmap();
+    renderLikes();
+    renderReplies();
+    renderBrandSentiment();
+    renderCloud();
+    renderWords();
+    renderLength();
+    renderAuthorHist();
+    renderBubble();
+    renderMatrix();
+    renderTopComments();
+    renderTopVideos();
+  }
+
+  // Chạy khi DOM sẵn sàng
+  document.addEventListener('DOMContentLoaded', () => {
+    initHeader();
+    initBrandFilters();
+    renderAll();
+  });
+})();
+</script>
+<script>
+(function () {
+  'use strict';
+  const R = window.EDA_REPORT;
+  if (!R) return;
+
+  const number = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value));
+  const percent = value => `${number(value)}%`;
+  const fitScore = value => Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const setTable = (id, headers, rows) => {
+    const table = document.getElementById(id);
+    table.innerHTML = `<thead><tr>${headers.map(h => `<th class="${h.num ? 'num' : ''}">${escapeHtml(h.label)}</th>`).join('')}</tr></thead><tbody>${rows.join('')}</tbody>`;
+  };
+  const colors = ['#3dd6f5', '#8b7cff', '#ff7ab6', '#34d399', '#fbbf24', '#f87171', '#a78bfa', '#2dd4bf'];
+  const chartText = '#aeb4d0';
+  const chartGrid = 'rgba(148, 163, 255, .13)';
+  const chartBase = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: { labels: { color: chartText, usePointStyle: true, boxWidth: 8, padding: 16 } },
+      tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${number(ctx.parsed.y ?? ctx.parsed.x)}%` } }
+    },
+    scales: {
+      x: { ticks: { color: chartText, maxRotation: 0 }, grid: { color: chartGrid } },
+      y: { ticks: { color: chartText, callback: value => `${value}%` }, grid: { color: chartGrid } }
+    }
+  };
+  const chartInstances = {};
+  const makeChart = (id, config) => {
+    if (!window.Chart || chartInstances[id]) return;
+    const canvas = document.getElementById(id);
+    if (canvas) chartInstances[id] = new Chart(canvas, config);
+  };
+
+  function renderQ1() {
+    const series = [
+      ['s23u', 'Galaxy S23 Ultra (X)', '#3dd6c5'],
+      ['s22u', 'Galaxy S22 Ultra', '#fbbf24'],
+      ['ip14prm', 'iPhone 14 Pro Max', '#60a5fa'],
+      ['xiaomi13u', 'Xiaomi 13 Ultra', '#ff7ab6']
+    ];
+    const labels = ['Tuần 1 · Ngày 0–6', 'Tuần 2 · Ngày 7–13', 'Tuần 3 · Ngày 14–20', 'Tuần 4 · Ngày 21–27'];
+    makeChart('exec-q1-chart', {
+      type: 'line',
+      data: { labels, datasets: series.map(([key, label, color]) => ({ label, data: R.q1_weekly_net[key], borderColor: color, backgroundColor: color, pointRadius: 4, pointHoverRadius: 6, borderWidth: 2.5, tension: .28 })) },
+      options: { ...chartBase, scales: { ...chartBase.scales, y: { ...chartBase.scales.y, min: -10, max: 60, title: { display: true, text: 'Net Sentiment', color: chartText } } } }
+    });
+    const rows = R.q1_reception.map(r => `<tr><td>${escapeHtml(r['Tên dòng máy'])}</td><td class="num">${percent(r['% Khen'])}</td><td class="num">${percent(r['% Chê'])}</td><td class="num"><b>${percent(r['Net Sentiment (% Khen - % Chê)'])}</b></td></tr>`);
+    setTable('exec-q1-table', [{ label: 'Model' }, { label: 'Khen', num: true }, { label: 'Chê', num: true }, { label: 'Net Sentiment', num: true }], rows);
+  }
+
+  function renderQ2() {
+    const rows = [...R.q2_diverging].reverse();
+    makeChart('exec-q2-chart', {
+      type: 'bar',
+      data: {
+        labels: rows.map(r => r['Khía cạnh']),
+        datasets: [
+          { label: 'Chê', data: rows.map(r => -Number(r['% Chê'])), backgroundColor: 'rgba(248, 113, 113, .82)', borderRadius: 4 },
+          { label: 'Khen', data: rows.map(r => Number(r['% Khen'])), backgroundColor: 'rgba(52, 211, 153, .82)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        ...chartBase, indexAxis: 'y',
+        plugins: { ...chartBase.plugins, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${Math.abs(ctx.parsed.x)}%` } } },
+        scales: {
+          x: { min: -100, max: 100, ticks: { color: chartText, callback: value => `${Math.abs(value)}%` }, grid: { color: chartGrid }, title: { display: true, text: 'Chê ←  |  → Khen', color: chartText } },
+          y: { ticks: { color: chartText }, grid: { display: false } }
+        }
+      }
+    });
+    document.getElementById('exec-q2-quotes').innerHTML = R.q2_samples.map(r => {
+      const rate = String(r['Tỷ lệ Khen / Chê']).replace(/\s*\(n=[^)]+\)/, '');
+      return `<article class="exec-report-quote"><h4>Aspect · ${escapeHtml(r['Khía cạnh'])}</h4><p>${escapeHtml(rate)}</p><p><b>Khen:</b> ${escapeHtml(r['Bình luận Khen thực tế (Mẫu 1–2)'])}</p><p><b>Chê:</b> ${escapeHtml(r['Bình luận Chê thực tế (Mẫu 3)'])}</p></article>`;
+    }).join('');
+  }
+
+  function renderQ3() {
+    const modelKeys = ['S23 Ultra (X)', 'S22 Ultra (Đời trước)', 'iPhone 14 PM', 'Xiaomi 13 Ultra'];
+    const matrixRows = R.q3_praise_matrix.map(r => {
+      const max = Math.max(...modelKeys.map(key => Number(r[key] || 0)));
+      const cells = modelKeys.map(key => {
+        const value = Number(r[key] || 0);
+        const shade = (0.08 + value / 100 * 0.28).toFixed(2);
+        return `<td class="num ${value === max ? 'best' : ''}" style="background:rgba(52,211,153,${shade})">${percent(value)}${value === max ? ' ★' : ''}</td>`;
+      }).join('');
+      return `<tr><td>${escapeHtml(r.aspect)}</td>${cells}</tr>`;
+    });
+    setTable('exec-q3-matrix', [{ label: 'Aspect' }, ...modelKeys.map(label => ({ label, num: true }))], matrixRows);
+
+    const h2h = R.q3_h2h;
+    const getS23Pct = r => Number(r['% S23 Ultra'] ?? r['% Máy X (S23U) thắng'] ?? 0);
+    const getOppPct = r => Number(r['% Đối thủ'] ?? r['% Đối thủ thắng'] ?? 0);
+    makeChart('exec-q3-chart', {
+      type: 'bar',
+      data: {
+        labels: h2h.map(r => r['Khía cạnh']),
+        datasets: [
+          { label: '% S23 Ultra', data: h2h.map(getS23Pct), backgroundColor: 'rgba(52,211,153,.82)', borderRadius: 4 },
+          { label: '% Đối thủ', data: h2h.map(getOppPct), backgroundColor: 'rgba(248,113,113,.76)', borderRadius: 4 }
+        ]
+      },
+      options: {
+        ...chartBase, indexAxis: 'y',
+        plugins: { ...chartBase.plugins, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${number(ctx.parsed.x)}%` } } },
+        scales: {
+          x: { min: 0, max: 100, stacked: true, ticks: { color: chartText, callback: value => `${value}%` }, grid: { color: chartGrid } },
+          y: { stacked: true, ticks: { color: chartText }, grid: { display: false } }
+        }
+      }
+    });
+    const h2hRows = h2h.map(r => `<tr><td>${escapeHtml(r['Khía cạnh'])}</td><td class="num">${percent(getS23Pct(r))}</td><td class="num">${percent(getOppPct(r))}</td></tr>`);
+    setTable('exec-q3-h2h', [{ label: 'Aspect' }, { label: '% S23 Ultra', num: true }, { label: '% Đối thủ', num: true }], h2hRows);
+  }
+
+  function renderQ4() {
+    const rows = R.q4_slope_s23;
+    const ipRows = R.q4_slope_ip14 || [];
+    const slopeOptions = (maxY) => ({
+      ...chartBase,
+      layout: { padding: { top: 8, right: 18, bottom: 6, left: 6 } },
+      plugins: {
+        ...chartBase.plugins,
+        legend: {
+          position: 'bottom',
+          labels: { color: chartText, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 14, font: { size: 11 } }
+        }
+      },
+      scales: {
+        x: { offset: true, ticks: { color: '#eef0ff', font: { size: 12, weight: '600' }, padding: 6 }, grid: { color: chartGrid } },
+        y: { beginAtZero: true, max: maxY, ticks: { color: chartText, stepSize: 10, callback: value => `${value}%` }, grid: { color: chartGrid }, title: { display: true, text: 'Tỷ lệ chê (%)', color: chartText } }
+      }
+    });
+
+    makeChart('exec-q4-chart', {
+      type: 'line',
+      data: {
+        labels: ['Galaxy S22 Ultra (Đời trước)', 'Galaxy S23 Ultra (Máy X)'],
+        datasets: rows.map((r, i) => {
+          const improved = Number(r['Chênh lệch (Đời này - Đời trước)']) < 0;
+          return {
+            label: `${r['Khía cạnh']} (${improved ? '↓' : '↑'})`,
+            data: [Number(r['Chê Đời trước (%)']), Number(r['Chê Đời này (%)'])],
+            borderColor: colors[i % colors.length],
+            backgroundColor: colors[i % colors.length],
+            borderDash: improved ? [] : [5, 4],
+            pointRadius: 4.5,
+            pointHoverRadius: 6.5,
+            borderWidth: improved ? 2.8 : 1.8,
+            tension: 0
+          };
+        })
+      },
+      options: slopeOptions(60)
+    });
+
+    if (ipRows.length) {
+      makeChart('exec-q4-ip-chart', {
+        type: 'line',
+        data: {
+          labels: ['iPhone 13 Pro Max', 'iPhone 14 Pro Max'],
+          datasets: ipRows.map((r, i) => {
+            const improved = Number(r['Chênh lệch (Đời này - Đời trước)']) < 0;
+            return {
+              label: `${r['Khía cạnh']} (${improved ? '↓' : '↑'})`,
+              data: [Number(r['Chê Đời trước (%)']), Number(r['Chê Đời này (%)'])],
+              borderColor: colors[i % colors.length],
+              backgroundColor: colors[i % colors.length],
+              borderDash: improved ? [] : [5, 4],
+              pointRadius: 4.5,
+              pointHoverRadius: 6.5,
+              borderWidth: improved ? 2.8 : 1.8,
+              tension: 0
+            };
+          })
+        },
+        options: slopeOptions(70)
+      });
+    }
+
+    const ipMap = Object.fromEntries(ipRows.map(r => [r['Khía cạnh'], r]));
+    const tableRows = rows.map(r => {
+      const delta = Number(r['Chênh lệch (Đời này - Đời trước)']);
+      const statusClass = delta < 0 ? 'status-good' : 'status-watch';
+      const ip = ipMap[r['Khía cạnh']];
+      const ipDelta = ip ? Number(ip['Chênh lệch (Đời này - Đời trước)']) : 0;
+      const ipClass = ipDelta < 0 ? 'status-good' : 'status-watch';
+      return `<tr><td><b>${escapeHtml(r['Khía cạnh'])}</b></td><td class="num">${percent(r['Chê Đời trước (%)'])}</td><td class="num">${percent(r['Chê Đời này (%)'])}</td><td class="num ${statusClass}">${delta > 0 ? '+' : ''}${number(delta)} điểm %</td><td class="num">${ip ? percent(ip['Chê Đời trước (%)']) : '—'}</td><td class="num">${ip ? percent(ip['Chê Đời này (%)']) : '—'}</td><td class="num ${ipClass}">${ip ? `${ipDelta > 0 ? '+' : ''}${number(ipDelta)} điểm %` : '—'}</td></tr>`;
+    });
+    setTable('exec-q4-table', [
+      { label: 'Aspect' },
+      { label: 'S22 Ultra', num: true },
+      { label: 'S23 Ultra', num: true },
+      { label: 'Thay đổi (Samsung)', num: true },
+      { label: 'iPhone 13 PM', num: true },
+      { label: 'iPhone 14 PM', num: true },
+      { label: 'Thay đổi (Apple)', num: true }
+    ], tableRows);
+  }
+
+  function renderQ5() {
+    const defects = R.q5_defects || [];
+    makeChart('exec-q5-chart', {
+      type: 'bar',
+      data: {
+        labels: defects.map(r => r['Lỗi kỹ thuật']),
+        datasets: [
+          {
+            label: 'Người đã dùng (Toàn bộ mẫu)',
+            data: defects.map(r => Number(r['Số lần nhắc (Người đã dùng)'])),
+            backgroundColor: 'rgba(251, 191, 36, 0.82)',
+            borderRadius: 4
+          },
+          {
+            label: 'Riêng trên Galaxy S23 Ultra (Máy X)',
+            data: defects.map(r => Number(r['Riêng trên Máy X (S23U)'])),
+            backgroundColor: 'rgba(61, 214, 245, 0.88)',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        ...chartBase,
+        indexAxis: 'y',
+        plugins: {
+          ...chartBase.plugins,
+          tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${number(ctx.parsed.x)} lượt báo lỗi` } }
+        },
+        scales: {
+          x: { beginAtZero: true, ticks: { color: chartText, callback: v => `${v}` }, grid: { color: chartGrid }, title: { display: true, text: 'Số bình luận báo lỗi từ người đã dùng thực tế', color: chartText } },
+          y: { ticks: { color: chartText }, grid: { display: false } }
+        }
+      }
+    });
+
+    const rows = defects.map(r => {
+      const trend = String(r['Xu hướng (↑/↓)']);
+      const trendClass = trend.includes('↓') || trend.includes('Ổn định') ? 'status-good' : 'status-watch';
+      return `<tr><td><b>${escapeHtml(r['Lỗi kỹ thuật'])}</b><br><span class="${trendClass}">${escapeHtml(trend)}</span></td><td class="num">${escapeHtml(r['Số lần nhắc (Người đã dùng)'])}</td><td class="num">${escapeHtml(r['Riêng trên Máy X (S23U)'])}</td><td>${escapeHtml(r['Mức ưu tiên'])}</td><td>${escapeHtml(r['Bình luận mẫu (Từ người đã dùng máy)'])}</td></tr>`;
+    });
+    setTable('exec-q5-table', [{ label: 'Lỗi / xu hướng' }, { label: 'Lượt nhắc · người đã dùng', num: true }, { label: 'Riêng S23 Ultra', num: true }, { label: 'Ưu tiên' }, { label: 'Bình luận mẫu' }], rows);
+  }
+
+  function linearRegression(values) {
+    const points = values.map((y, i) => ({ x: i + 1, y: Number(y) }));
+    const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
+    const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
+    const numerator = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0);
+    const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
+    const slope = numerator / denominator;
+    const intercept = meanY - slope * meanX;
+    const total = points.reduce((sum, point) => sum + (point.y - meanY) ** 2, 0);
+    const residual = points.reduce((sum, point) => sum + (point.y - (intercept + slope * point.x)) ** 2, 0);
+    const predict = week => intercept + slope * week;
+    return { slope, intercept, r2: total ? 1 - residual / total : 0, predict };
+  }
+
+  function renderForecast() {
+    const models = [
+      { key: 's23u', label: 'Galaxy S23 Ultra (X)', color: '#3dd6c5' },
+      { key: 's22u', label: 'Galaxy S22 Ultra', color: '#fbbf24' },
+      { key: 'ip14prm', label: 'iPhone 14 Pro Max', color: '#60a5fa' },
+      { key: 'xiaomi13u', label: 'Xiaomi 13 Ultra', color: '#ff7ab6' }
+    ];
+    const fitted = models.map(model => ({ ...model, values: R.q1_weekly_net[model.key], ...linearRegression(R.q1_weekly_net[model.key]) }));
+    const target = fitted.find(model => model.key === 's23u');
+    const labels = Array.from({ length: 8 }, (_, i) => `Tuần ${i + 1}`);
+
+    makeChart('exec-lr-s23-chart', {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label: 'S23 Ultra · thực tế', data: [...target.values, null, null, null, null], borderColor: target.color, backgroundColor: target.color, pointRadius: 4, borderWidth: 2.5, tension: .25 },
+          { label: 'Linear Regression · fit tuần 1–4', data: labels.map((_, i) => i < 4 ? target.predict(i + 1) : null), borderColor: '#aeb4d0', backgroundColor: '#aeb4d0', borderDash: [3, 4], pointRadius: 0, borderWidth: 1.5, tension: 0 },
+          { label: 'Linear Regression · dự báo tuần 5–8', data: labels.map((_, i) => i < 3 ? null : target.predict(i + 1)), borderColor: '#fbbf24', backgroundColor: '#fbbf24', borderDash: [7, 5], pointRadius: labels.map((_, i) => i >= 4 ? 4 : 0), pointStyle: 'triangle', borderWidth: 2, tension: 0 }
+        ]
+      },
+      options: { ...chartBase, scales: { ...chartBase.scales, y: { ...chartBase.scales.y, min: -10, max: 70, title: { display: true, text: 'Net Sentiment', color: chartText } } } }
+    });
+
+    makeChart('exec-lr-model-chart', {
+      type: 'bar',
+      data: { labels: fitted.map(model => model.label), datasets: [{ label: 'Dự báo Net Sentiment · Tuần 8', data: fitted.map(model => model.predict(8)), backgroundColor: fitted.map(model => model.color), borderRadius: 5 }] },
+      options: {
+        ...chartBase, indexAxis: 'y',
+        plugins: { ...chartBase.plugins, legend: { display: false }, tooltip: { callbacks: { label: ctx => `Dự báo: ${number(ctx.parsed.x)}%` } } },
+        scales: { x: { ticks: { color: chartText, callback: value => `${value}%` }, grid: { color: chartGrid } }, y: { ticks: { color: chartText }, grid: { display: false } } }
+      }
+    });
+
+    const rows = fitted.map(model => {
+      const slope = model.slope;
+      return `<tr><td>${escapeHtml(model.label)}</td><td class="num">${slope > 0 ? '+' : ''}${number(slope)} điểm %</td><td class="num">${fitScore(model.r2)}</td><td class="num"><b>${percent(model.predict(8))}</b></td></tr>`;
+    });
+    setTable('exec-lr-table', [{ label: 'Model' }, { label: 'Độ dốc / tuần', num: true }, { label: 'R²', num: true }, { label: 'Dự báo tuần 8', num: true }], rows);
+
+    const leastDecline = Math.max(...fitted.map(model => model.slope));
+    const slopeText = `${target.slope > 0 ? '+' : ''}${number(target.slope)} điểm phần trăm/tuần`;
+    document.getElementById('exec-lr-insight').textContent = `Insight tham khảo: đường hồi quy của S23 Ultra dự báo Net Sentiment khoảng ${percent(target.predict(8))} ở tuần 8, với độ dốc ${slopeText}; đây là mức giảm chậm nhất trong bốn Model (${number(leastDecline)} điểm phần trăm/tuần). Tuy vậy, R² của S23 Ultra chỉ ${fitScore(target.r2)} trên bốn điểm tuần, nên mô hình chưa giải thích tốt các dao động thực tế. Xem đây là kịch bản xu hướng ngắn hạn, không phải kết quả chắc chắn.`;
+  }
+
+  const renderers = { q1: renderQ1, q2: renderQ2, q3: renderQ3, q4: renderQ4, q5: renderQ5 };
+  const rendered = new Set();
+  function activateTab(key, focusTab) {
+    document.querySelectorAll('[data-report-tab]').forEach(tab => {
+      const active = tab.dataset.reportTab === key;
+      tab.setAttribute('aria-selected', String(active));
+      tab.tabIndex = active ? 0 : -1;
+      if (active && focusTab) tab.focus();
+    });
+    document.querySelectorAll('#executive-report .exec-report-panel').forEach(panel => { panel.hidden = panel.id !== `exec-panel-${key}`; });
+    if (!rendered.has(key)) { renderers[key]?.(); rendered.add(key); }
+    Object.values(chartInstances).forEach(chart => chart.resize());
+  }
+
+  document.querySelectorAll('[data-report-tab]').forEach(tab => {
+    tab.addEventListener('click', () => activateTab(tab.dataset.reportTab, false));
+    tab.addEventListener('keydown', event => {
+      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') return;
+      event.preventDefault();
+      const tabs = [...document.querySelectorAll('[data-report-tab]')];
+      const direction = event.key === 'ArrowRight' ? 1 : -1;
+      const next = (tabs.indexOf(tab) + direction + tabs.length) % tabs.length;
+      activateTab(tabs[next].dataset.reportTab, true);
+    });
+  });
+
+  renderQ1();
+  rendered.add('q1');
+  renderForecast();
+})();
+</script>
+</body>
+</html>

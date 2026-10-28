@@ -1,129 +1,123 @@
 # BÁO CÁO CÔNG VIỆC
 
-## Hệ thống phân tán phân tích luồng bình luận sau ra mắt điện thoại
+## Phân tích bình luận sau ra mắt điện thoại tại Việt Nam
 
-**Ngày báo cáo:** 21/10/2026  
+**Ngày báo cáo:** 21/10/2026 · **Cập nhật:** 28/10/2026  
 **Nguồn dữ liệu:** YouTube Data API v3  
 **Phạm vi:** Bình luận tiếng Việt trên YouTube, gồm comment gốc và reply
 
+> **Thay đổi so với bản 21/10:** câu hỏi nghiệp vụ chuyển sang 5 câu Q1–Q5; kiến trúc tách thành Giai đoạn 1 xử lý theo lô (bắt buộc) và Giai đoạn 2 streaming (tùy chọn); bổ sung trường máy được nhắc (`target_model`) và collection `aspect_mentions`; sửa mô tả trường `model`; mục tiến độ ghi đúng trạng thái thực tế.
+
 ## 1. Tóm tắt
 
-Hệ thống được xây dựng để theo dõi phản hồi của người dùng sau khi một hãng điện
-thoại ra mắt mẫu máy mới tại Việt Nam. Thay vì đọc thủ công hàng trăm video và
-hàng nghìn bình luận, hệ thống thu thập dữ liệu liên tục, xử lý theo luồng,
-loại spam trước khi thống kê, phân tích cảm xúc theo từng khía cạnh và phát
-hiện các dấu hiệu bất thường.
+Dự án theo dõi phản hồi của người dùng sau khi một hãng điện thoại ra mắt máy mới (máy X) tại Việt Nam. Thay vì đọc thủ công hàng trăm video và hàng nghìn bình luận, nhóm thu thập bình luận YouTube, loại spam, tách thành mệnh đề, gán nhãn khía cạnh – cảm xúc – máy được nhắc, rồi trả lời 5 câu hỏi nghiệp vụ bằng số liệu có kiểm định thống kê.
 
-Đầu ra chính là dashboard so sánh mẫu máy chính với mẫu đối thủ theo thời gian,
-bao gồm:
+Đầu ra chính là báo cáo và dashboard so sánh X với đời trước và hai đối thủ trong 4 tuần đầu sau ra mắt:
 
-- Tỷ lệ khen, chê và trung tính theo từng khía cạnh.
-- Tỷ lệ bình luận spam/quảng cáo/seeding đã bị loại.
-- Xu hướng tăng bất thường của các lời chê.
-- Danh sách cảnh báo kèm các comment minh họa để đội ngũ CSKH, PR và kỹ thuật
-  kiểm tra.
+- Mức độ đón nhận theo tuần (net sentiment).
+- Ưu, nhược điểm của X theo từng khía cạnh, kèm bình luận thật.
+- So sánh từng khía cạnh với đối thủ và với đời trước.
+- Danh sách lỗi kỹ thuật do người đã dùng máy báo, có mức ưu tiên.
+- Tỷ lệ bình luận spam/quảng cáo đã bị loại.
 
 ## 2. Phát biểu bài toán
 
-Trong vài tuần đầu sau ngày ra mắt, các video review, unbox và so sánh điện
-thoại xuất hiện liên tục. Lượng bình luận tăng nhanh, có nhiều reply và có thể
-chứa spam, quảng cáo hoặc seeding. Nếu tính trực tiếp trên dữ liệu thô, các
-bình luận này làm sai lệch tỷ lệ cảm xúc và đánh giá về sản phẩm.
+Trong vài tuần đầu sau ngày ra mắt, các video review, unbox và so sánh xuất hiện liên tục, kéo theo lượng lớn bình luận và reply, trong đó có spam, quảng cáo, seeding. Nếu tính thẳng trên dữ liệu thô, các bình luận này làm sai lệch đánh giá về sản phẩm. Ngoài ra, bình luận dưới video của máy X thường nói về cả máy khác, nên phải xác định đúng máy được nhắc trong từng mệnh đề.
 
-Hệ thống cần trả lời ba câu hỏi nghiệp vụ:
+Năm câu hỏi nghiệp vụ (đặc tả đầy đủ tại [`docs/EDA_requirement.md`](docs/EDA_requirement.md)):
 
-1. Người dùng đang khen hoặc chê khía cạnh nào của mẫu máy chính so với mẫu đối
-   thủ? Kết quả dùng để lựa chọn thông điệp marketing.
-2. Lời chê về khía cạnh nào đang tăng bất thường theo thời gian? Kết quả dùng
-   để CSKH và PR phản hồi sớm, đồng thời giúp kỹ thuật ưu tiên bản sửa lỗi.
-3. Bao nhiêu phần trăm bình luận là spam, quảng cáo hoặc seeding? Các bình luận
-   này phải được loại trước khi tính mọi số liệu về khía cạnh và cảm xúc.
+| # | Câu hỏi | Dùng để |
+|---|---|---|
+| Q1 | X được đón nhận tốt hay dở? | Đánh giá tổng thể đợt ra mắt |
+| Q2 | Ưu điểm và nhược điểm của X là gì? | Chọn thông điệp marketing |
+| Q3 | So với đối thủ, X mạnh/yếu ở đâu? | Định vị cạnh tranh |
+| Q4 | Đời trước bị chê gì, đời này đã sửa chưa? | Đánh giá cải tiến sản phẩm |
+| Q5 | Lỗi gì cần sửa, ưu tiên cái nào? | Ưu tiên cho kỹ thuật, CSKH |
+
+Yêu cầu đi kèm: spam phải bị loại trước khi tính mọi số liệu, và tỷ lệ spam được báo cáo riêng. Phát hiện bất thường theo thời gian thực là phần mở rộng tùy chọn (Giai đoạn 2).
 
 ### 2.1. Đầu vào
 
-- Dữ liệu bình luận từ YouTube Data API v3.
-- Comment gốc và reply; reply có thêm ngữ cảnh `parent_text`.
-- Metadata gồm video, mẫu máy, thời gian đăng, số like và số reply.
-- Dữ liệu lịch sử JSONL để replay khi demo hoặc kiểm thử.
+- Bình luận từ YouTube Data API v3, gồm comment gốc và reply (reply có thêm `parent_text`).
+- Metadata video: kênh, tiêu đề, ngày đăng, máy của video, số view/like/comment.
+- Danh mục máy: ngày ra mắt, đời trước, đối thủ ([`config/pipeline.yaml`](config/pipeline.yaml)).
+- Dataset tiếng Việt đã gán nhãn từ bên ngoài (UIT-ViSFD…) để hỗ trợ huấn luyện.
 
 ### 2.2. Đầu ra
 
-- Bản ghi comment đã được chuẩn hóa và gán nhãn spam, khía cạnh, cảm xúc.
-- Các số liệu tổng hợp theo `model`, khía cạnh và cửa sổ thời gian.
-- Cảnh báo bất thường có khía cạnh, thời gian, mức độ và comment minh họa.
-- API phục vụ dashboard theo thời gian gần thực.
+- Bình luận đã chuẩn hóa, gắn cờ spam, tách mệnh đề (`comments`).
+- Mỗi mệnh đề × khía cạnh kèm cảm xúc và máy được nhắc (`aspect_mentions`).
+- Số đếm tổng hợp theo máy, khía cạnh, tuần (`aggregates`).
+- Kết quả Q1–Q5 có khoảng tin cậy và kiểm định; dashboard và báo cáo.
+- (Tùy chọn) cảnh báo bất thường (`alerts`).
 
 ### 2.3. Ngoài phạm vi
 
 - Không xử lý hình ảnh, âm thanh hoặc nội dung video.
-- Không thu thập các nền tảng khác ngoài YouTube.
-- Không phân tích comment không phải tiếng Việt.
+- Không phân tích bình luận không phải tiếng Việt.
 - Không lưu tên thật của tác giả; chỉ lưu mã băm ẩn danh.
+- Nguồn ngoài YouTube: chưa thu thập; đang khảo sát trang đánh giá sản phẩm của các nhà bán lẻ để bổ sung bình luận từ người đã mua (xem [`docs/roadmap.md`](docs/roadmap.md)).
 
 ## 3. Kiến trúc hệ thống
 
-Sơ đồ kiến trúc chính được lưu tại
-[`docs/architecture.mmd`](docs/architecture.mmd). Sơ đồ được tổ chức thành
-bốn tầng: thu thập, xử lý luồng, lưu trữ và phục vụ/hiển thị.
+Hệ thống gồm bốn tầng (thu thập, xử lý, lưu trữ, phân tích & hiển thị) và một khối huấn luyện offline. Dự án làm theo hai giai đoạn dùng chung định dạng dữ liệu:
+
+- **Giai đoạn 1 – xử lý theo lô (bắt buộc):** đọc archive JSONL, xử lý bằng Python, ghi vào cơ sở dữ liệu, trả lời Q1–Q5.
+- **Giai đoạn 2 – streaming (tùy chọn):** phát lại dữ liệu qua Kafka, xử lý bằng Spark Structured Streaming, phát hiện bất thường theo cửa sổ trượt.
 
 ![Sơ đồ kiến trúc hệ thống](docs/architecture.svg)
 
-_Hình 1. Kiến trúc hệ thống được dựng từ_
-_[`docs/architecture.mmd`](docs/architecture.mmd)._ 
+_Hình 1. Kiến trúc hệ thống, dựng từ [`docs/architecture.mmd`](docs/architecture.mmd). Nét liền: Giai đoạn 1. Nét đứt, màu xám: Giai đoạn 2 (tùy chọn)._
 
-### 3.1. Tầng thu thập dữ liệu
+### 3.1. Tầng thu thập
 
-Python Crawler gọi YouTube Data API, lấy comment theo trang, giữ nguyên dữ liệu
-raw và phát sự kiện vào Kafka topic `raw_comments`. Kafka partition theo
-`video_id` để các comment của cùng video có tính ổn định khi phân phối. Cơ chế
-upsert theo `comment_id` giúp chạy lại hoặc replay không tạo bản ghi trùng.
+Python Crawler ([`src/ingest`](src/ingest/README.md)) đi qua playlist uploads của các kênh công nghệ, lọc video theo tên máy trong tiêu đề và ngày đăng, rồi cào comment gốc và reply trong cửa sổ 4 tuần sau ngày ra mắt của máy. Mỗi trang kết quả được ghi nối vào archive JSONL; khi có cấu hình Kafka, bản ghi được gửi vào topic `raw_comments` trước rồi mới ghi archive.
 
-Khi bảo vệ hoặc đo hệ thống, script Replay phát lại dữ liệu lịch sử với hệ số
-tốc độ tùy chọn. `fetched_at` vẫn được giữ để phân biệt thời điểm dữ liệu được
-YouTube trả về với thời điểm replay.
+Các cơ chế đã có:
+- Đếm quota trước mỗi request, 3 lớp chặn (ngưỡng ngày, ngân sách mỗi lần chạy, số lần `search.list`).
+- Lưu `page_token` sau mỗi trang để dừng giữa chừng vẫn cào tiếp được.
+- Chống trùng bằng bảng `seen` trong SQLite: mỗi `comment_id` chỉ được ghi một lần.
+- Ẩn danh tác giả bằng `author_hash` = SHA-256(salt + channel ID).
 
-### 3.2. Tầng xử lý luồng
+**Replay** đọc lại archive theo thứ tự `published_at` và gửi vào Kafka với hệ số tốc độ tùy chọn; `ingested_at` được ghi lại tại thời điểm phát để đo độ trễ, `--strip-stats` bỏ like/reply "của tương lai" khi demo.
 
-Spark Structured Streaming đọc micro-batch từ `raw_comments` và thực hiện:
+### 3.2. Tầng xử lý
 
-1. Kiểm tra schema, kiểu dữ liệu và các trường bắt buộc.
-2. Deduplicate theo `comment_id`.
-3. Chuẩn hóa văn bản, xử lý teencode/emoji và tách mệnh đề.
-4. Chạy mô hình spam trước; comment spam không được đưa vào các thống kê
-   nghiệp vụ tiếp theo.
-5. Với comment hợp lệ, dự đoán một hoặc nhiều khía cạnh và cảm xúc
-   `positive`, `negative` hoặc `neutral`.
-6. Tính aggregate theo cửa sổ trượt.
-7. So sánh mức chê hiện tại với baseline lịch sử và phát cảnh báo vào topic
-   `alerts` khi có bất thường.
+1. **Tiền xử lý:** lọc spam (hiện bằng luật), nhận diện tiếng Việt, chuẩn hóa `text_norm`, tách mệnh đề.
+2. **Suy luận:** với mỗi mệnh đề không spam, dự đoán các khía cạnh được nhắc, cảm xúc cho từng khía cạnh và máy được nhắc (`target_model`). Mô hình được nạp theo `model_version`.
+3. **Tổng hợp:** đếm số mention khen/chê/trung tính theo máy × khía cạnh × tuần kể từ ra mắt × video.
+4. **(Tùy chọn) Phát hiện bất thường:** cửa sổ trượt 1 giờ, bước 10 phút trên số mention tiêu cực theo (máy, khía cạnh); cảnh báo khi vượt trung bình + 2 độ lệch chuẩn của 24 giờ trước. Ngưỡng cần hiệu chỉnh trên dữ liệu thật.
 
-Một cấu hình tham khảo cho cảnh báo là cửa sổ 1 giờ, bước trượt 10 phút; cảnh
- báo được kích hoạt khi tỷ lệ hoặc số lượng tiêu cực vượt baseline 24 giờ trước
- theo ngưỡng trung bình cộng hai độ lệch chuẩn. Ngưỡng cuối cùng cần được hiệu
- chỉnh trên dữ liệu thực tế.
+Ở Giai đoạn 2, các bước 1–4 chạy trong Spark Structured Streaming đọc micro-batch từ `raw_comments`, có thêm kiểm tra schema và dedupe theo `comment_id`.
 
-### 3.3. Tầng lưu trữ
+### 3.3. Huấn luyện offline
 
-MongoDB gồm ba collection chính:
+Mô hình học từ `gold_labels` (mẫu mệnh đề YouTube gán tay, có hỗ trợ AI cho phần train) và dataset ngoài đã ánh xạ về bộ khía cạnh của dự án. Tập train/test chia theo `video_id`; tập test chỉ gồm nhãn người gán. Chi tiết: [`docs/ml-training.md`](docs/ml-training.md).
 
-- `comments`: chi tiết comment và các nhãn dự đoán.
-- `aggregates`: số liệu đã tổng hợp để dashboard truy vấn nhanh.
-- `alerts`: lịch sử cảnh báo, điểm bất thường và comment minh họa.
+### 3.4. Tầng lưu trữ
 
-Các sink phải idempotent theo `comment_id` hoặc khóa cửa sổ và phiên bản sự kiện,
-để replay không làm tăng số liệu nhiều lần.
+MongoDB gồm các collection (thiết kế chi tiết: [`docs/data-model.md`](docs/data-model.md)):
 
-### 3.4. Tầng phục vụ và hiển thị
+| Collection | Nội dung |
+|---|---|
+| `models`, `videos` | Danh mục máy (ngày ra mắt, đời trước, đối thủ) và metadata video |
+| `comments` | Bình luận raw + kết quả tiền xử lý |
+| `aspect_mentions` | Mỗi dòng một mệnh đề × khía cạnh, kèm cảm xúc, máy được nhắc, nguồn nhãn |
+| `aggregates` | Số đếm khen/chê/trung tính đã gom sẵn |
+| `alerts` | (Tùy chọn) lịch sử cảnh báo |
+| `gold_labels` | Nhãn dùng để huấn luyện và đánh giá |
 
-FastAPI cung cấp REST API cho comment, aggregate và cảnh báo. Streamlit gọi API
-định kỳ để hiển thị biểu đồ xu hướng, so sánh hai mẫu máy và danh sách cảnh báo
-mới nhất. Mỗi cảnh báo cần có link hoặc định danh video/comment để người vận
-hành kiểm tra lại ngữ cảnh gốc.
+Mọi thao tác ghi là upsert theo khóa (`comment_id`, `mention_id`, khóa aggregate) để chạy lại hoặc replay không tạo bản trùng.
 
-## 4. Schema dữ liệu comment
+### 3.5. Tầng phân tích và hiển thị
 
-Schema nghiệp vụ được chốt theo khung dưới đây. `comment_id` là khóa chính ở
-phía consumer và MongoDB; các bản ghi được ghi bằng upsert.
+Phân tích Q1–Q5 đọc `aggregates` và `aspect_mentions`, tính tỷ lệ, khoảng tin cậy và kiểm định. Kết quả hiển thị trên dashboard và đưa vào báo cáo; mỗi bình luận minh họa có `comment_id`/`video_id` để truy ngược ngữ cảnh. Dashboard hiện là bản nháp HTML tĩnh; bản chính thức sẽ đọc từ cơ sở dữ liệu.
+
+## 4. Schema dữ liệu
+
+### 4.1. Bình luận raw (schema v2)
+
+`comment_id` là khóa; contract: [`contracts/comment-event.schema.json`](contracts/comment-event.schema.json), khớp với `src/ingest/src/schema.py`.
 
 | Trường | Kiểu | Ý nghĩa và lưu ý |
 |---|---|---|
@@ -131,19 +125,19 @@ phía consumer và MongoDB; các bản ghi được ghi bằng upsert.
 | `video_id` | string | Video chứa comment; khóa partition Kafka |
 | `parent_id` | string/null | ID comment gốc nếu là reply; comment gốc là `null` |
 | `parent_text` | string/null | Nội dung comment gốc, chỉ có ở reply |
-| `model` | string | `main`, `rival` hoặc `both`; mặc định theo video |
+| `model` | string | Mã **máy của video** theo config (vd `s23u`); video nhắc nhiều máy nối bằng `\|` (vd `ip15prm\|s24u`). Không phải máy được nhắc trong bình luận |
 | `source` | string | Nguồn dữ liệu, hiện là `youtube` |
 | `text` | string | Nội dung chữ thuần lấy từ `textDisplay` |
-| `text_norm` | string | Nội dung sau chuẩn hóa; crawler có thể để rỗng |
+| `text_norm` | string | Nội dung sau chuẩn hóa; crawler để rỗng |
 | `author_hash` | string | SHA-256 của `salt + channel ID`; không lưu tên thật |
-| `published_at` | datetime UTC | Thời điểm đăng; event time cho cửa sổ Spark |
-| `like_count` | int | Số like tại thời điểm `fetched_at` |
+| `published_at` | datetime UTC | Thời điểm đăng; thời gian sự kiện |
+| `like_count` | int/null | Số like tại thời điểm `fetched_at` |
 | `reply_count` | int/null | Tổng reply; chỉ có ở comment gốc |
 | `fetched_at` | datetime UTC | Thời điểm API trả dữ liệu |
-| `ingested_at` | datetime UTC | Thời điểm bản ghi vào Kafka; replay có thể ghi lại |
-| `schema_version` | int | Phiên bản schema, hiện là `2` |
+| `ingested_at` | datetime UTC/null | Thời điểm ghi archive/Kafka; replay ghi lại |
+| `schema_version` | int | Hiện là `2` |
 
-Ví dụ message:
+Ví dụ:
 
 ```json
 {
@@ -151,12 +145,12 @@ Ví dụ message:
   "video_id": "aB3dE5fG7hI",
   "parent_id": "UgxA1b2C3d4E5f6G7h4AaABAg",
   "parent_text": "pin tụt như rơi",
-  "model": "main",
+  "model": "s23u",
   "source": "youtube",
   "text": "@An chuẩn luôn bác",
   "text_norm": "",
   "author_hash": "9f86d081884c7d65...",
-  "published_at": "2026-10-05T03:15:00Z",
+  "published_at": "2023-02-10T03:15:00Z",
   "like_count": 2,
   "reply_count": null,
   "fetched_at": "2026-10-17T15:58:28Z",
@@ -165,50 +159,38 @@ Ví dụ message:
 }
 ```
 
-Hợp đồng JSON Schema được lưu tại
-[`contracts/comment-event.schema.json`](contracts/comment-event.schema.json).
-Trong code ingest, schema v2 còn hỗ trợ tên model cụ thể theo cấu hình chiến
-dịch; quan hệ `main`/`rival` được quản lý trong metadata mẫu máy. Báo cáo
-nghiệp vụ vẫn quy đổi về hai nhóm `main` và `rival` khi so sánh.
+Quan hệ giữa các máy (đời trước, đối thủ) nằm trong danh mục máy, không nằm trong từng bình luận.
 
-## 5. Mô hình phân tích
+### 4.2. Mention (mệnh đề × khía cạnh)
+
+Đơn vị phân tích của Q1–Q5. Các trường chính: `mention_id`, `comment_id`, `clause_text`, `video_model`, **`target_model`** (máy được nhắc), `aspect`, `sentiment`, `confidence`, `is_owner`, `defect_type`, `compare_with`, `days_since_launch`, `label_source`, `model_version`. Contract (đã chốt 28/10): [`contracts/aspect-mention.schema.json`](contracts/aspect-mention.schema.json).
+
+## 5. Phương pháp phân tích
 
 ### 5.1. Tiền xử lý
 
-- Chuẩn hóa chữ thường, dấu câu, khoảng trắng và emoji.
-- Chuyển đổi một số teencode và tạo `text_norm`.
-- Tách comment thành các mệnh đề dựa trên dấu câu và từ nối như “nhưng”, “mà”.
-- Giữ `parent_text` để mô hình hiểu ngữ cảnh của reply.
-- Dùng `published_at` làm event time, không dùng `ingested_at` để tính xu hướng.
+- Chuẩn hóa chữ thường, dấu câu, khoảng trắng và emoji; chuyển một số teencode; tạo `text_norm`.
+- Tách bình luận thành mệnh đề theo dấu câu và từ nối như "nhưng", "còn". Từ "mà" nhiều nghĩa trong tiếng Việt nên cần kiểm tra chất lượng tách trên mẫu.
+- Giữ `parent_text` để hiểu ngữ cảnh reply.
+- Dùng `published_at` làm thời gian sự kiện, không dùng `ingested_at` để tính xu hướng.
 
 ### 5.2. Lọc spam
 
-Spam classifier là bước cổng đầu tiên:
+Lọc spam là bước đầu tiên: bình luận spam/quảng cáo/seeding bị loại khỏi mọi thống kê về khía cạnh và cảm xúc. Hiện dùng bộ luật (link, số điện thoại, mời liên hệ, cờ bạc, lặp ký tự…); sẽ so sánh với một mô hình ML trên tập có nhãn.
 
 ```text
-comment
-  -> spam classifier
-      -> spam/quảng cáo/seeding: loại khỏi aggregate nghiệp vụ
-      -> không spam: chuyển sang aspect và sentiment
+tỷ lệ spam = số bình luận bị phân loại spam / tổng số bình luận tiếng Việt đã kiểm tra
 ```
 
-Dashboard cần hiển thị riêng:
+Bình luận không phải tiếng Việt được tách riêng, không tính là spam.
 
-```text
-tỷ lệ spam = số comment bị phân loại spam / tổng số comment đã kiểm tra
-```
+### 5.3. Khía cạnh, cảm xúc và máy được nhắc
 
-Tỷ lệ khen/chê theo khía cạnh chỉ tính trên tập comment không spam. Điều này
-tránh việc một chiến dịch seeding hoặc quảng cáo làm sai kết luận về sản phẩm.
+Đơn vị là **mệnh đề**. Một mệnh đề có thể nhắc nhiều khía cạnh, nên khía cạnh là bài toán phân loại **đa nhãn có giám sát**. Chín khía cạnh (đã chốt ở Công việc 4):
 
-### 5.3. Phân loại khía cạnh và cảm xúc
-
-Hệ thống dùng mô hình đa nhãn cho khía cạnh vì một comment có thể nhắc nhiều
-đặc điểm. Bộ khía cạnh ban đầu gồm:
-
-1. Pin.
+1. Pin & sạc.
 2. Màn hình.
-3. Hiệu năng.
+3. Hiệu năng (gồm nhiệt độ).
 4. Camera.
 5. Thiết kế và độ bền.
 6. Phần mềm.
@@ -216,78 +198,67 @@ Hệ thống dùng mô hình đa nhãn cho khía cạnh vì một comment có th
 8. Giá.
 9. Bảo hành và hậu mãi.
 
-Với mỗi khía cạnh, sentiment được gán là tích cực, tiêu cực hoặc trung tính.
-Một comment có thể tạo nhiều dòng phân tích sau khi tách mệnh đề, nhưng bản ghi
-raw vẫn chỉ có một `comment_id`.
+Với mỗi cặp (mệnh đề, khía cạnh), cảm xúc là khen, chê hoặc trung tính. Máy được nhắc xác định bằng tên/alias trong mệnh đề, sau đó đến comment cha và máy của video.
 
-Mô hình baseline có thể dùng TF-IDF kết hợp Linear SVM, Logistic Regression
-hoặc Naive Bayes. Dữ liệu YouTube raw chưa gán nhãn không được dùng trực tiếp để
-train. Dataset bên ngoài dùng cho EDA, gán nhãn và huấn luyện Teacher; một mẫu
-YouTube được gán nhãn riêng dùng để đánh giá khác miền. Chi tiết nằm tại
-[`docs/ml-training.md`](docs/ml-training.md).
+Baseline là bộ luật từ khóa hiện có; mô hình thử nghiệm gồm TF-IDF + Logistic Regression/Linear SVM, và PhoBERT nếu đủ điều kiện. Dữ liệu YouTube chưa gán nhãn không dùng trực tiếp để train. Dataset ngoài (UIT-ViSFD) được ánh xạ về bộ khía cạnh trên để tăng dữ liệu train; tập test YouTube gán tay dùng để đo khả năng chuyển miền.
 
-### 5.4. Phát hiện bất thường
+### 5.4. Phân tích thống kê
 
-Với từng cặp `(model, aspect)`, hệ thống theo dõi:
+- Tỷ lệ khen/chê tính trên `pos + neg` (bỏ trung tính khỏi mẫu số), dùng một công thức cho mọi câu hỏi.
+- Khoảng tin cậy 95% bằng bootstrap theo video, vì các mệnh đề cùng video không độc lập.
+- Kiểm định: z-test hai tỷ lệ, chi-square, kiểm định nhị thức; hiệu chỉnh Holm cho từng câu hỏi.
+- Chỉ kết luận khi có ý nghĩa thống kê; ngược lại ghi "chưa đủ bằng chứng".
 
-- Tổng số comment hợp lệ.
-- Số comment tiêu cực.
-- Tỷ lệ tiêu cực.
-- Số lượng và tỷ lệ spam.
-- Cửa sổ thời gian và baseline tương ứng.
+### 5.5. Phát hiện bất thường (tùy chọn)
 
-Một cảnh báo hợp lệ phải chứa ít nhất:
+Với từng cặp (máy, khía cạnh), theo dõi số mention hợp lệ, số và tỷ lệ mention tiêu cực, cửa sổ thời gian và baseline. Một cảnh báo chứa ít nhất: `alert_id`, `created_at`, `window_start`, `window_end`, máy và khía cạnh, chỉ số hiện tại, baseline, ngưỡng, mức độ, và các mention minh họa.
 
-- `alert_id`, `created_at`, `window_start`, `window_end`.
-- Mẫu máy và khía cạnh bị ảnh hưởng.
-- Chỉ số hiện tại, baseline, ngưỡng và mức độ cảnh báo.
-- Một hoặc nhiều `comment_id` minh họa.
+## 6. Tiến độ (tính đến 28/10/2026)
 
-## 6. Các hạng mục công việc đã thực hiện
+| Hạng mục | Trạng thái | Ghi chú |
+|---|---|---|
+| Chốt bài toán và phạm vi | ✅ Xong | 5 câu hỏi Q1–Q5, đặc tả trong `docs/EDA_requirement.md` |
+| Crawler và Replay | ✅ Xong | Quota, resume, chống trùng, ẩn danh, replay |
+| Dữ liệu thô | ✅ Có | ~226 nghìn bình luận, 1.715 video, 51 mã máy |
+| Thiết kế kiến trúc và dữ liệu | ✅ Xong | Sơ đồ mới, `docs/data-model.md`, contract `aspect-mention` đã chốt |
+| Tiền xử lý | ⚠️ Một phần | Đã có kết quả (lọc spam ~6,35%, tách mệnh đề); code chưa đưa vào repo |
+| EDA và dashboard | ⚠️ Bản nháp | Dùng để thống nhất đầu ra; nhãn là luật từ khóa nên số liệu chỉ minh họa |
+| Gán nhãn | ❌ Chưa | Guideline và 3000 mệnh đề |
+| Mô hình | ❌ Chưa | Khía cạnh, cảm xúc, máy được nhắc, spam |
+| Cơ sở dữ liệu | ❌ Chưa | Mới có thiết kế |
+| Trả lời Q1–Q5 bằng mô hình | ❌ Chưa | |
+| Streaming (Kafka/Spark) | ⏸ Tùy chọn | Mới có Kafka 1 node cho môi trường dev |
 
-| Hạng mục | Kết quả |
-|---|---|
-| Chốt bài toán và phạm vi | Đã xác định YouTube, comment tiếng Việt và ba câu hỏi nghiệp vụ |
-| Thiết kế kiến trúc | Đã có sơ đồ bốn tầng trong `docs/architecture.mmd` |
-| Thiết kế đường ống | Đã mô tả Crawler → Kafka → Spark → MongoDB → FastAPI/Streamlit |
-| Crawler và Replay | Đã có module ingest, lưu archive JSONL, quản lý quota và replay |
-| Hợp đồng dữ liệu | Đã định nghĩa schema comment và JSON Schema contract |
-| Dedupe và riêng tư | Upsert theo `comment_id`, ẩn danh tác giả bằng `author_hash` |
-| Tài liệu ML | Đã tách dữ liệu train bên ngoài khỏi raw YouTube và mô tả Teacher/Student |
-| Tầng processing | Đã xác định ranh giới validation, normalization, inference và aggregation |
-| Tầng serving | Đã xác định MongoDB sink, FastAPI API và Streamlit dashboard |
-| Báo cáo | Hoàn thiện tài liệu này để trình bày bài toán, mô hình và dữ liệu |
-
-Các hạng mục cần tiếp tục hoàn thiện khi triển khai đầy đủ gồm model artifact và
-metric trên tập test độc lập, job Spark production, endpoint FastAPI,
-dashboard Streamlit, integration test end-to-end và hiệu chỉnh ngưỡng cảnh báo
-trên dữ liệu thật.
+Kế hoạch chi tiết và phân công: [`docs/roadmap.md`](docs/roadmap.md).
 
 ## 7. Tiêu chí đánh giá
 
-### 7.1. Chất lượng mô hình
+### 7.1. Chất lượng nhãn
 
-- Spam: precision, recall, F1 theo lớp `spam`/`not_spam`.
-- Aspect: micro-F1, macro-F1 và F1 theo từng khía cạnh.
-- Sentiment: macro-F1 và confusion matrix theo từng mẫu máy.
-- Đánh giá riêng trên dữ liệu YouTube đã gán nhãn để đo khả năng chuyển miền.
+- Độ đồng thuận giữa hai người gán (Cohen's kappa) trên tập test, mục tiêu ≥ 0,6.
+- Tỷ lệ đúng của nhãn AI so với người kiểm tra.
 
-### 7.2. Chất lượng hệ thống
+### 7.2. Chất lượng mô hình
+
+- Khía cạnh: F1 từng khía cạnh, micro-F1, macro-F1.
+- Cảm xúc: macro-F1 và confusion matrix.
+- Máy được nhắc: precision, recall, tỷ lệ không xác định.
+- Spam: precision, recall, F1 cho lớp `spam`.
+- Mọi mô hình so với baseline luật từ khóa, đo trên tập test YouTube gán tay.
+
+### 7.3. Chất lượng phân tích
+
+- Mọi tỷ lệ có khoảng tin cậy; mọi kết luận có kiểm định đã hiệu chỉnh.
+- Bình luận minh họa đúng khía cạnh, đúng máy, đã được người duyệt.
+- Kết quả chạy lại được từ code và phiên bản dữ liệu ghi rõ.
+
+### 7.4. Chất lượng hệ thống
 
 - Không tạo bản ghi trùng khi retry hoặc replay.
-- Đo được độ trễ từ `ingested_at` đến khi có kết quả và cảnh báo.
-- Dashboard hiển thị đúng event time và không tính comment spam vào tỷ lệ
-  nghiệp vụ.
-- Cảnh báo có comment minh họa và truy ngược được về video.
-- Có thể tiếp tục crawl sau khi dừng giữa chừng mà không mất page token.
+- Crawl dừng giữa chừng tiếp tục được mà không mất page token.
+- Không tính bình luận spam vào tỷ lệ nghiệp vụ; dùng đúng thời gian sự kiện.
+- (Giai đoạn 2) Đo được độ trễ từ `ingested_at` đến khi có kết quả.
 
 ## 8. Kết luận
 
-Thiết kế hiện tại đáp ứng đúng luồng nghiệp vụ: thu thập comment YouTube,
-chuẩn hóa và lọc spam trước, phân tích khía cạnh/cảm xúc, phát hiện bất thường,
-lưu trữ có khả năng replay và cung cấp dữ liệu cho dashboard. Kiến trúc Kafka
-và Spark cho phép mở rộng khi số lượng video và comment tăng; MongoDB,
-FastAPI và Streamlit tách biệt phần lưu trữ với phần hiển thị. Việc sử dụng
-`author_hash`, schema version và upsert theo `comment_id` giúp hệ thống giữ
-được tính riêng tư, khả năng tương thích và tính lặp lại trong quá trình demo
-cũng như vận hành.
+Phần thu thập dữ liệu đã hoàn thành với các cơ chế đảm bảo không trùng, không mất tiến độ và ẩn danh người dùng. Bài toán đã được cụ thể hóa thành 5 câu hỏi có cách tính và điều kiện kết luận rõ ràng, cùng thiết kế dữ liệu lấy mệnh đề × khía cạnh × máy được nhắc làm đơn vị phân tích. Trọng tâm giai đoạn tới là gán nhãn, huấn luyện và đánh giá mô hình, sau đó trả lời Q1–Q5 bằng số liệu có kiểm định. Phần streaming với Kafka và Spark được giữ như hướng mở rộng, dùng chung định dạng dữ liệu nên có thể bổ sung mà không phải thiết kế lại.
