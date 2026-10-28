@@ -1,47 +1,60 @@
-%% Mục đích: Sơ đồ kiến trúc các tầng thu thập, xử lý, lưu trữ và phục vụ; cập nhật lần cuối: 2026-10-21.
+%% Mục đích: Sơ đồ kiến trúc các tầng thu thập, xử lý, huấn luyện, lưu trữ và phân tích; cập nhật lần cuối: 2026-10-28.
+%% Nét liền + màu: Giai đoạn 1, xử lý theo lô (bắt buộc). Nét đứt + xám: Giai đoạn 2, streaming (tùy chọn).
+%% Render lại SVG: npx @mermaid-js/mermaid-cli -i docs/architecture.mmd -o docs/architecture.svg -b white
 graph TD
-    %% Tầng 1: Thu thập (Ingestion)
-    subgraph Ingestion_Layer [Tầng 1: Thu thập dữ liệu]
-        External[Dataset bình luận bên ngoài] -->|EDA + nhãn train| Training[Kho dữ liệu huấn luyện]
-        Training -->|Train Teacher/Student offline| ModelRegistry[Model Registry]
-        API[YouTube Data API] -->|JSON thô| Crawler[Python Crawler]
-        Replay[Script Phát lại - Demo] -->|Dữ liệu lịch sử| Crawler
-        Crawler -->|Produce| K_Raw[Apache Kafka<br>Topic: raw_comments]
+    subgraph L1 [Tầng 1: Thu thập]
+        API[YouTube Data API v3] -->|commentThreads · comments| Crawler[Python Crawler<br>src/ingest]
+        Crawler -->|ghi nối| Raw[(Archive JSONL<br>comments · videos)]
+        Crawler -.->|produce, key = video_id| KRaw[Kafka<br>topic raw_comments]
+        Raw -.->|replay --speed| KRaw
     end
 
-    %% Tầng 2: Xử lý luồng (Stream Processing)
-    subgraph Stream_Processing_Layer [Tầng 2: Xử lý luồng - Apache Spark]
-        K_Raw -->|Consume micro-batches| S1[Ánh xạ Schema chuẩn]
-        S1 --> S2[Tiền xử lý văn bản<br>Chuẩn hóa, tách mệnh đề]
-        S2 --> S3[Mô hình Học máy<br>1. Spam<br>2. Khía cạnh<br>3. Cảm xúc]
-        ModelRegistry -.->|Nạp model version| S3
-        
-        S3 --> S4[Tính toán theo Cửa sổ<br>Sliding Window Aggregation]
-        S4 -->|Bắn cảnh báo| K_Alert[Apache Kafka<br>Topic: alerts]
+    subgraph LT [Huấn luyện offline]
+        Gold[(gold_labels<br>mẫu comments gán tay + AI)] --> Train[Train + đánh giá<br>chia theo video_id]
+        Ext[Dataset có nhãn<br>UIT-ViSFD…] --> Train
     end
 
-    %% Tầng 3: Lưu trữ (Storage)
-    subgraph Storage_Layer [Tầng 3: Lưu trữ - MongoDB]
-        S3 -->|Ghi dữ liệu đã gán nhãn| M_Comments[(Collection: comments)]
-        S4 -->|Ghi số liệu tổng hợp| M_Aggs[(Collection: aggregates)]
-        K_Alert -->|Lưu log cảnh báo| M_Alerts[(Collection: alerts)]
+    subgraph L2 [Tầng 2: Xử lý]
+        Pre[Tiền xử lý<br>lọc spam · tiếng Việt · tách mệnh đề] --> Inf[Suy luận<br>khía cạnh · cảm xúc · máy được nhắc]
+        Inf --> Agg[Tổng hợp số đếm<br>máy × khía cạnh × tuần × video]
+        Agg -.->|cửa sổ trượt| Alert[Phát hiện bất thường]
     end
 
-    %% Tầng 4: Phục vụ & Hiển thị (Serving)
-    subgraph Serving_Layer [Tầng 4: Phục vụ & Trực quan hóa]
-        M_Comments -.-> FastAPI[FastAPI Backend]
-        M_Aggs -.-> FastAPI
-        M_Alerts -.-> FastAPI
-        FastAPI --> Streamlit[Streamlit Dashboard<br>Real-time UI]
+    subgraph L3 [Tầng 3: Lưu trữ - MongoDB]
+        MM[(models · videos)]
+        MC[(comments)]
+        MAM[(aspect_mentions)]
+        MAG[(aggregates)]
+        MAL[(alerts)]
     end
 
-    %% Styling
-    classDef kafka fill:#ff9900,stroke:#333,stroke-width:2px;
-    classDef spark fill:#e67300,stroke:#333,stroke-width:2px,color:#fff;
-    classDef mongo fill:#4db33d,stroke:#333,stroke-width:2px,color:#fff;
-    classDef api fill:#009688,stroke:#333,stroke-width:2px,color:#fff;
-    
-    class K_Raw,K_Alert kafka;
-    class S1,S2,S3,S4 spark;
-    class M_Comments,M_Aggs,M_Alerts mongo;
-    class FastAPI,Streamlit api;
+    subgraph L4 [Tầng 4: Phân tích & hiển thị]
+        QA[Phân tích Q1–Q5<br>khoảng tin cậy · kiểm định] --> Dash[Dashboard + báo cáo]
+    end
+
+    Raw --> Pre
+    KRaw -.->|Spark Structured Streaming| Pre
+    Train -->|model_version| Inf
+    Raw --> MM
+    Pre --> MC
+    Inf --> MAM
+    Agg --> MAG
+    Alert -.-> MAL
+    MM --> QA
+    MAM --> QA
+    MAG --> QA
+    MAL -.-> Dash
+
+    classDef ingest fill:#3b82f6,stroke:#1e3a8a,color:#fff;
+    classDef proc fill:#e67300,stroke:#7c2d12,color:#fff;
+    classDef train fill:#8b5cf6,stroke:#4c1d95,color:#fff;
+    classDef mongo fill:#4db33d,stroke:#14532d,color:#fff;
+    classDef serve fill:#009688,stroke:#134e4a,color:#fff;
+    classDef optional fill:#f3f4f6,stroke:#9ca3af,color:#4b5563,stroke-dasharray:5 5;
+
+    class API,Crawler,Raw ingest;
+    class Pre,Inf,Agg proc;
+    class Gold,Train,Ext train;
+    class MM,MC,MAM,MAG mongo;
+    class QA,Dash serve;
+    class KRaw,Alert,MAL optional;
