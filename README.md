@@ -1,36 +1,97 @@
-# Hệ thống phân tán phân tích luồng bình luận sau ra mắt điện thoại
+# Phân tích bình luận sau ra mắt điện thoại tại Việt Nam
 
-> Mục đích: Giới thiệu tổng quan, kiến trúc và cấu trúc thư mục của hệ thống; cập nhật lần cuối: 2026-10-21.
+> Mục đích: Bức tranh toàn cảnh của dự án: bài toán, trạng thái hiện tại, kế hoạch và bản đồ tài liệu; cập nhật lần cuối: 2026-10-28.
 
-## 📌 Bối cảnh dự án
-Hệ thống được thiết kế để hỗ trợ một hãng điện thoại (giả định) vừa ra mắt mẫu máy mới tại thị trường Việt Nam. Trong giai đoạn đầu ra mắt, hệ thống sẽ thu thập liên tục các bình luận từ các video review, unbox tiếng Việt trên YouTube để giải quyết 3 bài toán nghiệp vụ cốt lõi:
-1. **Lọc dữ liệu rác (Spam Detection):** Tự động loại bỏ bình luận seeding, quảng cáo.
-2. **Phân tích khía cạnh (Aspect-based Sentiment):** Theo dõi tỷ lệ khen/chê về 9 khía cạnh (Pin, Màn hình, Hiệu năng, Camera, Thiết kế và độ bền, Phần mềm, Phần cứng khác, giá, Bảo hành và hậu mãi) giữa mẫu máy mới và mẫu đối thủ.
-3. **Cảnh báo khủng hoảng (Anomaly Alerting):** Phát hiện tức thời khi lượng bình luận tiêu cực về một khía cạnh tăng đột biến trong cửa sổ thời gian ngắn.
+Đồ án môn Khoa học dữ liệu, nhóm 11 người. Đọc file này trước, sau đó đọc [Kế hoạch & phân công](docs/roadmap.md).
 
-## 🏗️ Kiến trúc Công nghệ (Tech Stack)
-Hệ thống sử dụng kiến trúc xử lý luồng phân tán (Distributed Stream Processing):
-- **Data Ingestion:** YouTube Data API v3, Python Crawler.
-- **Message Broker:** Apache Kafka (Topics: `raw_comments`, `alerts`).
-- **Stream Processing:** Apache Spark Structured Streaming (Tiền xử lý, Chạy mô hình ML, Tính toán cửa sổ trượt).
-- **Storage:** MongoDB (Collections: `comments`, `aggregates`, `alerts`).
-- **Serving & Visualization:** FastAPI (Backend REST API) & Streamlit (Real-time Dashboard).
-- **Machine Learning:** TF-IDF kết hợp SVM/Naive Bayes/Random Forest.
+## 1. Bài toán
 
-## 🤖 Vòng đời dữ liệu và mô hình
+Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muốn biết người dùng đánh giá X thế nào so với đời trước và các đối thủ. Dự án thu thập bình luận tiếng Việt trên YouTube (video review, unbox, so sánh), tách thành mệnh đề, gán nhãn **khía cạnh – cảm xúc – máy được nhắc**, rồi trả lời 5 câu hỏi nghiệp vụ:
 
-- Dữ liệu bình luận tổng hợp từ Internet/dataset bên ngoài được EDA, gán nhãn và chia theo `video_id`/nguồn/thời gian để huấn luyện **Teacher**.
-- Crawler YouTube ghi raw archive tại `src/ingest/data/raw/comments.jsonl`; dữ liệu này đi vào Kafka/Spark để inference và cảnh báo, không mặc định là dữ liệu train.
-- Một mẫu YouTube được gán nhãn thủ công có thể dùng làm `youtube_test_labeled.jsonl` để đánh giá khả năng chuyển miền.
-- Nếu dùng Teacher–Student, Teacher tạo pseudo-label có lọc confidence cho dữ liệu YouTube; Student chỉ được triển khai sau khi đánh giá độc lập.
-- Xem quy trình đầy đủ tại [`docs/ml-training.md`](docs/ml-training.md).
+| # | Câu hỏi | Chi tiết |
+|---|---|---|
+| Q1 | X được đón nhận tốt hay dở? | Net sentiment theo tuần, so với đời trước và đối thủ |
+| Q2 | Ưu điểm và nhược điểm của X là gì? | Tỷ lệ khen/chê theo khía cạnh, kèm bình luận thật |
+| Q3 | So với đối thủ, X mạnh/yếu ở đâu? | Ma trận khía cạnh × máy, bình luận so sánh trực tiếp |
+| Q4 | Đời trước bị chê gì, đời này đã sửa chưa? | Tỷ lệ chê từng khía cạnh, đời trước → X |
+| Q5 | Lỗi gì cần sửa, ưu tiên cái nào? | Lỗi do người đã dùng máy báo, số lần nhắc và xu hướng |
 
-## 📂 Cấu trúc Thư mục
-- `/config`: Cấu hình hệ thống, tham số pipeline.
-- `/contracts`: Định nghĩa Schema dữ liệu (VD: JSON schema cho comment).
-- `/docs`: Tài liệu kiến trúc và luồng dữ liệu (Mermaid, Markdown).
-- `/runbooks`: Hướng dẫn vận hành, kịch bản xử lý sự cố (Incident Response).
-- `/src/ingest`: Script cào dữ liệu và phát lại (Replay) đẩy vào Kafka.
-- `/src/processing`: Các job Spark Streaming xử lý dữ liệu và chạy ML.
-- `/src/serving`: API Backend bằng FastAPI và Frontend bằng Streamlit.
-- `/tests`: Unit tests và Integration tests.
+Đặc tả đầy đủ (công thức, kiểm định, điều kiện kết luận): [docs/EDA_requirement.md](docs/EDA_requirement.md).
+
+### Phạm vi
+
+- **Nguồn:** YouTube (chính). Nguồn bổ sung đang khảo sát, xem [Công việc 15](docs/roadmap.md#công-việc-15-bổ-sung-nguồn-dữ-liệu-ngoài-youtube).
+- **Bốn máy so sánh:** X, đời trước của X (P), hai đối thủ cùng phân khúc ra mắt cùng thời điểm (R1, R2). Danh sách chốt ở Công việc 2.
+- **Cửa sổ:** 4 tuần đầu kể từ `launch_date` của từng máy (khớp với dữ liệu đã crawl, `window_weeks: 4` trong [config/pipeline.yaml](config/pipeline.yaml)).
+- **9 khía cạnh (đề xuất, chốt ở Công việc 4):** Pin & sạc, Màn hình, Hiệu năng (gồm nhiệt độ), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi.
+- **Ngoài phạm vi:** hình ảnh/âm thanh/nội dung video; bình luận không phải tiếng Việt; tên thật của người bình luận (chỉ lưu `author_hash`).
+
+## 2. Trạng thái hiện tại
+
+| Thành phần | Trạng thái | Ghi chú |
+|---|---|---|
+| Crawler YouTube | ✅ Xong | [src/ingest](src/ingest/README.md): quota, resume, chống trùng, replay |
+| Dữ liệu raw | ✅ Có | ~226 nghìn bình luận, 51 model, 2014–2026. Không nằm trong git (xem mục 5) |
+| Tiền xử lý (lọc spam, tách mệnh đề) | ⚠️ Có kết quả, **thiếu code trong repo** | Công việc 6 |
+| EDA + dashboard | ⚠️ **Bản nháp** | Để hình dung đầu ra. Nhãn khía cạnh/cảm xúc là luật từ khóa, **số liệu chỉ để minh họa** |
+| Nhãn (gold labels) | ❌ Chưa có | Công việc 1, 5 |
+| Mô hình ML | ❌ Chưa có | Công việc 7–11 |
+| Cơ sở dữ liệu | ❌ Mới có thiết kế | [docs/data-model.md](docs/data-model.md), Công việc 3 |
+| Trả lời Q1–Q5 bằng mô hình | ❌ Chưa | Công việc 12 |
+| Streaming (Kafka/Spark) | ⏸ Tùy chọn | Chỉ làm nếu còn thời gian, xem [docs/pipeline.md](docs/pipeline.md) |
+| Tests | ❌ Chưa có | [tests/README.md](tests/README.md) |
+
+## 3. Luồng dữ liệu
+
+```mermaid
+flowchart LR
+    YT[YouTube API] --> C[Crawler<br>src/ingest]
+    C --> RAW[(raw comments<br>JSONL)]
+    RAW --> PRE[Tiền xử lý<br>spam · tiếng Việt · tách mệnh đề]
+    PRE --> CM[(comments)]
+    EXT[Dataset có nhãn<br>UIT-ViSFD…] --> TRAIN
+    GOLD[(gold_labels<br>gán tay)] --> TRAIN[Huấn luyện<br>+ đánh giá]
+    TRAIN --> M[Mô hình<br>khía cạnh · cảm xúc · máy được nhắc]
+    CM --> M
+    M --> AM[(aspect_mentions)]
+    AM --> AG[(aggregates)]
+    AG --> Q[Q1–Q5<br>kiểm định]
+    AM --> Q
+    Q --> D[Dashboard + báo cáo]
+```
+
+Đơn vị phân tích là **mệnh đề × khía cạnh** (`aspect_mentions`), không phải cả bình luận. Máy được tính là **máy được nhắc trong mệnh đề** (`target_model`), không phải máy của video.
+
+## 4. Bản đồ tài liệu
+
+| Tài liệu | Đọc khi |
+|---|---|
+| [docs/roadmap.md](docs/roadmap.md) | Muốn biết mình làm gì, phụ thuộc ai, hạn khi nào |
+| [docs/EDA_requirement.md](docs/EDA_requirement.md) | Làm phân tích Q1–Q5, dashboard, báo cáo |
+| [docs/data-model.md](docs/data-model.md) | Làm DB, ghi/đọc dữ liệu giữa các nhóm |
+| [contracts/](contracts/) | Kiểm tra định dạng bản ghi (JSON Schema) |
+| [docs/ml-training.md](docs/ml-training.md) | Gán nhãn, huấn luyện, đánh giá mô hình |
+| [docs/pipeline.md](docs/pipeline.md) | Hiểu các bước xử lý và phần streaming tùy chọn |
+| [src/ingest/README.md](src/ingest/README.md) | Chạy crawler, replay |
+| [Bao_cao_21_10.md](Bao_cao_21_10.md) | Cần bản báo cáo tổng hợp để nộp/trình bày (bản 21/10, cập nhật 28/10) |
+| [docs/architecture.mmd](docs/architecture.mmd) | Sửa sơ đồ kiến trúc (render lại `architecture.svg` theo lệnh ghi trong file) |
+
+## 5. Bắt đầu
+
+1. Clone repo, tạo branch riêng: `git checkout -b <tên>/<công-việc>`.
+2. Dữ liệu không nằm trong git. Tải `clean_data.jsonl` từ thư mục chung của nhóm (**link: ___**), đặt vào `data/clean_data.jsonl` ở gốc repo. Kiểm tra số dòng và checksum khớp với bảng phiên bản dữ liệu trong thư mục chung.
+3. Đọc công việc của mình trong [docs/roadmap.md](docs/roadmap.md) và các tài liệu nó trỏ tới.
+4. Làm xong thì mở PR vào `main`, không push thẳng.
+
+## 6. Cấu trúc thư mục
+
+```text
+config/            cấu hình crawler: danh mục máy, kênh, quota
+contracts/         JSON Schema: comment-event, aspect-mention
+docs/              đặc tả, kế hoạch, thiết kế dữ liệu, ML, pipeline
+runbooks/          kịch bản sự cố cho phần streaming (tùy chọn)
+src/ingest/        crawler YouTube + replay
+src/processing/    tiền xử lý, mô hình, notebook EDA
+src/serving/       dashboard (hiện là bản nháp tĩnh)
+tests/             kiểm thử
+```
