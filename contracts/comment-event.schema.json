@@ -1,61 +1,80 @@
 {
-  "$comment": "Mục đích: Định nghĩa hợp đồng JSON Schema cho sự kiện bình luận YouTube; cập nhật lần cuối: 2026-10-21.",
+  "$comment": "Mục đích: Hợp đồng JSON Schema cho sự kiện bình luận raw (schema v2, khớp src/ingest/src/schema.py); cập nhật lần cuối: 2026-10-28.",
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "YouTubeCommentEvent",
-  "description": "Hợp đồng cấu trúc dữ liệu cho một sự kiện bình luận đẩy vào hệ thống luồng",
+  "title": "CommentEvent",
+  "description": "Một bình luận raw do crawler ghi ra archive JSONL và Kafka topic raw_comments. Nguồn sự thật về danh sách trường là src/ingest/src/schema.py; sửa ở đó thì sửa cả file này.",
   "type": "object",
   "properties": {
     "comment_id": {
       "type": "string",
-      "description": "ID của YouTube, đóng vai trò khóa chính (Primary Key)"
+      "description": "ID bình luận, khóa upsert"
     },
     "video_id": {
       "type": "string",
-      "description": "ID của Video chứa comment, dùng làm khóa partition trong Kafka"
+      "description": "Video chứa bình luận, khóa partition Kafka"
     },
     "parent_id": {
       "type": ["string", "null"],
-      "description": "Có giá trị (string) nếu là reply, null nếu là comment gốc"
+      "description": "ID bình luận gốc nếu là reply; null nếu là bình luận gốc"
+    },
+    "parent_text": {
+      "type": ["string", "null"],
+      "description": "Nội dung bình luận gốc, chỉ có ở reply"
     },
     "model": {
       "type": "string",
-      "description": "Gắn nhãn mẫu máy chính (main) hoặc đối thủ (rival)"
+      "pattern": "^[A-Za-z0-9_]+(\\|[A-Za-z0-9_]+)*$",
+      "description": "Mã máy theo video (models[].name trong config/pipeline.yaml); video nhiều máy nối bằng '|'. Đây là máy của video, không phải máy được nhắc trong bình luận"
+    },
+    "source": {
+      "type": "string",
+      "description": "Nguồn dữ liệu, hiện là youtube"
     },
     "text": {
       "type": "string",
-      "description": "Nội dung chữ gốc của bình luận"
+      "description": "Nội dung chữ thuần (textDisplay)"
     },
     "text_norm": {
       "type": "string",
-      "description": "Nội dung sau chuẩn hóa, tách từ, xóa teencode (do team DS ghi, lúc đầu Crawler có thể để rỗng)"
+      "description": "Nội dung sau chuẩn hóa; crawler để rỗng, tiền xử lý ghi"
     },
     "author_hash": {
       "type": "string",
-      "description": "Mã băm SHA-256 của channel ID tác giả, để ẩn danh người dùng"
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "SHA-256(salt + channel ID tác giả)"
     },
     "published_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Thời điểm đăng tải (chuẩn ISO 8601 UTC), dùng làm Event Time cho cửa sổ Spark"
+      "description": "Thời điểm đăng (UTC), event time"
     },
     "like_count": {
-      "type": "integer",
+      "type": ["integer", "null"],
       "minimum": 0,
-      "description": "Số lượt thích của bình luận"
+      "description": "Số like tại fetched_at; null khi replay --strip-stats"
     },
-    "ingested_at": {
+    "reply_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "Tổng reply, chỉ có ở bình luận gốc"
+    },
+    "fetched_at": {
       "type": "string",
       "format": "date-time",
-      "description": "Thời điểm đưa vào Kafka, dùng để đo độ trễ đầu cuối (Latency)"
+      "description": "Thời điểm API trả số liệu"
+    },
+    "ingested_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Thời điểm ghi archive/Kafka; replay ghi lại"
+    },
+    "schema_version": {
+      "const": 2
     }
   },
   "required": [
-    "comment_id",
-    "video_id",
-    "model",
-    "text",
-    "author_hash",
-    "published_at"
+    "comment_id", "video_id", "parent_id", "parent_text", "model", "source", "text", "text_norm",
+    "author_hash", "published_at", "like_count", "reply_count", "fetched_at", "ingested_at", "schema_version"
   ],
   "additionalProperties": false
 }
