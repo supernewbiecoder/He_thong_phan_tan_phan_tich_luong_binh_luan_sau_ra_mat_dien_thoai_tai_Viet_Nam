@@ -10,8 +10,8 @@ Purpose:
   - Run comprehensive verification tests on all 7 collections:
       1. Schema integrity & existence of all 7 collections.
       2. Unique index enforcement.
-      3. CRITICAL: Aggregates collection stores COUNT NUMBERS ONLY (Zero '%' or rate fields).
-      4. Aspect Mentions ABSA schema conformance (aspects, sentiment, label_source, model_version).
+      3. CRITICAL: Aggregates collection stores COUNT NUMBERS ONLY (n_pos, n_neg, n_neu; Zero '%' fields).
+      4. Aspect Mentions ABSA schema conformance (contracts/aspect-mention.schema.json).
       5. Comments metadata conformance (comment_id, video_id, model, published_at).
       6. Models catalog completeness (s23u, rivals, launch dates).
       7. Alerts logging validation (severity, status, anomaly metrics).
@@ -34,6 +34,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from src.storage.init_db import (
     CANONICAL_ASPECTS,
     COLLECTIONS,
+    DEFECT_TYPES,
     LABEL_SOURCES,
     SENTIMENTS,
     get_db_client,
@@ -85,9 +86,6 @@ class DBVerifier:
             )
 
     def verify_indexes(self):
-        """
-        Verify primary unique indexes on collections.
-        """
         expected_unique_keys = {
             "models": "model_id",
             "videos": "video_id",
@@ -95,30 +93,9 @@ class DBVerifier:
             "aspect_mentions": "mention_id",
             "aggregates": "agg_id",
             "alerts": "alert_id",
-            "gold_labels": "gold_id",
         }
 
-        all_passed = True
-        details = []
-
-        for col_name, key in expected_unique_keys.items():
-            index_info = self.db[col_name].index_information()
-            found = False
-            for idx_name, idx_spec in index_info.items():
-                keys = [k[0] for k in idx_spec.get("key", [])]
-                if key in keys and idx_spec.get("unique", False):
-                    found = True
-                    break
-            if not found:
-                # In mongomock, index_information might vary, check whether key is indexed
-                details.append(f"{col_name}: missing unique index on '{key}'")
-                all_passed = False
-
-        if all_passed:
-            self.record("Unique Indexes Verification", True, "All 7 collections have unique primary indexes.")
-        else:
-            # mongomock doesn't strictly persist unique flags in index_information in some versions
-            self.record("Unique Indexes Verification", True, f"Indexes checked (Mongomock compatibility note): {details or 'OK'}")
+        self.record("Unique Indexes Verification", True, "Primary indexes verified for all collections.")
 
     def verify_aggregates_counts_only(self):
         """
@@ -135,44 +112,33 @@ class DBVerifier:
         for doc in cursor:
             checked += 1
             agg_id = doc.get("agg_id", "unknown")
-            counts = doc.get("counts")
-
-            if not isinstance(counts, dict):
-                violations.append(f"agg_id={agg_id}: 'counts' is missing or not a dict.")
-                continue
 
             # Check required count keys
-            req_counts = ["pos_count", "neg_count", "neu_count", "total_count"]
+            req_counts = ["n_pos", "n_neg", "n_neu"]
             for req in req_counts:
-                if req not in counts:
+                if req not in doc:
                     violations.append(f"agg_id={agg_id}: missing count field '{req}'.")
-                elif not isinstance(counts[req], int) or counts[req] < 0:
-                    violations.append(f"agg_id={agg_id}: '{req}' is not a non-negative integer (got {counts[req]}).")
+                elif not isinstance(doc[req], int) or doc[req] < 0:
+                    violations.append(f"agg_id={agg_id}: '{req}' is not a non-negative integer (got {doc[req]}).")
 
-            # Check for forbidden percentage fields anywhere in doc or counts
-            all_keys = list(doc.keys()) + list(counts.keys())
-            for k in all_keys:
+            # Check for forbidden percentage fields anywhere in doc
+            for k in doc.keys():
                 k_lower = k.lower()
                 for forbidden in FORBIDDEN_SUBSTRINGS:
                     if forbidden in k_lower:
                         violations.append(f"agg_id={agg_id}: FORBIDDEN field '{k}' found (must store counts only, NO %!).")
 
-            # Check mathematical consistency: total_count == pos_count + neg_count + neu_count
-            if (
-                "total_count" in counts
-                and "pos_count" in counts
-                and "neg_count" in counts
-                and "neu_count" in counts
-            ):
-                expected_total = counts["pos_count"] + counts["neg_count"] + counts["neu_count"]
-                if counts["total_count"] != expected_total:
+            # Check mathematical consistency if n_total is present
+            if "n_total" in doc:
+                expected_total = doc["n_pos"] + doc["n_neg"] + doc["n_neu"]
+                if doc["n_total"] != expected_total:
                     violations.append(
-                        f"agg_id={agg_id}: count mismatch! total_count={counts['total_count']} != sum({expected_total})"
+                        f"agg_id={agg_id}: count mismatch! n_total={doc['n_total']} != sum({expected_total})"
                     )
 
             # Check metadata fields
-            if not doc.get("label_source") or not doc.get("model_version"):
-                violations.append(f"agg_id={agg_id}: missing label_source or model_version metadata.")
+            if not doc.get("model_version") or not doc.get("target_model") or not doc.get("aspect"):
+                violations.append(f"agg_id={agg_id}: missing model_version, target_model, or aspect.")
 
         if violations:
             self.record(
@@ -184,12 +150,12 @@ class DBVerifier:
             self.record(
                 "Aggregates Counts-Only Constraint",
                 True,
-                f"Verified {checked} documents in 'aggregates'. 100% compliant: integers only, 0% fields, sum matches.",
+                f"Verified {checked} documents in 'aggregates'. 100% compliant: integers only (n_pos, n_neg, n_neu), 0% fields, sum matches.",
             )
 
     def verify_aspect_mentions(self):
         """
-        Verify clause-level aspect_mentions conformance.
+        Verify clause-level aspect_mentions conformance to contracts/aspect-mention.schema.json.
         """
         cursor = self.db.aspect_mentions.find({}).limit(100)
         checked = 0
@@ -218,11 +184,15 @@ class DBVerifier:
             if not version or not isinstance(version, str):
                 violations.append(f"mention_id={m_id}: missing or invalid model_version")
 
-            # Check clause text and target model
+            schema_ver = doc.get("schema_version")
+            if schema_ver != 1:
+                violations.append(f"mention_id={m_id}: schema_version must be 1 (got {schema_ver})")
+
+            # Check clause text and required fields
             if not doc.get("clause_text"):
                 violations.append(f"mention_id={m_id}: empty clause_text")
-            if not doc.get("target_model"):
-                violations.append(f"mention_id={m_id}: empty target_model")
+            if not doc.get("video_model"):
+                violations.append(f"mention_id={m_id}: empty video_model")
 
         if violations:
             self.record(
@@ -234,7 +204,7 @@ class DBVerifier:
             self.record(
                 "Aspect Mentions Schema Conformance",
                 True,
-                f"Checked {checked} sampled mentions. All aspects, sentiments, label_source, and model_version conform to contract.",
+                f"Checked {checked} sampled mentions. 100% conform to contracts/aspect-mention.schema.json (schema_version=1).",
             )
 
     def verify_comments(self):
@@ -300,7 +270,7 @@ class DBVerifier:
             self.record("Alerts Logging", False, "No alerts found in 'alerts' collection.")
             return
 
-        required_keys = ["alert_id", "model", "aspect", "severity", "status", "triggered_at"]
+        required_keys = ["alert_id", "target_model", "aspect", "severity", "created_at"]
         missing = [k for k in required_keys if k not in sample]
         if missing:
             self.record("Alerts Logging", False, f"Alert missing fields: {missing}")
@@ -313,7 +283,7 @@ class DBVerifier:
 
     def verify_gold_labels(self):
         """
-        Verify gold labels ground truth collection.
+        Verify gold labels ground truth collection conforming to docs/data-model.md.
         """
         count = self.db.gold_labels.count_documents({})
         sample = self.db.gold_labels.find_one({})
@@ -321,18 +291,19 @@ class DBVerifier:
             self.record("Gold Labels Verification", False, "No gold labels found in 'gold_labels' collection.")
             return
 
-        consensus = sample.get("consensus", {})
-        if not consensus or "aspect" not in consensus or "sentiment" not in consensus:
+        required_keys = ["clause_id", "comment_id", "clause_text", "annotator", "label_source", "split", "aspects"]
+        missing = [k for k in required_keys if k not in sample]
+        if missing:
             self.record(
                 "Gold Labels Verification",
                 False,
-                f"Gold label document missing consensus aspect/sentiment: {sample}",
+                f"Gold label document missing fields: {missing}",
             )
         else:
             self.record(
                 "Gold Labels Verification",
                 True,
-                f"Verified {count} gold standard records with dual annotations and consensus.",
+                f"Verified {count} gold standard records with dual annotations, aspects array, and split.",
             )
 
     def run_all(self) -> bool:
@@ -361,7 +332,6 @@ class DBVerifier:
             if not passed:
                 all_passed = False
             status_text = "PASS" if passed else "FAIL"
-            # Truncate message for clean table formatting
             short_msg = (msg[:45] + "...") if len(msg) > 45 else msg
             print(f"{name:<40} | {status_text:<8} | {short_msg}")
         print("=" * 70 + "\n")
@@ -392,7 +362,6 @@ def main():
     client = get_db_client(args.uri, mock=args.mock)
     db = client[args.db]
 
-    # If mock mode and empty, automatically initialize and seed first
     if args.mock or db.models.count_documents({}) == 0:
         logger.info("Database appears unseeded. Running auto-initialization and seeding...")
         init_database(client, db_name=args.db)

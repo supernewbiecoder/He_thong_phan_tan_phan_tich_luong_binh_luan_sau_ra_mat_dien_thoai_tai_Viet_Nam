@@ -1,31 +1,67 @@
-# Chi tiết Đường ống Dữ liệu (Data Pipeline)
+# Đường ống dữ liệu (Data Pipeline)
 
-> Mục đích: Mô tả luồng thu thập, xử lý, lưu trữ và phục vụ dữ liệu bình luận; cập nhật lần cuối: 2026-10-21.
+> Mục đích: Mô tả các bước thu thập, xử lý, lưu trữ và phục vụ dữ liệu; tách phần bắt buộc (theo lô) và phần streaming tùy chọn; cập nhật lần cuối: 2026-10-28.
 
-Đường ống dữ liệu của hệ thống được thiết kế theo kiến trúc **Stream Processing**, đảm bảo xử lý liên tục với độ trễ thấp ngay khi có bình luận mới.
+## 1. Tổng quan
 
-> **Phân biệt dữ liệu:** dữ liệu bình luận tổng hợp từ Internet/dataset bên ngoài được dùng để EDA, gán nhãn và huấn luyện Teacher. Dữ liệu YouTube trong `src/ingest/data/raw/comments.jsonl` là raw input cho test tích hợp, đánh giá khác miền sau khi gán nhãn và inference production; không dùng trực tiếp để train khi chưa có nhãn. Xem chi tiết tại [Vòng đời mô hình học máy](./ml-training.md).
+Dự án làm theo hai giai đoạn:
 
-## 1. Data Ingestion (Hứng dữ liệu vào Kafka)
-- **Nguồn:** API của YouTube sẽ trả về dữ liệu bình luận dạng JSON (bao gồm comment gốc và reply). 
-- **Quy trình:** Script `crawler` lấy dữ liệu, giữ lại các trường quan trọng (comment_id, text, model, published_at, author_hash) và đẩy trực tiếp vào Topic `raw_comments` của cụm Apache Kafka. Kafka chia partition theo `video_id` để tăng tốc độ phân phối và chống nghẽn nút cổ chai.
-- **Chế độ Demo (Replay):** Khi bảo vệ đồ án, để đảm bảo tính ổn định, hệ thống sẽ đọc từ file lịch sử và bắn vào Kafka với hệ số tua nhanh (ví dụ: x10, x100 lần thời gian thực).
+| Giai đoạn | Trạng thái | Mục tiêu |
+|---|---|---|
+| **1. Xử lý theo lô** | **Bắt buộc**, đang làm | Trả lời Q1–Q5 trên dữ liệu đã crawl |
+| **2. Streaming** | Tùy chọn | Demo xử lý gần thời gian thực và cảnh báo bằng Kafka/Spark |
 
-## 2. Stream Processing (Xử lý tập trung với Apache Spark)
-Spark Structured Streaming thực hiện chuỗi tác vụ sau trên từng micro-batch:
-1. **Tiền xử lý (Preprocessing):** Tách bình luận thành các mệnh đề nhỏ dựa trên dấu câu và từ nối ("nhưng", "mà"). Sau đó làm sạch văn bản (chuyển chữ không dấu, dịch teencode, chuẩn hóa emoji) lưu vào trường `text_norm`.
-2. **Suy luận ML (Inference):** 
-   - Chạy qua mô hình phân loại Spam (Lọc bỏ nếu là rác).
-   - Chạy qua mô hình đa nhãn để xác định Khía cạnh (1 trong 9 khía cạnh: Pin, Màn hình, Hiệu năng...).
-   - Chạy qua mô hình Cảm xúc (Tích cực, Tiêu cực, Trung tính).
-3. **Phát hiện bất thường (Anomaly Detection):** Spark sử dụng hàm cửa sổ trượt (Sliding Window - ví dụ trượt 1 giờ, nhảy 10 phút) để đếm số lượng mệnh đề tiêu cực. Nếu tỷ lệ tiêu cực vượt quá ngưỡng (trung bình + 2 độ lệch chuẩn của 24h trước), hệ thống kích hoạt cảnh báo, đẩy vào Topic `alerts`.
+Cả hai giai đoạn dùng **cùng** contract và cùng các collection trong [data-model.md](data-model.md). Giai đoạn 2 chỉ thay cách dữ liệu chạy qua các bước, không đổi định dạng.
 
-## 3. Data Storage (Lưu trữ vào MongoDB)
-Dữ liệu sau khi đi qua Spark được ghi đè (upsert theo `comment_id` để chống trùng lặp do phân tán) vào 3 collections trong MongoDB:
-- `comments`: Lưu chi tiết từng mệnh đề kèm 3 nhãn dự đoán.
-- `aggregates`: Lưu kết quả đếm (count) tổng hợp theo thời gian (giúp dashboard load nhanh hơn thay vì query từ bảng comments).
-- `alerts`: Lưu trữ lịch sử các lần xảy ra cảnh báo khủng hoảng.
+## 2. Giai đoạn 1: Xử lý theo lô (bắt buộc)
 
-## 4. Serving (Hiển thị Real-time)
-- **FastAPI** cung cấp các REST endpoint để truy vấn số liệu thống kê.
-- **Streamlit** gọi API theo chu kỳ (polling) để cập nhật biểu đồ đường (Line chart) biểu diễn xu hướng cảm xúc và hiển thị pop-up danh sách cảnh báo ngay khi MongoDB có dữ liệu `alerts` mới.
+```text
+1. Thu thập     YouTube API → crawler → data/raw/comments.jsonl            ✅ src/ingest
+2. Tiền xử lý   comments.jsonl → lọc spam, nhận diện tiếng Việt,
+                chuẩn hóa text_norm, tách mệnh đề → clean_data.jsonl         ⚠️ code chưa có trong repo
+3. Nạp DB       models, videos, comments                                     ❌ Công việc 3
+4. Suy luận     mô hình khía cạnh + cảm xúc + máy được nhắc
+                → aspect_mentions                                            ❌ Công việc 8–10
+5. Tổng hợp     aspect_mentions → aggregates (số đếm theo máy, khía cạnh,
+                tuần, video)                                                 ❌ Công việc 12
+6. Phân tích    Q1–Q5: tỷ lệ, khoảng tin cậy, kiểm định                     ❌ Công việc 12
+7. Hiển thị     dashboard + báo cáo                                          ⚠️ bản nháp tĩnh
+```
+
+### 2.1 Thu thập
+
+Crawler đi qua playlist uploads của các kênh trong `config/pipeline.yaml`, lọc video theo tiêu đề và ngày đăng, rồi cào bình luận gốc và reply trong cửa sổ 4 tuần sau `launch_date`. Chi tiết: [src/ingest/README.md](../src/ingest/README.md).
+
+Lưu ý: trường `model` của bình luận là **máy của video**, không phải máy được nhắc. Máy được nhắc xác định ở bước 4.
+
+### 2.2 Tiền xử lý
+
+- Lọc spam (hiện bằng luật: link, số điện thoại, mời liên hệ, cờ bạc, lặp ký tự…). Tách riêng "không phải tiếng Việt" khỏi "spam" khi báo cáo tỷ lệ spam.
+- Chuẩn hóa: chữ thường, khoảng trắng, emoji, teencode → `text_norm`.
+- Tách mệnh đề theo dấu câu và từ nối ("nhưng", "còn"…). Cẩn thận với "mà" vì từ này nhiều nghĩa trong tiếng Việt; kiểm tra chất lượng tách trên mẫu.
+- Giữ `parent_text` để hiểu ngữ cảnh reply.
+- Dùng `published_at` làm thời gian sự kiện.
+
+### 2.3 Suy luận và tổng hợp
+
+Mỗi mệnh đề không spam đi qua 3 mô hình, ghi một dòng `aspect_mentions` cho mỗi khía cạnh được nhắc. `days_since_launch` tính theo `launch_date` của `target_model`. `aggregates` ghi bằng upsert theo khóa để chạy lại không bị cộng dồn. Chi tiết: [ml-training.md](ml-training.md#7-đưa-mô-hình-vào-dữ-liệu).
+
+## 3. Giai đoạn 2: Streaming (tùy chọn)
+
+Chỉ làm khi Giai đoạn 1 xong và giảng viên yêu cầu phần hệ thống phân tán.
+
+```text
+replay (src/ingest) → Kafka raw_comments (key = video_id)
+   → Spark Structured Streaming: kiểm tra schema, dedupe theo comment_id,
+     tiền xử lý, suy luận (nạp mô hình theo model_version)
+   → upsert aspect_mentions, aggregates
+   → cửa sổ trượt (vd 1 giờ, bước 10 phút) trên số mention neg theo (target_model, aspect)
+   → vượt baseline → Kafka alerts → collection alerts
+```
+
+- **Replay** phát lại dữ liệu đã crawl theo `published_at` với hệ số tốc độ (`--speed 10`), `--strip-stats` để bỏ like/reply "của tương lai".
+- **Ngưỡng cảnh báo** tham khảo: tỷ lệ chê trong cửa sổ vượt trung bình + 2 độ lệch chuẩn của 24 giờ trước; phải hiệu chỉnh trên dữ liệu thật và chỉ áp dụng khi cửa sổ đủ số mention.
+- **Idempotent:** mọi sink upsert theo `comment_id`/`mention_id`/khóa aggregate để replay hoặc retry không tạo bản trùng.
+- **Đo:** độ trễ từ `ingested_at` đến khi ghi `aspect_mentions`; consumer lag ở tốc độ 1x và 10x.
+
+Hạ tầng dev hiện có: Kafka 1 node ([docker-compose.dev.yml](../src/ingest/docker-compose.dev.yml)). Cụm nhiều broker, Spark, MongoDB và các kịch bản trong [runbooks](../runbooks/incident-response.md) **chưa được dựng**.
