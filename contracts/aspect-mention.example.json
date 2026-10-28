@@ -1,0 +1,20 @@
+{
+  "mention_id": "Ugw1a2B3c4D5e6F7g8h4AaABAg_c1_BATTERY",
+  "comment_id": "Ugw1a2B3c4D5e6F7g8h4AaABAg",
+  "video_id": "9SmOJHZTkC4",
+  "clause_id": 1,
+  "clause_text": "Pin con S23 Ultra trâu hơn hẳn 14 Pro Max",
+  "target_model": "s23u",
+  "aspect": "BATTERY",
+  "sentiment": "positive",
+  "sentiment_score": 1,
+  "confidence": 0.94,
+  "is_comparison": true,
+  "compared_model": "ip14prm",
+  "comparison_target": "better",
+  "defect_category": null,
+  "is_owner_mention": true,
+  "label_source": "phobert_v1",
+  "model_version": "v1.0.0",
+  "published_at": "2023-02-15T08:30:00Z"
+}

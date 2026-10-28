@@ -1,5 +1,5 @@
-# Kafka 1 node (KRaft) chỉ để dev crawler/replay trên máy bạn.
-# Cụm 3 broker + Spark do bạn phụ trách "Kafka và Spark" dựng riêng.
+# Môi trường phát triển cục bộ: Kafka (KRaft) + MongoDB 7.0
+# Phục vụ crawl/replay dữ liệu, Spark Streaming và MongoDB Storage Layer
 services:
   kafka:
     image: apache/kafka:3.8.0
@@ -17,3 +17,32 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_NUM_PARTITIONS: 3
+    networks:
+      - sentiment-net
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb-dev
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: smartphone_analytics
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - sentiment-net
+
+volumes:
+  mongo_data:
+    name: mongo_data_sentiment
+
+networks:
+  sentiment-net:
+    name: sentiment-net
+    driver: bridge

@@ -1,0 +1,115 @@
+{
+  "$comment": "Mục đích: Định nghĩa hợp đồng JSON Schema cho bản ghi gán nhãn khía cạnh - cảm xúc (Aspect Mention); cập nhật: 2026-10-28.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AspectMentionEvent",
+  "description": "Hợp đồng cấu trúc dữ liệu cho một mệnh đề đã được gán nhãn khía cạnh và cảm xúc (ABSA)",
+  "type": "object",
+  "properties": {
+    "mention_id": {
+      "type": "string",
+      "description": "ID duy nhất của lượt nhắc khía cạnh, định dạng: {comment_id}_c{clause_id}_{aspect}"
+    },
+    "comment_id": {
+      "type": "string",
+      "description": "ID của bình luận gốc chứa mệnh đề"
+    },
+    "video_id": {
+      "type": "string",
+      "description": "ID của Video YouTube chứa bình luận"
+    },
+    "clause_id": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Thứ tự mệnh đề trong bình luận (1-indexed)"
+    },
+    "clause_text": {
+      "type": "string",
+      "description": "Nội dung văn bản của mệnh đề"
+    },
+    "target_model": {
+      "type": "string",
+      "description": "Mã máy được nhắc tới trong mệnh đề (vd: s23u, ip14prm, hoặc none/general)"
+    },
+    "aspect": {
+      "type": "string",
+      "enum": [
+        "BATTERY",
+        "CAMERA",
+        "PRICE",
+        "PERFORMANCE",
+        "DISPLAY",
+        "THERMAL",
+        "DESIGN",
+        "SOFTWARE",
+        "SERVICE",
+        "GENERAL"
+      ],
+      "description": "1 trong 9 khía cạnh kỹ thuật chuẩn của dự án hoặc GENERAL nếu đánh giá chung"
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": ["positive", "negative", "neutral"],
+      "description": "Sắc thái cảm xúc: positive (khen), negative (chê), neutral (trung tính)"
+    },
+    "sentiment_score": {
+      "type": "integer",
+      "enum": [-1, 0, 1],
+      "description": "Điểm sắc thái số hóa: 1 (positive), 0 (neutral), -1 (negative)"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Độ tin cậy của mô hình hoặc nhãn (0.0 đến 1.0)"
+    },
+    "is_comparison": {
+      "type": "boolean",
+      "description": "Mệnh đề có chứa so sánh đối đầu giữa 2 máy hay không"
+    },
+    "compared_model": {
+      "type": ["string", "null"],
+      "description": "Mã máy đối thủ được đem ra so sánh nếu is_comparison = true"
+    },
+    "comparison_target": {
+      "type": ["string", "null"],
+      "enum": ["better", "worse", "equal", null],
+      "description": "Vị thế của target_model so với compared_model: better (hơn), worse (kém), equal (ngang)"
+    },
+    "defect_category": {
+      "type": ["string", "null"],
+      "description": "Tên danh mục lỗi kỹ thuật nếu có phản ánh lỗi (vd: Hao pin, Sọc màn, Nóng máy...)"
+    },
+    "is_owner_mention": {
+      "type": "boolean",
+      "description": "Mệnh đề có bằng chứng từ người đã hoặc đang sở hữu/trải nghiệm máy thật"
+    },
+    "label_source": {
+      "type": "string",
+      "enum": ["rule", "llm", "phobert_v1", "human"],
+      "description": "Nguồn gốc của nhãn: rule (từ điển luật), llm (mô hình ngôn ngữ lớn), phobert_v1 (mô hình NLP nội bộ), human (chuyên viên gán tay)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "Phiên bản của bộ quy tắc hoặc mô hình NLP gán nhãn (vd: v1.0.0)"
+    },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm đăng tải của bình luận (ISO 8601 UTC)"
+    }
+  },
+  "required": [
+    "mention_id",
+    "comment_id",
+    "video_id",
+    "clause_id",
+    "clause_text",
+    "target_model",
+    "aspect",
+    "sentiment",
+    "label_source",
+    "model_version",
+    "published_at"
+  ],
+  "additionalProperties": false
+}
