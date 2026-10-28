@@ -1,0 +1,81 @@
+{
+  "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (mệnh đề × khía cạnh) trong aspect_mentions. Đã chốt ở Công việc 4 ngày 2026-10-28; đổi trường nào phải tăng schema_version và báo cả nhóm.",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AspectMention",
+  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mô tả đầy đủ tại docs/data-model.md.",
+  "type": "object",
+  "properties": {
+    "mention_id": {
+      "type": "string",
+      "pattern": "^.+#[0-9]+#[A-Z_]+$",
+      "description": "<comment_id>#<clause_idx>#<aspect>, khóa upsert"
+    },
+    "comment_id": { "type": "string" },
+    "clause_idx": { "type": "integer", "minimum": 0, "description": "Vị trí mệnh đề trong comments.clauses" },
+    "clause_text": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "description": "youtube, tgdd, tinhte, ..." },
+    "video_id": { "type": "string", "description": "Với nguồn ngoài YouTube: id trang/bài gốc" },
+    "video_model": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_]+(\\|[A-Za-z0-9_]+)*$",
+      "description": "Máy của video theo config (ngữ cảnh), có thể dạng a|b"
+    },
+    "target_model": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9_]+$",
+      "description": "Máy được nhắc trong mệnh đề (model_id trong config). null = không xác định"
+    },
+    "aspect": {
+      "enum": ["BATTERY", "DISPLAY", "PERFORMANCE", "CAMERA", "DESIGN", "SOFTWARE", "HARDWARE_OTHER", "PRICE", "WARRANTY"]
+    },
+    "sentiment": { "enum": ["pos", "neg", "neu"] },
+    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+    "is_owner": { "type": ["boolean", "null"], "description": "Người viết đã dùng máy được nhắc" },
+    "defect_type": {
+      "enum": [null, "BATTERY_DRAIN", "OVERHEAT", "LAG", "DISPLAY_DEFECT", "CAMERA_DEFECT", "SOFTWARE_BUG", "CONNECTIVITY", "HARDWARE_DEFECT", "OTHER"]
+    },
+    "compare_with": {
+      "type": ["string", "null"],
+      "pattern": "^[A-Za-z0-9_]+$",
+      "description": "Máy được so sánh cùng trong mệnh đề"
+    },
+    "compare_winner": { "enum": [null, "target", "other", "tie"] },
+    "published_at": { "type": "string", "format": "date-time" },
+    "days_since_launch": {
+      "type": ["integer", "null"],
+      "description": "Tính theo launch_date của target_model, giờ VN"
+    },
+    "label_source": { "enum": ["rule", "llm", "model", "human"] },
+    "model_version": { "type": "string", "minLength": 1, "description": "vd rule-v0, aspect-lr-v1" },
+    "schema_version": { "const": 1 }
+  },
+  "required": [
+    "mention_id", "comment_id", "clause_idx", "clause_text", "source", "video_id", "video_model",
+    "target_model", "aspect", "sentiment", "published_at", "label_source", "model_version", "schema_version"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "mention_id": "UgxA1b2C3#2#BATTERY",
+      "comment_id": "UgxA1b2C3",
+      "clause_idx": 2,
+      "clause_text": "pin thì tụt nhanh quá",
+      "source": "youtube",
+      "video_id": "aB3dE5fG7hI",
+      "video_model": "s23u",
+      "target_model": "s23u",
+      "aspect": "BATTERY",
+      "sentiment": "neg",
+      "confidence": 0.87,
+      "is_owner": true,
+      "defect_type": "BATTERY_DRAIN",
+      "compare_with": null,
+      "compare_winner": null,
+      "published_at": "2023-02-10T03:15:00Z",
+      "days_since_launch": 8,
+      "label_source": "model",
+      "model_version": "aspect-lr-v1",
+      "schema_version": 1
+    }
+  ]
+}

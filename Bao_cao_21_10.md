@@ -163,7 +163,7 @@ Quan hệ giữa các máy (đời trước, đối thủ) nằm trong danh mụ
 
 ### 4.2. Mention (mệnh đề × khía cạnh)
 
-Đơn vị phân tích của Q1–Q5. Các trường chính: `mention_id`, `comment_id`, `clause_text`, `video_model`, **`target_model`** (máy được nhắc), `aspect`, `sentiment`, `confidence`, `is_owner`, `defect_type`, `compare_with`, `days_since_launch`, `label_source`, `model_version`. Contract (bản nháp): [`contracts/aspect-mention.schema.json`](contracts/aspect-mention.schema.json).
+Đơn vị phân tích của Q1–Q5. Các trường chính: `mention_id`, `comment_id`, `clause_text`, `video_model`, **`target_model`** (máy được nhắc), `aspect`, `sentiment`, `confidence`, `is_owner`, `defect_type`, `compare_with`, `days_since_launch`, `label_source`, `model_version`. Contract (đã chốt 28/10): [`contracts/aspect-mention.schema.json`](contracts/aspect-mention.schema.json).
 
 ## 5. Phương pháp phân tích
 
@@ -186,7 +186,7 @@ Bình luận không phải tiếng Việt được tách riêng, không tính l�
 
 ### 5.3. Khía cạnh, cảm xúc và máy được nhắc
 
-Đơn vị là **mệnh đề**. Một mệnh đề có thể nhắc nhiều khía cạnh, nên khía cạnh là bài toán phân loại **đa nhãn có giám sát**. Chín khía cạnh (đề xuất, chốt ở Công việc 4):
+Đơn vị là **mệnh đề**. Một mệnh đề có thể nhắc nhiều khía cạnh, nên khía cạnh là bài toán phân loại **đa nhãn có giám sát**. Chín khía cạnh (đã chốt ở Công việc 4):
 
 1. Pin & sạc.
 2. Màn hình.
@@ -220,7 +220,7 @@ Với từng cặp (máy, khía cạnh), theo dõi số mention hợp lệ, số
 | Chốt bài toán và phạm vi | ✅ Xong | 5 câu hỏi Q1–Q5, đặc tả trong `docs/EDA_requirement.md` |
 | Crawler và Replay | ✅ Xong | Quota, resume, chống trùng, ẩn danh, replay |
 | Dữ liệu thô | ✅ Có | ~226 nghìn bình luận, 1.715 video, 51 mã máy |
-| Thiết kế kiến trúc và dữ liệu | ✅ Bản nháp | Sơ đồ mới, `docs/data-model.md`, contract đang chờ chốt |
+| Thiết kế kiến trúc và dữ liệu | ✅ Xong | Sơ đồ mới, `docs/data-model.md`, contract `aspect-mention` đã chốt |
 | Tiền xử lý | ⚠️ Một phần | Đã có kết quả (lọc spam ~6,35%, tách mệnh đề); code chưa đưa vào repo |
 | EDA và dashboard | ⚠️ Bản nháp | Dùng để thống nhất đầu ra; nhãn là luật từ khóa nên số liệu chỉ minh họa |
 | Gán nhãn | ❌ Chưa | Guideline và 3000 mệnh đề |

@@ -79,8 +79,9 @@ Mỗi công việc điền **Phụ trách** và **Hạn** trước khi bắt đ�
 - **Phụ thuộc:** 2, 4
 
 ### Công việc 4: Chốt contract dữ liệu
-- **Phụ trách:** trưởng nhóm + đại diện mỗi nhóm | **Hạn:** ___ | **Ưu tiên:** RẤT CAO (làm đầu tiên)
-- **Mô tả:** Chốt bản thỏa thuận định dạng dữ liệu mà mọi nhóm phải tuân theo: trường nào, kiểu gì, nhận giá trị nào. Bản nháp đã có ở [contracts/aspect-mention.schema.json](../contracts/aspect-mention.schema.json) và [data-model.md](data-model.md).
+- **Trạng thái:** ✅ Đã chốt 28/10 (chờ merge vào `main`)
+- **Phụ trách:** trưởng nhóm | **Hạn:** 28/10 | **Ưu tiên:** RẤT CAO (làm đầu tiên)
+- **Mô tả:** Chốt bản thỏa thuận định dạng dữ liệu mà mọi nhóm phải tuân theo: trường nào, kiểu gì, nhận giá trị nào. Contract: [contracts/aspect-mention.schema.json](../contracts/aspect-mention.schema.json), mô tả trong [data-model.md](data-model.md).
 - **Yêu cầu:** Chốt danh sách 9 khía cạnh kèm định nghĩa, danh sách loại lỗi, cửa sổ thời gian (đề xuất 4 tuần). Sau khi chốt, đổi trường nào cũng phải tăng `schema_version` và báo cả nhóm.
 - **Đầu ra:** contract đã merge vào `main`, bỏ chữ "DRAFT".
 

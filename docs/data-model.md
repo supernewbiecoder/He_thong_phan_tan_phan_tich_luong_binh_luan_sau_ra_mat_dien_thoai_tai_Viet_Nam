@@ -2,7 +2,7 @@
 
 > Mục đích: Định nghĩa các collection, trường, mã danh mục và quy ước dùng chung giữa các nhóm; cập nhật lần cuối: 2026-10-28.
 
-**Trạng thái: BẢN NHÁP**, chốt ở Công việc 4. Sau khi chốt, đổi bất kỳ trường nào phải tăng `schema_version` và báo cả nhóm.
+**Trạng thái: ĐÃ CHỐT** (Công việc 4, 2026-10-28). Đổi bất kỳ trường nào phải tăng `schema_version` và báo cả nhóm.
 
 ## Nguyên tắc
 

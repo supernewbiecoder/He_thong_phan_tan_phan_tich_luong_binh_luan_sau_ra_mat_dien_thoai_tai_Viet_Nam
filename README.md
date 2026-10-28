@@ -23,7 +23,7 @@ Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muố
 - **Nguồn:** YouTube (chính). Nguồn bổ sung đang khảo sát, xem [Công việc 15](docs/roadmap.md#công-việc-15-bổ-sung-nguồn-dữ-liệu-ngoài-youtube).
 - **Bốn máy so sánh:** X, đời trước của X (P), hai đối thủ cùng phân khúc ra mắt cùng thời điểm (R1, R2). Danh sách chốt ở Công việc 2.
 - **Cửa sổ:** 4 tuần đầu kể từ `launch_date` của từng máy (khớp với dữ liệu đã crawl, `window_weeks: 4` trong [config/pipeline.yaml](config/pipeline.yaml)).
-- **9 khía cạnh (đề xuất, chốt ở Công việc 4):** Pin & sạc, Màn hình, Hiệu năng (gồm nhiệt độ), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi.
+- **9 khía cạnh (đã chốt ở Công việc 4, mã trong [docs/data-model.md](docs/data-model.md#danh-mục-mã)):** Pin & sạc, Màn hình, Hiệu năng (gồm nhiệt độ), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi.
 - **Ngoài phạm vi:** hình ảnh/âm thanh/nội dung video; bình luận không phải tiếng Việt; tên thật của người bình luận (chỉ lưu `author_hash`).
 
 ## 2. Trạng thái hiện tại
