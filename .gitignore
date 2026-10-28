@@ -1,6 +1,9 @@
 # Large dataset files (GitHub hard limit is 100MB)
-data/
+data/*
+!data/labels/
+!data/labels/*.jsonl
 *.jsonl
+!data/labels/*.jsonl
 *.csv
 *.parquet
 *.zip
@@ -33,4 +36,3 @@ Thumbs.db
 # Local runtime logs and credentials
 *.log
 .env
-

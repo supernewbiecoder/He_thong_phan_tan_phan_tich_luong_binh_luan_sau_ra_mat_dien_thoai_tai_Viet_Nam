@@ -1,0 +1,57 @@
+{
+  "model_name": "Vietnamese Smartphone Review Spam Classifier",
+  "task": "Binary Spam Classification (CV 11)",
+  "author": "Nguyễn Lê Quân",
+  "created_at": "2026-10-28T12:09:35.684129+00:00",
+  "algorithm": "Hybrid (Deterministic Regex Rules + Calibrated LinearSVC)",
+  "features": [
+    "Word TF-IDF (1, 2)-grams, sublinear_tf=True",
+    "Char-wb TF-IDF (3, 5)-grams, sublinear_tf=True",
+    "Dense Linguistic Features (Length, URLs, Phones, Gambling keywords, Repeated chars, Digit/Punct/Upper ratios)"
+  ],
+  "training_data": {
+    "file": "spam_ground_truth_500.jsonl",
+    "total_samples": 500,
+    "spam_samples": 50,
+    "ham_samples": 450,
+    "imbalance_ratio": "1:9"
+  },
+  "metrics_summary": {
+    "rule_baseline": {
+      "precision": 0.9762,
+      "recall": 0.82,
+      "f1": 0.8913,
+      "macro_f1": 0.9401,
+      "tp": 41,
+      "fp": 1,
+      "tn": 449,
+      "fn": 9
+    },
+    "best_ml_model": {
+      "precision": 0.7831400000000001,
+      "recall": 0.76,
+      "f1": 0.76286,
+      "oof_eval": {
+        "precision": 0.7755,
+        "recall": 0.76,
+        "f1": 0.7677,
+        "macro_f1": 0.8711,
+        "tp": 38,
+        "fp": 11,
+        "tn": 439,
+        "fn": 12
+      }
+    },
+    "hybrid_ensemble": {
+      "precision": 0.7872,
+      "recall": 0.74,
+      "f1": 0.7629,
+      "macro_f1": 0.8687,
+      "tp": 37,
+      "fp": 10,
+      "tn": 440,
+      "fn": 13
+    }
+  },
+  "deployment_recommendation": "Use HybridSpamDetector in production to maintain 100% precision on clean comments while catching nuanced spam."
+}

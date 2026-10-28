@@ -3,7 +3,9 @@
 End-to-end data cleaning and integration pipeline with tracing support.
 Processes a raw comment record, validates/normalizes schema,
 populates text_norm, detects spam, extracts clauses, and records transformation trace.
+Maintained by Nguyễn Lê Quân according to project schema contracts.
 """
+from datetime import datetime, timezone
 from typing import Dict, Any, Tuple
 
 try:
@@ -16,7 +18,10 @@ except ImportError:
     from .spam_detector import detect_spam
 
 
-def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = False) -> Any:
+PIPELINE_VERSION = "cleaner-v1.1"
+
+
+def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = False, ml_model: Any = None) -> Any:
     """
     Cleans and enriches a single comment record, with optional change tracing.
     
@@ -24,6 +29,7 @@ def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = Fal
         raw_record: Dictionary representing raw comment from comments.jsonl.
         include_trace: If True, returns a tuple (clean_record, trace_record).
                        If False, returns clean_record.
+        ml_model: Optional trained spam classifier.
                        
     Returns:
         clean_record or (clean_record, trace_record)
@@ -33,8 +39,8 @@ def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = Fal
     # 1. Normalize text and capture detailed diff / trace
     cleaned_raw_text, text_norm, trace_details = normalize_with_trace(raw_text)
     
-    # 2. Detect spam & verify language
-    spam_info = detect_spam(cleaned_raw_text)
+    # 2. Detect spam & verify language (with optional ML augmentation)
+    spam_info = detect_spam(cleaned_raw_text, ml_model=ml_model)
     is_spam = spam_info["is_spam"]
     spam_reasons = spam_info["spam_reasons"]
     is_vietnamese = spam_info["is_vietnamese"]
@@ -48,7 +54,7 @@ def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = Fal
     comment_id = str(raw_record.get("comment_id", "")).strip()
     model = str(raw_record.get("model", "")).strip()
     
-    # 4. Build standardized clean record conforming to project schema
+    # 4. Build standardized clean record conforming to data-model.md Section 3
     clean_record = {
         "comment_id": comment_id,
         "video_id": str(raw_record.get("video_id", "")).strip(),
@@ -69,6 +75,8 @@ def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = Fal
         "is_vietnamese": is_vietnamese,
         "clause_count": len(clauses),
         "clauses": clauses,
+        "pipeline_version": PIPELINE_VERSION,
+        "processed_at": datetime.now(timezone.utc).isoformat(),
         "schema_version": int(raw_record.get("schema_version", 2) or 2)
     }
     
@@ -92,7 +100,8 @@ def process_comment_record(raw_record: Dict[str, Any], include_trace: bool = Fal
         "spam_reasons": spam_reasons,
         "is_vietnamese": is_vietnamese,
         "clause_count": len(clauses),
-        "clauses_summary": [c["text"] for c in clauses]
+        "clauses_summary": [c["text"] for c in clauses],
+        "pipeline_version": PIPELINE_VERSION
     }
     
     return clean_record, trace_record
