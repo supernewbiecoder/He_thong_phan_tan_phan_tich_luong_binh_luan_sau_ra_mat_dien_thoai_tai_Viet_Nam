@@ -1,5 +1,9 @@
 # Large dataset files (GitHub hard limit is 100MB)
-data/
+data/*
+# Keep the Task 9 report, but continue ignoring datasets and model artifacts.
+!data/task9/
+data/task9/*
+!data/task9/Công việc 9 Mô hình cảm xúc theo khía cạnh cho bình luận điện thoại.md
 *.jsonl
 *.csv
 *.parquet

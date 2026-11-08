@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="465" viewBox="0 0 620 465">
+<style>text{font-family:Arial,"DejaVu Sans",sans-serif;fill:#243044}.title{font-size:22px;font-weight:700}.sub{font-size:13px;fill:#667085}.label{font-size:13px}.small{font-size:11px;fill:#667085}.value{font-size:13px;font-weight:700}</style>
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="32" y="38" class="title">Ma trận nhầm lẫn trên validation</text>
+<text x="32" y="62" class="sub">Hàng: nhãn LLM · Cột: dự đoán mô hình · số lượng mẫu</text>
+<text x="240.0" y="103" text-anchor="middle" class="label">Đoán pos</text>
+<text x="340.0" y="103" text-anchor="middle" class="label">Đoán neg</text>
+<text x="440.0" y="103" text-anchor="middle" class="label">Đoán neu</text>
+<text x="172" y="170.0" text-anchor="end" class="label">Thật pos</text>
+<rect x="190" y="115" width="100" height="100" rx="5" fill="rgb(82,102,255)" stroke="#ffffff" stroke-width="3"/>
+<text x="240.0" y="171.0" text-anchor="middle" class="value">203</text>
+<rect x="290" y="115" width="100" height="100" rx="5" fill="rgb(194,198,202)" stroke="#ffffff" stroke-width="3"/>
+<text x="340.0" y="171.0" text-anchor="middle" class="value">64</text>
+<rect x="390" y="115" width="100" height="100" rx="5" fill="rgb(199,203,207)" stroke="#ffffff" stroke-width="3"/>
+<text x="440.0" y="171.0" text-anchor="middle" class="value">55</text>
+<text x="172" y="270.0" text-anchor="end" class="label">Thật neg</text>
+<rect x="190" y="215" width="100" height="100" rx="5" fill="rgb(202,206,210)" stroke="#ffffff" stroke-width="3"/>
+<text x="240.0" y="271.0" text-anchor="middle" class="value">50</text>
+<rect x="290" y="215" width="100" height="100" rx="5" fill="rgb(103,123,255)" stroke="#ffffff" stroke-width="3"/>
+<text x="340.0" y="271.0" text-anchor="middle" class="value">170</text>
+<rect x="390" y="215" width="100" height="100" rx="5" fill="rgb(198,202,206)" stroke="#ffffff" stroke-width="3"/>
+<text x="440.0" y="271.0" text-anchor="middle" class="value">57</text>
+<text x="172" y="370.0" text-anchor="end" class="label">Thật neu</text>
+<rect x="190" y="315" width="100" height="100" rx="5" fill="rgb(210,214,218)" stroke="#ffffff" stroke-width="3"/>
+<text x="240.0" y="371.0" text-anchor="middle" class="value">37</text>
+<rect x="290" y="315" width="100" height="100" rx="5" fill="rgb(201,205,209)" stroke="#ffffff" stroke-width="3"/>
+<text x="340.0" y="371.0" text-anchor="middle" class="value">53</text>
+<rect x="390" y="315" width="100" height="100" rx="5" fill="rgb(54,74,255)" stroke="#ffffff" stroke-width="3"/>
+<text x="440.0" y="371.0" text-anchor="middle" class="value">249</text>
+<text x="340" y="448" text-anchor="middle" class="small">Macro-F1 validation: 0.659 (đối chiếu nhãn LLM)</text>
+</svg>
