@@ -1,69 +1,127 @@
 {
-  "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (mệnh đề × khía cạnh) trong aspect_mentions. Đã chốt ở Công việc 4 ngày 2026-10-28; đổi trường nào phải tăng schema_version và báo cả nhóm.",
+  "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (mệnh đề × khía cạnh) trong aspect_mentions. v1 chốt ở Công việc 4 ngày 2026-10-28; v2 ngày 2026-11-08 sau khi đối chiếu Data_vip_pro_v4 (thêm author_hash, author_is_creator, parent_id; mọi trường bắt buộc có mặt; ràng buộc chéo). Đổi trường nào phải tăng schema_version và báo cả nhóm.",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AspectMention",
-  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mô tả đầy đủ tại docs/data-model.md.",
+  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mọi trường đều phải có mặt; không biết thì ghi null (không bỏ trường). Mô tả đầy đủ tại docs/data-model.md.",
   "type": "object",
   "properties": {
     "mention_id": {
       "type": "string",
-      "pattern": "^.+#[0-9]+#[A-Z_]+$",
+      "pattern": "^[^#]+#[0-9]+#(BATTERY|DISPLAY|PERFORMANCE|CAMERA|DESIGN|SOFTWARE|HARDWARE_OTHER|PRICE|WARRANTY)$",
       "description": "<comment_id>#<clause_idx>#<aspect>, khóa upsert"
     },
-    "comment_id": { "type": "string" },
-    "clause_idx": { "type": "integer", "minimum": 0, "description": "Vị trí mệnh đề trong comments.clauses" },
-    "clause_text": { "type": "string", "minLength": 1 },
+    "comment_id": { "type": "string", "pattern": "^[^#]+$" },
+    "parent_id": {
+      "type": ["string", "null"],
+      "description": "comment_id của bình luận gốc nếu là reply, null nếu là bình luận gốc. Dùng để lần ngữ cảnh khi xác định target_model"
+    },
+    "clause_idx": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Chỉ số mệnh đề trong comments.clauses, đếm từ 0"
+    },
+    "clause_text": {
+      "type": "string",
+      "minLength": 1,
+      "description": "comments.clauses[clause_idx].text: chữ gốc của mệnh đề (giữ dấu), không phải text_norm"
+    },
     "source": { "type": "string", "description": "youtube, tgdd, tinhte, ..." },
     "video_id": { "type": "string", "description": "Với nguồn ngoài YouTube: id trang/bài gốc" },
     "video_model": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_]+(\\|[A-Za-z0-9_]+)*$",
-      "description": "Máy của video theo config (ngữ cảnh), có thể dạng a|b"
+      "description": "Trường model của bình luận raw: máy của video (ngữ cảnh), có thể dạng a|b"
     },
     "target_model": {
       "type": ["string", "null"],
       "pattern": "^[A-Za-z0-9_]+$",
-      "description": "Máy được nhắc trong mệnh đề (model_id trong config). null = không xác định"
+      "description": "Máy được nhắc trong mệnh đề; phải là model_id có trong collection models. null = không xác định"
+    },
+    "author_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Lấy từ bình luận raw. Dùng để gộp theo người viết, tránh một người chiếm nhiều mention"
+    },
+    "author_is_creator": {
+      "type": "boolean",
+      "description": "Lấy từ bình luận raw: người viết là chủ kênh của video. true thì không vào aggregates"
     },
     "aspect": {
       "enum": ["BATTERY", "DISPLAY", "PERFORMANCE", "CAMERA", "DESIGN", "SOFTWARE", "HARDWARE_OTHER", "PRICE", "WARRANTY"]
     },
     "sentiment": { "enum": ["pos", "neg", "neu"] },
-    "confidence": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
-    "is_owner": { "type": ["boolean", "null"], "description": "Người viết đã dùng máy được nhắc" },
+    "confidence": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "null với label_source = human"
+    },
+    "is_owner": { "type": ["boolean", "null"], "description": "Người viết đã dùng target_model. null = không rõ" },
     "defect_type": {
-      "enum": [null, "BATTERY_DRAIN", "OVERHEAT", "LAG", "DISPLAY_DEFECT", "CAMERA_DEFECT", "SOFTWARE_BUG", "CONNECTIVITY", "HARDWARE_DEFECT", "OTHER"]
+      "enum": [null, "BATTERY_DRAIN", "OVERHEAT", "LAG", "DISPLAY_DEFECT", "CAMERA_DEFECT", "SOFTWARE_BUG", "CONNECTIVITY", "HARDWARE_DEFECT", "OTHER"],
+      "description": "Chỉ khác null khi sentiment = neg"
     },
     "compare_with": {
       "type": ["string", "null"],
       "pattern": "^[A-Za-z0-9_]+$",
-      "description": "Máy được so sánh cùng trong mệnh đề"
+      "description": "Máy được so sánh cùng trong mệnh đề; model_id trong collection models, khác target_model"
     },
-    "compare_winner": { "enum": [null, "target", "other", "tie"] },
-    "published_at": { "type": "string", "format": "date-time" },
+    "compare_winner": {
+      "enum": [null, "target", "other", "tie"],
+      "description": "Khác null khi và chỉ khi compare_with khác null"
+    },
+    "published_at": { "type": "string", "format": "date-time", "description": "Thời điểm đăng bình luận, UTC" },
     "days_since_launch": {
       "type": ["integer", "null"],
-      "description": "Tính theo launch_date của target_model, giờ VN"
+      "description": "Ngày đăng (giờ VN) trừ launch_date của target_model. Có thể âm hoặc vượt cửa sổ; null khi target_model null"
     },
     "label_source": { "enum": ["rule", "llm", "model", "human"] },
     "model_version": { "type": "string", "minLength": 1, "description": "vd rule-v0, aspect-lr-v1" },
-    "schema_version": { "const": 1 }
+    "schema_version": { "const": 2 }
   },
   "required": [
-    "mention_id", "comment_id", "clause_idx", "clause_text", "source", "video_id", "video_model",
-    "target_model", "aspect", "sentiment", "published_at", "label_source", "model_version", "schema_version"
+    "mention_id", "comment_id", "parent_id", "clause_idx", "clause_text", "source", "video_id", "video_model",
+    "target_model", "author_hash", "author_is_creator", "aspect", "sentiment", "confidence", "is_owner",
+    "defect_type", "compare_with", "compare_winner", "published_at", "days_since_launch",
+    "label_source", "model_version", "schema_version"
   ],
   "additionalProperties": false,
+  "allOf": [
+    {
+      "$comment": "defect_type chỉ đi với mệnh đề chê",
+      "if": { "properties": { "defect_type": { "type": "string" } } },
+      "then": { "properties": { "sentiment": { "const": "neg" } } }
+    },
+    {
+      "$comment": "compare_with và compare_winner cùng có hoặc cùng null",
+      "if": { "properties": { "compare_with": { "type": "string" } } },
+      "then": { "properties": { "compare_winner": { "type": "string" } } },
+      "else": { "properties": { "compare_winner": { "type": "null" } } }
+    },
+    {
+      "$comment": "không biết máy thì không tính được ngày",
+      "if": { "properties": { "target_model": { "type": "null" } } },
+      "then": { "properties": { "days_since_launch": { "type": "null" } } }
+    },
+    {
+      "$comment": "nhãn người gán không có confidence",
+      "if": { "properties": { "label_source": { "const": "human" } } },
+      "then": { "properties": { "confidence": { "type": "null" } } }
+    }
+  ],
   "examples": [
     {
       "mention_id": "UgxA1b2C3#2#BATTERY",
       "comment_id": "UgxA1b2C3",
+      "parent_id": null,
       "clause_idx": 2,
       "clause_text": "pin thì tụt nhanh quá",
       "source": "youtube",
       "video_id": "aB3dE5fG7hI",
       "video_model": "s23u",
       "target_model": "s23u",
+      "author_hash": "069722f199073a1f8b0223df1aa448cd79e0695bd87f82fd737f9f892520bdcb",
+      "author_is_creator": false,
       "aspect": "BATTERY",
       "sentiment": "neg",
       "confidence": 0.87,
@@ -75,7 +133,32 @@
       "days_since_launch": 8,
       "label_source": "model",
       "model_version": "aspect-lr-v1",
-      "schema_version": 1
+      "schema_version": 2
+    },
+    {
+      "mention_id": "UgzQ9x8Y7.AbCdEf#0#CAMERA",
+      "comment_id": "UgzQ9x8Y7.AbCdEf",
+      "parent_id": "UgzQ9x8Y7",
+      "clause_idx": 0,
+      "clause_text": "cam con 14 prm vẫn ăn đứt s23u ban đêm",
+      "source": "youtube",
+      "video_id": "kL9mN0pQ1rS",
+      "video_model": "s23u",
+      "target_model": "ip14prm",
+      "author_hash": "ee90f58adca90151f95bb1470e9793f7fa52a44c775f57a49e2e3691c7264934",
+      "author_is_creator": false,
+      "aspect": "CAMERA",
+      "sentiment": "pos",
+      "confidence": null,
+      "is_owner": null,
+      "defect_type": null,
+      "compare_with": "s23u",
+      "compare_winner": "target",
+      "published_at": "2023-02-14T12:40:00Z",
+      "days_since_launch": 151,
+      "label_source": "human",
+      "model_version": "guideline-v1",
+      "schema_version": 2
     }
   ]
 }

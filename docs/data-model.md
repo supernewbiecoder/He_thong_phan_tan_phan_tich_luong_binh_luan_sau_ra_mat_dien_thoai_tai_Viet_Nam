@@ -1,8 +1,8 @@
 # Thiết kế dữ liệu
 
-> Mục đích: Định nghĩa các collection, trường, mã danh mục và quy ước dùng chung giữa các nhóm; cập nhật lần cuối: 2026-10-28.
+> Mục đích: Định nghĩa các collection, trường, mã danh mục và quy ước dùng chung giữa các nhóm; cập nhật lần cuối: 2026-11-08.
 
-**Trạng thái: ĐÃ CHỐT** (Công việc 4, 2026-10-28). Đổi bất kỳ trường nào phải tăng `schema_version` và báo cả nhóm.
+**Trạng thái: ĐÃ CHỐT** (Công việc 4, 2026-10-28; aspect_mentions lên v2 ngày 2026-11-08 sau khi đối chiếu Data_vip_pro_v4). Đổi bất kỳ trường nào phải tăng `schema_version` và báo cả nhóm.
 
 ## Nguyên tắc
 
@@ -81,12 +81,15 @@ Collection quan trọng nhất. Mỗi dòng = một mệnh đề nhắc một kh
 |---|---|---|---|
 | `mention_id` | string | `<comment_id>#<clause_idx>#<aspect>` | B |
 | `comment_id` | string | | B |
-| `clause_idx` | int | vị trí mệnh đề trong `comments.clauses` | B |
-| `clause_text` | string | | B |
+| `parent_id` | string/null | bình luận gốc nếu là reply (v2) | B |
+| `clause_idx` | int | vị trí mệnh đề trong `comments.clauses`, đếm từ 0 | B |
+| `clause_text` | string | `clauses[clause_idx].text`, chữ gốc, không phải `text_norm` | B |
 | `source` | string | `youtube`, … | B |
 | `video_id` | string | | B |
 | `video_model` | string | máy của video (có thể dạng `a\|b`) | B |
-| `target_model` | string/null | máy được nhắc; `null` = không xác định | B3 |
+| `target_model` | string/null | máy được nhắc, phải có trong `models`; `null` = không xác định | B3 |
+| `author_hash` | string | từ raw, để gộp theo người viết (v2) | B |
+| `author_is_creator` | bool | từ raw, chủ kênh của video (v2) | B |
 | `aspect` | enum | xem danh mục | B1 |
 | `sentiment` | enum | `pos`/`neg`/`neu` | B2 |
 | `confidence` | number/null | 0–1; `null` với nhãn người gán | B |
@@ -95,16 +98,20 @@ Collection quan trọng nhất. Mỗi dòng = một mệnh đề nhắc một kh
 | `compare_with` | string/null | máy được so sánh cùng | B3 |
 | `compare_winner` | enum/null | `target`/`other`/`tie` | B3 |
 | `published_at` | datetime UTC | thời điểm đăng bình luận | B |
-| `days_since_launch` | int/null | tính theo `launch_date` của `target_model`, giờ VN | A |
+| `days_since_launch` | int/null | ngày đăng (giờ VN) trừ `launch_date` của `target_model`; có thể âm hoặc vượt cửa sổ | A |
 | `label_source` | enum | `rule`/`llm`/`model`/`human` | B |
 | `model_version` | string | vd `rule-v0`, `aspect-lr-v1` | B |
-| `schema_version` | int | hiện là `1` | B |
+| `schema_version` | int | hiện là `2` (2026-11-08) | B |
 
 Quy ước:
+- Mọi trường phải có mặt; không biết thì ghi `null`, không bỏ trường.
 - Mệnh đề nhắc 2 khía cạnh → 2 dòng.
 - Mệnh đề không thuộc khía cạnh nào → không có dòng.
-- Bình luận spam → không tạo mention.
+- Bình luận spam hoặc không phải tiếng Việt → không tạo mention.
 - Mention có `target_model = null` không vào Q1–Q5, nhưng được đếm để báo cáo tỷ lệ không xác định được máy.
+- Mention có `author_is_creator = true` không vào `aggregates` (chủ kênh trả lời người xem, không phải ý kiến người dùng).
+- `aggregates` chỉ lấy `-7 <= days_since_launch < 7 * window_weeks` (theo `config/pipeline.yaml`).
+- Ràng buộc chéo (schema kiểm): `defect_type` khác null thì `sentiment = neg`; `compare_with` và `compare_winner` cùng có hoặc cùng null; `target_model = null` thì `days_since_launch = null`; `label_source = human` thì `confidence = null`.
 
 Index cần có: `target_model + aspect + days_since_launch`; `target_model + is_owner + defect_type` (Q5); `compare_with` (Q3b).
 
