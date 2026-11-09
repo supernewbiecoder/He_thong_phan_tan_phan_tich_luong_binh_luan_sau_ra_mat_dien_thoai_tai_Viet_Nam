@@ -381,9 +381,10 @@ h1 {
     <section class="exec-report" id="executive-report" aria-labelledby="exec-report-title">
       <div class="exec-report-head">
         <div>
-          <p class="exec-report-eyebrow">Báo cáo bổ sung</p>
+          <p class="exec-report-eyebrow">Bản nháp · số liệu minh họa</p>
           <h2 id="exec-report-title">Galaxy S23 Ultra qua 5 câu hỏi</h2>
           <p>So sánh cùng một cửa sổ bốn tuần đầu kể từ Ngày 0, giữa máy X, thế hệ trước và hai đối thủ cùng phân khúc.</p>
+          <p>Số liệu và nhận xét dưới đây thuộc bản minh họa cũ, chưa đáp ứng điều kiện kết luận thống kê của báo cáo chính thức.</p>
         </div>
         <a class="exec-report-back" href="#card-timeline">Quay lại dashboard tổng quan</a>
       </div>
@@ -481,34 +482,6 @@ h1 {
 
     </section>
 
-    <section class="exec-report" id="forecast-report" aria-labelledby="forecast-report-title">
-      <div class="exec-report-head">
-        <div>
-          <p class="exec-report-eyebrow">Phân tích mở rộng · Ngoài 5 câu hỏi trọng tâm</p>
-          <h2 id="forecast-report-title">Dự báo xu hướng tuyến tính (Linear Regression)</h2>
-          <p>Mô hình hồi quy tuyến tính cơ bản được fit trên Net Sentiment tuần 1–4 kể từ Ngày 0 và phóng chiếu qua tuần 5–8 để tham khảo xu hướng ngắn hạn giữa bốn dòng máy.</p>
-        </div>
-        <a class="exec-report-back" href="#executive-report">Lên báo cáo 5 câu hỏi</a>
-      </div>
-      <div class="exec-report-panel" id="exec-panel-q6">
-        <div class="exec-report-grid">
-          <article class="exec-report-card">
-            <h4>Galaxy S23 Ultra · dữ liệu thực tế và đường hồi quy</h4>
-            <div class="exec-report-chart"><canvas id="exec-lr-s23-chart" aria-label="Net Sentiment thực tế và dự báo tuyến tính của S23 Ultra"></canvas></div>
-            <p class="exec-report-note">Đường xanh: S23 Ultra thực tế ở tuần 1–4. Đường xám: Linear Regression fit trên dữ liệu này. Đường vàng kéo dài dự báo tuần 5–8; dữ liệu hiện tại chưa có quan sát S23 Ultra đủ điều kiện sau tuần 4.</p>
-          </article>
-          <article class="exec-report-card">
-            <h4>Dự báo Net Sentiment ở tuần 8</h4>
-            <div class="exec-report-chart"><canvas id="exec-lr-model-chart" aria-label="Dự báo tuyến tính tuần 8 giữa bốn Model"></canvas></div>
-          </article>
-          <article class="exec-report-card exec-report-wide">
-            <h4>Độ dốc và mức dự báo của từng Model</h4>
-            <div class="exec-report-table-wrap"><table class="exec-report-table" id="exec-lr-table"></table></div>
-            <p class="exec-report-note" id="exec-lr-insight"></p>
-          </article>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="foot">
@@ -1583,7 +1556,6 @@ h1 {
 
   const number = value => new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 1 }).format(Number(value));
   const percent = value => `${number(value)}%`;
-  const fitScore = value => Number(value).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
   const setTable = (id, headers, rows) => {
     const table = document.getElementById(id);
@@ -1821,65 +1793,6 @@ h1 {
     setTable('exec-q5-table', [{ label: 'Lỗi / xu hướng' }, { label: 'Lượt nhắc · người đã dùng', num: true }, { label: 'Riêng S23 Ultra', num: true }, { label: 'Ưu tiên' }, { label: 'Bình luận mẫu' }], rows);
   }
 
-  function linearRegression(values) {
-    const points = values.map((y, i) => ({ x: i + 1, y: Number(y) }));
-    const meanX = points.reduce((sum, point) => sum + point.x, 0) / points.length;
-    const meanY = points.reduce((sum, point) => sum + point.y, 0) / points.length;
-    const numerator = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0);
-    const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
-    const slope = numerator / denominator;
-    const intercept = meanY - slope * meanX;
-    const total = points.reduce((sum, point) => sum + (point.y - meanY) ** 2, 0);
-    const residual = points.reduce((sum, point) => sum + (point.y - (intercept + slope * point.x)) ** 2, 0);
-    const predict = week => intercept + slope * week;
-    return { slope, intercept, r2: total ? 1 - residual / total : 0, predict };
-  }
-
-  function renderForecast() {
-    const models = [
-      { key: 's23u', label: 'Galaxy S23 Ultra (X)', color: '#3dd6c5' },
-      { key: 's22u', label: 'Galaxy S22 Ultra', color: '#fbbf24' },
-      { key: 'ip14prm', label: 'iPhone 14 Pro Max', color: '#60a5fa' },
-      { key: 'xiaomi13u', label: 'Xiaomi 13 Ultra', color: '#ff7ab6' }
-    ];
-    const fitted = models.map(model => ({ ...model, values: R.q1_weekly_net[model.key], ...linearRegression(R.q1_weekly_net[model.key]) }));
-    const target = fitted.find(model => model.key === 's23u');
-    const labels = Array.from({ length: 8 }, (_, i) => `Tuần ${i + 1}`);
-
-    makeChart('exec-lr-s23-chart', {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          { label: 'S23 Ultra · thực tế', data: [...target.values, null, null, null, null], borderColor: target.color, backgroundColor: target.color, pointRadius: 4, borderWidth: 2.5, tension: .25 },
-          { label: 'Linear Regression · fit tuần 1–4', data: labels.map((_, i) => i < 4 ? target.predict(i + 1) : null), borderColor: '#aeb4d0', backgroundColor: '#aeb4d0', borderDash: [3, 4], pointRadius: 0, borderWidth: 1.5, tension: 0 },
-          { label: 'Linear Regression · dự báo tuần 5–8', data: labels.map((_, i) => i < 3 ? null : target.predict(i + 1)), borderColor: '#fbbf24', backgroundColor: '#fbbf24', borderDash: [7, 5], pointRadius: labels.map((_, i) => i >= 4 ? 4 : 0), pointStyle: 'triangle', borderWidth: 2, tension: 0 }
-        ]
-      },
-      options: { ...chartBase, scales: { ...chartBase.scales, y: { ...chartBase.scales.y, min: -10, max: 70, title: { display: true, text: 'Net Sentiment', color: chartText } } } }
-    });
-
-    makeChart('exec-lr-model-chart', {
-      type: 'bar',
-      data: { labels: fitted.map(model => model.label), datasets: [{ label: 'Dự báo Net Sentiment · Tuần 8', data: fitted.map(model => model.predict(8)), backgroundColor: fitted.map(model => model.color), borderRadius: 5 }] },
-      options: {
-        ...chartBase, indexAxis: 'y',
-        plugins: { ...chartBase.plugins, legend: { display: false }, tooltip: { callbacks: { label: ctx => `Dự báo: ${number(ctx.parsed.x)}%` } } },
-        scales: { x: { ticks: { color: chartText, callback: value => `${value}%` }, grid: { color: chartGrid } }, y: { ticks: { color: chartText }, grid: { display: false } } }
-      }
-    });
-
-    const rows = fitted.map(model => {
-      const slope = model.slope;
-      return `<tr><td>${escapeHtml(model.label)}</td><td class="num">${slope > 0 ? '+' : ''}${number(slope)} điểm %</td><td class="num">${fitScore(model.r2)}</td><td class="num"><b>${percent(model.predict(8))}</b></td></tr>`;
-    });
-    setTable('exec-lr-table', [{ label: 'Model' }, { label: 'Độ dốc / tuần', num: true }, { label: 'R²', num: true }, { label: 'Dự báo tuần 8', num: true }], rows);
-
-    const leastDecline = Math.max(...fitted.map(model => model.slope));
-    const slopeText = `${target.slope > 0 ? '+' : ''}${number(target.slope)} điểm phần trăm/tuần`;
-    document.getElementById('exec-lr-insight').textContent = `Insight tham khảo: đường hồi quy của S23 Ultra dự báo Net Sentiment khoảng ${percent(target.predict(8))} ở tuần 8, với độ dốc ${slopeText}; đây là mức giảm chậm nhất trong bốn Model (${number(leastDecline)} điểm phần trăm/tuần). Tuy vậy, R² của S23 Ultra chỉ ${fitScore(target.r2)} trên bốn điểm tuần, nên mô hình chưa giải thích tốt các dao động thực tế. Xem đây là kịch bản xu hướng ngắn hạn, không phải kết quả chắc chắn.`;
-  }
-
   const renderers = { q1: renderQ1, q2: renderQ2, q3: renderQ3, q4: renderQ4, q5: renderQ5 };
   const rendered = new Set();
   function activateTab(key, focusTab) {
@@ -1908,7 +1821,6 @@ h1 {
 
   renderQ1();
   rendered.add('q1');
-  renderForecast();
 })();
 </script>
 </body>

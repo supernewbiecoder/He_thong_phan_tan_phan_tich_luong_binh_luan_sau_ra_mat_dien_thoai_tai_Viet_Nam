@@ -37,9 +37,9 @@ Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muố
 | Nhãn (gold labels) | ❌ Chưa có | Công việc 1, 5 |
 | Mô hình ML | ❌ Chưa có | Công việc 7–11 |
 | Cơ sở dữ liệu | ❌ Mới có thiết kế | [docs/data-model.md](docs/data-model.md), Công việc 3 |
-| Trả lời Q1–Q5 bằng mô hình | ❌ Chưa | Công việc 12 |
+| Aggregates + Q1–Q5 | ⚠️ Code chạy được với demo; chờ nhãn thật và đánh giá | [Hướng dẫn CV12](src/analysis/README.md) |
 | Streaming (Kafka/Spark) | ⏸ Tùy chọn | Chỉ làm nếu còn thời gian, xem [docs/pipeline.md](docs/pipeline.md) |
-| Tests | ❌ Chưa có | [tests/README.md](tests/README.md) |
+| Tests CV12 | ✅ Có | Validation, aggregates, CI/Holm; lệnh chạy trong [hướng dẫn CV12](src/analysis/README.md) |
 
 ## 3. Luồng dữ liệu
 
@@ -68,6 +68,7 @@ flowchart LR
 |---|---|
 | [docs/roadmap.md](docs/roadmap.md) | Muốn biết mình làm gì, phụ thuộc ai, hạn khi nào |
 | [docs/EDA_requirement.md](docs/EDA_requirement.md) | Làm phân tích Q1–Q5, dashboard, báo cáo |
+| [src/analysis/README.md](src/analysis/README.md) | Thực hiện CV12 từ đầu vào đến kết quả và kết luận |
 | [docs/data-model.md](docs/data-model.md) | Làm DB, ghi/đọc dữ liệu giữa các nhóm |
 | [contracts/](contracts/) | Kiểm tra định dạng bản ghi (JSON Schema) |
 | [docs/ml-training.md](docs/ml-training.md) | Gán nhãn, huấn luyện, đánh giá mô hình |

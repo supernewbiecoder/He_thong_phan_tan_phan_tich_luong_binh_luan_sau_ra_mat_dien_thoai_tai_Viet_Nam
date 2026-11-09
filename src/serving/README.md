@@ -10,6 +10,7 @@
 
 - Đọc dữ liệu từ file snapshot trong `dashboard/eda_smartphone_outputs/` (`executive_report_data.js`, `dashboard_exec_data.json`), chưa nối DB/API.
 - Số liệu sinh từ luật từ khóa trên một phiên bản dữ liệu cũ (109.344 bản ghi): **chỉ để minh họa**.
-- Phần "dự báo tuần 8" (hồi quy tuyến tính trên 4 điểm) và phần phân cụm sẽ bỏ ở bản chính thức, xem [docs/EDA_requirement.md](../../docs/EDA_requirement.md#5-lỗi-đã-gặp-ở-bản-nháp-tránh-lặp-lại).
+- Đã bỏ giao diện và code dự báo tuần 8 từ 4 điểm tuần. Phần phân cụm vẫn là nội dung khám phá của bản nháp, xem [docs/EDA_requirement.md](../../docs/EDA_requirement.md#5-lỗi-đã-gặp-ở-bản-nháp-tránh-lặp-lại).
+- Cách chạy và đọc kết quả CV12: [hướng dẫn duy nhất](../analysis/README.md). Snapshot trên dashboard chưa tự cập nhật từ kết quả mới.
 
 Bản chính thức (Công việc 13) đọc từ `aggregates` và `aspect_mentions`, hiển thị khoảng tin cậy và kết quả kiểm định theo đặc tả.
