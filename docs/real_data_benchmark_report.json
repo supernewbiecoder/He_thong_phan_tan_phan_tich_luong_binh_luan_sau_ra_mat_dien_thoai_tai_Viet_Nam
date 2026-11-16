@@ -1,0 +1,159 @@
+{
+  "dataset": "clean_data.jsonl",
+  "total_records": 109344,
+  "execution_time_seconds": 20.85,
+  "throughput_records_per_second": 5243.4,
+  "average_latency_ms": 0.191,
+  "legacy_detector": {
+    "spam_count": 6038,
+    "spam_rate_pct": 5.52,
+    "non_vietnamese_count": 4317,
+    "non_vietnamese_rate_pct": 3.95,
+    "reasons_distribution": {
+      "excessive_character_repetition": 661,
+      "empty_text": 10,
+      "non_vietnamese_language": 3385,
+      "no_alphabetical_content": 922,
+      "contains_url": 700,
+      "external_contact_invite": 288,
+      "contains_phone_number": 83,
+      "commercial_or_gambling_spam": 208,
+      "repetitive_words": 25
+    }
+  },
+  "new_refined_detector": {
+    "spam_count": 2371,
+    "spam_rate_pct": 2.17,
+    "non_vietnamese_count": 5216,
+    "non_vietnamese_rate_pct": 4.77,
+    "reasons_distribution": {
+      "excessive_character_repetition": 707,
+      "non_vietnamese_language": 5206,
+      "empty_text": 10,
+      "no_alphabetical_content": 455,
+      "contains_url": 700,
+      "external_contact_invite": 288,
+      "contains_phone_number": 84,
+      "pure_emoji_no_text": 462,
+      "commercial_or_gambling_spam": 208,
+      "repetitive_words": 25,
+      "ml_spam_classifier": 6
+    }
+  },
+  "comparison_matrix": {
+    "both_spam": 2370,
+    "both_ham": 103305,
+    "freed_from_false_positive (legacy_only_spam)": 3668,
+    "newly_detected_by_ml (new_only_spam)": 1,
+    "false_positive_reduction_pct": 60.75
+  },
+  "samples_freed_preview": [
+    {
+      "comment_id": "UggZe353xZqQlngCoAEC",
+      "text": "Vay vo o thanh hoa ha",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "Ugi7ceMMUCyLJ3gCoAEC",
+      "text": "cmt 4\n:V",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "UggZC84i_vkQ2XgCoAEC",
+      "text": "Leicester 5 - 3 MU :'(",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "Ugilky9itepR4ngCoAEC",
+      "text": "Bt lua cho so sanh ghe... lua ngay cho....????",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "UgjUE66U86zpGHgCoAEC",
+      "text": "Review con gear s vs zenwatch lun",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "Uggsrp23oSmWzXgCoAEC",
+      "text": "lam them cai review thu be cong ip6 di vv oi",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "UgiWTEpHe5B4p3gCoAEC.7-H0Z7-BkwV7-JLUTJbNsx",
+      "text": "hehehe",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    },
+    {
+      "comment_id": "UgiS32OYelIMongCoAEC",
+      "text": "copy",
+      "model": "ip6",
+      "legacy_reasons": [
+        "non_vietnamese_language"
+      ],
+      "new_reasons": [
+        "non_vietnamese_language"
+      ],
+      "is_vietnamese": false
+    }
+  ],
+  "samples_newly_caught_preview": [
+    {
+      "comment_id": "UgwJE47l1pbdvPOiMgF4AaABAg",
+      "text": "tối um 🤣🤣",
+      "model": "ip14prm",
+      "new_reasons": [
+        "ml_spam_classifier"
+      ],
+      "confidence": 0.6944996074550485
+    }
+  ]
+}

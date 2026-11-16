@@ -6,7 +6,11 @@ data/*
 !data/task9/
 data/task9/*
 !data/task9/Công việc 9 Mô hình cảm xúc theo khía cạnh cho bình luận điện thoại.md
+# Nhãn spam của Công việc 11 (nhánh nlquan).
+!data/labels/
+!data/labels/*.jsonl
 *.jsonl
+!data/labels/*.jsonl
 *.csv
 *.parquet
 *.zip
@@ -40,4 +44,3 @@ Thumbs.db
 # Local runtime logs and credentials
 *.log
 .env
-
