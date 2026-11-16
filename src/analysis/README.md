@@ -82,7 +82,7 @@ Q5 xếp **P1** khi ≥20 lượt nhắc lỗi và tăng có ý nghĩa; **P2** k
 - **Được kết luận:** kiểm định hợp lệ, `p_adjusted < 0.05`, nhãn đã được đánh giá và `conclusion_allowed=true`. Q3a so cặp còn phải qua kiểm định tổng thể. Demo và nhãn baseline luật chưa đủ điều kiện công bố.
 - Trong `business_questions.json`, đọc `answers`, `publication_blockers` và `reasons`. Không có ý nghĩa thống kê chỉ cho phép viết **“chưa đủ bằng chứng”**, không suy ra các máy bằng nhau. Khi có kết luận, báo ước lượng/chênh lệch + CI 95% + p sau Holm + cỡ mẫu/video; duyệt bình luận mẫu trước khi trích dẫn.
 
-Chi tiết đặc tả: [EDA_requirement.md](../../docs/EDA_requirement.md).
+Chi tiết đặc tả: [muc-tieu.md](../../docs/spec/muc-tieu.md).
 
 ## 6. Code và kiểm tra
 

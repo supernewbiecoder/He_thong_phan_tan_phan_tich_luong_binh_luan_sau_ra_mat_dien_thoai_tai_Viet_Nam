@@ -120,5 +120,5 @@ python -m src.storage.verify_db --mock
 ---
 
 ## 5. Tài liệu Chi tiết
-* Thiết kế chi tiết & Ánh xạ 5 câu hỏi nghiệp vụ: xem [`docs/database_design.md`](file:///f:/intro_data_science/repo-feature-eda-dashboard/docs/database_design.md).
-* Hợp đồng JSON Schema cho Aspect Mentions: xem [`contracts/aspect-mention.schema.json`](file:///f:/intro_data_science/repo-feature-eda-dashboard/contracts/aspect-mention.schema.json).
+* Thiết kế chi tiết & Ánh xạ 5 câu hỏi nghiệp vụ: xem [`docs/database_design.md`](../../docs/database_design.md).
+* Hợp đồng JSON Schema cho Aspect Mentions: xem [`contracts/aspect-mention.schema.json`](../../contracts/aspect-mention.schema.json).

@@ -59,7 +59,13 @@ Tiêu đề video, kênh và trạng thái crawl nằm trong `src/ingest/data/ra
 
 ### `tests/`
 
-Chưa có test nào. Kế hoạch: [tests/README.md](../../tests/README.md). Kiểm tra dữ liệu crawl hiện dùng `src/ingest/check_data.py`.
+| File | Kiểm tra gì | Trạng thái |
+|---|---|---|
+| `test_analysis_validation.py`, `test_analysis_aggregation.py`, `test_analysis_questions.py` + `fixtures/` | Công việc 12: kiểm tra đầu vào, đếm aggregates, khoảng tin cậy, Holm | Chạy được |
+| `test_normalize_external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA | Chạy được |
+| `test_spam_detector.py`, `test_dashboard_api.py` | Công việc 11, 13 | Không chạy: cần `src/processing/cleaner/spam_detector.py` và dashboard cũ, đã gỡ khỏi `main` |
+
+Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 
 ### Thư mục không vào git (`.gitignore`)
 

@@ -50,7 +50,7 @@ Khoảng 11 nghìn đánh giá smartphone trên trang thương mại điện t�
 
 ### UIT-ViSD4SA
 
-UIT-ViSD4SA có nhãn span×sentiment ở đúng dạng cần cho ABSA. UIT-ViSFD chỉ gán aspect×sentiment cho toàn review, không có offsets; vì vậy **không đưa ViSFD vào tập span** và không tự suy diễn vị trí span. Script [`src/processing/normalize_external_absa.py`](../src/processing/normalize_external_absa.py) chỉ xuất ViSD4SA theo đúng hai trường:
+UIT-ViSD4SA có nhãn span×sentiment ở đúng dạng cần cho ABSA. UIT-ViSFD chỉ gán aspect×sentiment cho toàn review, không có offsets; vì vậy **không đưa ViSFD vào tập span** và không tự suy diễn vị trí span. Script [`src/processing/normalize_external_absa.py`](../../src/processing/normalize_external_absa.py) chỉ xuất ViSD4SA theo đúng hai trường:
 
 ```json
 {"text": "Máy đẹp, pin trâu.", "labels": [[0, 7, "DESIGN#pos"], [9, 17, "BATTERY#pos"]]}
