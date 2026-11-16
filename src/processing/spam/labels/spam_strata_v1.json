@@ -1,0 +1,52 @@
+{
+  "dataset": "clean_data v1.0",
+  "dataset_sha256": "df4c72c25a150108283fc54e7e6d1dd15a969b907088e168eb7a7405f1ea58ab",
+  "n_comments": 109344,
+  "seed": 20261117,
+  "split_salt": "cv11-spam-split-v1",
+  "test_fraction": 0.4,
+  "strata": {
+    "rule_content": {
+      "N": 1191,
+      "N_train": 605,
+      "N_test": 586,
+      "n": 150
+    },
+    "rule_form": {
+      "N": 678,
+      "N_train": 386,
+      "N_test": 292,
+      "n": 70
+    },
+    "rule_notext": {
+      "N": 931,
+      "N_train": 537,
+      "N_test": 394,
+      "n": 40
+    },
+    "rule_nonvn_only": {
+      "N": 433,
+      "N_train": 269,
+      "N_test": 164,
+      "n": 60
+    },
+    "unflagged_dup": {
+      "N": 281,
+      "N_train": 169,
+      "N_test": 112,
+      "n": 40
+    },
+    "unflagged_suspect": {
+      "N": 3035,
+      "N_train": 1818,
+      "N_test": 1217,
+      "n": 80
+    },
+    "unflagged_rest": {
+      "N": 102795,
+      "N_train": 61171,
+      "N_test": 41624,
+      "n": 200
+    }
+  }
+}
