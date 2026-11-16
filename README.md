@@ -64,6 +64,7 @@ flowchart LR
 | [docs/spec/muc-tieu.md](docs/spec/muc-tieu.md) | Muốn biết đề tài nhằm mục đích gì, phải giao ra gì, phải trả lời những câu hỏi nào |
 | [docs/spec/thu-thap.md](docs/spec/thu-thap.md) | Muốn biết crawler lấy video, bình luận nào, dữ liệu nằm ở đâu, đang dùng phiên bản nào |
 | [docs/spec/data-model.md](docs/spec/data-model.md) | Làm DB, ghi/đọc dữ liệu giữa các nhóm |
+| [src/analysis/README.md](src/analysis/README.md) | Chạy Công việc 12: tính aggregates và trả lời Q1–Q5 từ nhãn đã có |
 | [contracts/](contracts/) | Kiểm tra định dạng bản ghi (JSON Schema) |
 | [docs/spec/ml-training.md](docs/spec/ml-training.md) | Gán nhãn, huấn luyện, đánh giá mô hình |
 | [docs/spec/pipeline.md](docs/spec/pipeline.md) | Hiểu các bước xử lý và phần streaming tùy chọn |
