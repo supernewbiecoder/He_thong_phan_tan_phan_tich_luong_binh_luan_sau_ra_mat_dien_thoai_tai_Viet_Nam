@@ -1,0 +1,10 @@
+fastapi>=0.110,<1
+uvicorn>=0.29,<1
+pymongo>=4.6,<5
+PyYAML>=6,<7
+tzdata>=2024.1
+# Chỉ cần cho kiểm thử
+pytest>=8,<10
+httpx>=0.27,<1
+mongomock>=4.3,<5
+jsonschema>=4.18,<5

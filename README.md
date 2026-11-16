@@ -33,7 +33,9 @@ Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muố
 | Crawler YouTube | ✅ Xong | [src/ingest](src/ingest/README.md): quota, resume, chống trùng, replay |
 | Dữ liệu raw | ✅ Có | ~226 nghìn bình luận, 51 model, 2014–2026. Không nằm trong git (xem mục 5) |
 | Tiền xử lý (lọc spam, tách mệnh đề) | ⚠️ Có kết quả, **thiếu code trong repo** | Công việc 6 |
-| EDA + dashboard | ⚠️ **Bản nháp** | Để hình dung đầu ra. Nhãn khía cạnh/cảm xúc là luật từ khóa, **số liệu chỉ để minh họa** |
+| EDA | ⚠️ **Bản nháp** | Để hình dung đầu ra. Nhãn khía cạnh/cảm xúc là luật từ khóa, **số liệu chỉ để minh họa** |
+| Dashboard + API | ✅ Đọc từ MongoDB qua API | [src/serving](src/serving/README.md) (Công việc 13). Tự ghi "số liệu minh họa" khi nhãn chưa qua mô hình đã đánh giá |
+| Lọc spam | ⚠️ Có kết quả, **nhãn chờ người duyệt** | [Báo cáo Công việc 11](docs/reports/cv11-spam.md): bộ luật hiện tại so với mô hình ML |
 | Nhãn (gold labels) | ❌ Chưa có | Công việc 1, 5 |
 | Mô hình ML | ❌ Chưa có | Công việc 7–11 |
 | Cơ sở dữ liệu | ❌ Mới có thiết kế | [docs/data-model.md](docs/data-model.md), Công việc 3 |
@@ -92,6 +94,6 @@ docs/              đặc tả, kế hoạch, thiết kế dữ liệu, ML, pipe
 runbooks/          kịch bản sự cố cho phần streaming (tùy chọn)
 src/ingest/        crawler YouTube + replay
 src/processing/    tiền xử lý, mô hình, notebook EDA
-src/serving/       dashboard (hiện là bản nháp tĩnh)
+src/serving/       API và dashboard đọc từ MongoDB
 tests/             kiểm thử
 ```
