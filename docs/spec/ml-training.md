@@ -24,7 +24,8 @@ Mã nhãn theo [data-model.md](data-model.md#danh-mục-mã).
 |---|---|---|---|
 | Gold YouTube (`gold_labels`, `label_source = human`) | Ground truth đúng miền | Phần `train` | **Có, tập test chính** |
 | Nhãn AI trên YouTube (`label_source = llm`) | Tăng dữ liệu train | Có | Không |
-| Dataset ngoài có nhãn (UIT-ViSFD…) | Tăng dữ liệu train, đo chuyển miền | Có | Chỉ tập test riêng của dataset đó |
+| UIT-ViSD4SA | Train span ABSA, đo chuyển miền | Có | Chỉ tập test riêng của dataset đó |
+| UIT-ViSFD | Tham khảo để duyệt taxonomy; không có span | Không cho span task | Không cho span task |
 | YouTube raw chưa nhãn | Inference, pseudo-label | Chỉ qua Teacher–Student | Không |
 
 ## 3. Dữ liệu có nhãn từ bên ngoài
@@ -47,6 +48,27 @@ Khoảng 11 nghìn đánh giá smartphone trên trang thương mại điện t�
 | GENERAL | — | bỏ, hoặc chỉ dùng cho cảm xúc chung |
 | — | `SOFTWARE` | dataset ngoài không đủ, **phải tự gán** |
 
+### UIT-ViSD4SA
+
+UIT-ViSD4SA có nhãn span×sentiment ở đúng dạng cần cho ABSA. UIT-ViSFD chỉ gán aspect×sentiment cho toàn review, không có offsets; vì vậy **không đưa ViSFD vào tập span** và không tự suy diễn vị trí span. Script [`src/processing/normalize_external_absa.py`](../src/processing/normalize_external_absa.py) chỉ xuất ViSD4SA theo đúng hai trường:
+
+```json
+{"text": "Máy đẹp, pin trâu.", "labels": [[0, 7, "DESIGN#pos"], [9, 17, "BATTERY#pos"]]}
+```
+
+`labels` dùng `[start, end, "ASPECT#sentiment"]`, offsets theo chỉ số ký tự Python, sentiment là `pos`/`neg`/`neu`. Các nhóm đã thống nhất `SER&ACC → WARRANTY`, `STORAGE → HARDWARE_OTHER`; `FEATURES` chưa ánh xạ và không được xuất trong nhãn huấn luyện cho tới khi duyệt mẫu. `GENERAL` cũng bị loại vì không thuộc taxonomy. Span có offset không hợp lệ bị bỏ khỏi nhãn đầu ra và đếm trong `report.json`; không tự sửa.
+
+Script tạo thêm `features_review.html` với 50 mẫu (tối đa 25 mẫu từ mỗi bộ) để nhóm phân loại `FEATURES` là phần cứng, phần mềm, tùy ngữ cảnh hay khác/không rõ. UI chạy cục bộ trên trình duyệt, không gửi dữ liệu ra ngoài; nút xuất JSON cho phép tải kết quả hoặc sao chép từ ô hiển thị nếu trình duyệt chặn tải file, rồi nhóm tổng hợp để chốt quy tắc ánh xạ. Mẫu ViSFD trong UI chỉ phục vụ xem xét taxonomy, không phải dữ liệu span đã gán.
+
+Chạy từ thư mục gốc repo:
+
+```powershell
+python src/processing/normalize_external_absa.py
+python -m unittest discover -s tests -p "test_normalize_external_absa.py"
+```
+
+Mặc định script đọc hai thư mục dataset nằm cạnh repo và ghi `uit_visd4sa/{train,dev,test}.jsonl`, `report.json` và UI vào `data/external/normalized/` (được `.gitignore` loại trừ). Mở `features_review.html` trong trình duyệt để duyệt mẫu. Có thể truyền `--visfd-dir`, `--visd4sa-dir` và `--output-dir` để đổi đường dẫn. Script đọc lại và kiểm tra đầu ra: chỉ có `text`/`labels`, span hợp lệ và thống kê nhãn sau ánh xạ.
+
 Giới hạn:
 - **Khác miền:** đánh giá của người mua trên sàn ngắn gọn; bình luận YouTube nhiều teencode, mỉa mai, so sánh, nói về người review. Mô hình học từ dataset ngoài sẽ giảm độ chính xác trên YouTube → luôn đo trên gold YouTube.
 - **Khác đơn vị:** dataset gán nhãn cả bình luận; dự án cần nhãn mệnh đề.
@@ -59,8 +81,8 @@ Giới hạn:
 
 ### Thí nghiệm chuyển miền (nên có trong báo cáo)
 
-1. Train chỉ trên UIT-ViSFD → chấm trên gold YouTube test.
-2. Train trên UIT-ViSFD + gold YouTube train → chấm lại cùng tập test.
+1. Train trên UIT-ViSD4SA span hợp lệ → chấm trên gold YouTube test.
+2. Train trên UIT-ViSD4SA + gold YouTube train → chấm lại cùng tập test.
 3. So sánh để thấy dữ liệu ngoài giúp được bao nhiêu và mất bao nhiêu khi chuyển miền.
 
 ## 4. Gán nhãn
