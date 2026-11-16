@@ -1,3 +1,5 @@
+# Mục đích: File không đưa lên git: dữ liệu, môi trường Python, file bí mật, file tự sinh; cập nhật lần cuối: 2026-11-11.
+
 # Large dataset files (GitHub hard limit is 100MB)
 data/
 *.jsonl

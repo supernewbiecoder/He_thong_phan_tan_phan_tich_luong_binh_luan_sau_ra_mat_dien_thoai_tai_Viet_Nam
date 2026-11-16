@@ -1,8 +1,8 @@
 {
-  "$comment": "Mục đích: Hợp đồng JSON Schema cho sự kiện bình luận raw (schema v2, khớp src/ingest/src/schema.py); cập nhật lần cuối: 2026-10-28.",
+  "$comment": "Mục đích: Hợp đồng JSON Schema cho sự kiện bình luận raw (schema v3, khớp src/ingest/crawler/schema.py; v3 thêm 6 trường author_*); cập nhật lần cuối: 2026-11-11.",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "CommentEvent",
-  "description": "Một bình luận raw do crawler ghi ra archive JSONL và Kafka topic raw_comments. Nguồn sự thật về danh sách trường là src/ingest/src/schema.py; sửa ở đó thì sửa cả file này.",
+  "description": "Một bình luận raw do crawler ghi ra archive JSONL và Kafka topic raw_comments. Nguồn sự thật về danh sách trường là src/ingest/crawler/schema.py; sửa ở đó thì sửa cả file này.",
   "type": "object",
   "properties": {
     "comment_id": {
@@ -69,12 +69,42 @@
       "description": "Thời điểm ghi archive/Kafka; replay ghi lại"
     },
     "schema_version": {
-      "const": 2
+      "const": 3
+    },
+    "author_name": {
+      "type": ["string", "null"],
+      "description": "v3. Tên hiển thị người bình luận lúc lấy (thường là @handle); null nếu không lấy được. Dữ liệu cá nhân: README chỉ cho phép author_hash, bỏ hay giữ trường này đang chờ quyết định (docs/ke-hoach/so-tay.md mục 5, quyết định 3)"
+    },
+    "author_channel_created_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "v3. Ngày tạo kênh của người bình luận (UTC); null nếu không lấy được"
+    },
+    "author_video_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "v3. Số video công khai của kênh người bình luận"
+    },
+    "author_subscriber_count": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "description": "v3. Số người đăng ký; null nếu người đó ẩn hoặc không lấy được"
+    },
+    "author_is_creator": {
+      "type": "boolean",
+      "description": "v3. true nếu người bình luận là chủ kênh của video; luôn tính được từ author_hash. true thì không vào aggregates"
+    },
+    "author_fetched_at": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "v3. Lúc lấy các trường author_* (chính sách YouTube: làm mới hoặc xóa sau 30 ngày)"
     }
   },
   "required": [
     "comment_id", "video_id", "parent_id", "parent_text", "model", "source", "text", "text_norm",
-    "author_hash", "published_at", "like_count", "reply_count", "fetched_at", "ingested_at", "schema_version"
+    "author_hash", "published_at", "like_count", "reply_count", "fetched_at", "ingested_at", "schema_version",
+    "author_name", "author_channel_created_at", "author_video_count", "author_subscriber_count",
+    "author_is_creator", "author_fetched_at"
   ],
   "additionalProperties": false
 }

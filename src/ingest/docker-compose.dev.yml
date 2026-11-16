@@ -1,3 +1,4 @@
+# Mục đích: Dựng Kafka 1 node trên máy để thử phần streaming (tùy chọn, docs/spec/pipeline.md); cập nhật lần cuối: 2026-11-11.
 # Kafka 1 node (KRaft) chỉ để dev crawler/replay trên máy bạn.
 # Cụm 3 broker + Spark do bạn phụ trách "Kafka và Spark" dựng riêng.
 services:
