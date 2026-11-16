@@ -30,7 +30,8 @@ DEFECT_TYPES = {
 }
 # Nhãn từ các nguồn này chưa qua mô hình đã đánh giá: số liệu chỉ để minh họa.
 UNVERIFIED_LABEL_SOURCES = {"rule": "Nhãn sinh từ luật từ khóa, chưa qua mô hình đã đánh giá",
-                            "llm": "Nhãn do AI gán, chưa có người duyệt"}
+                            "llm": "Nhãn do AI gán, chưa có người duyệt",
+                            "unknown": "Có mention không ghi nguồn nhãn"}
 
 
 @dataclass(frozen=True)

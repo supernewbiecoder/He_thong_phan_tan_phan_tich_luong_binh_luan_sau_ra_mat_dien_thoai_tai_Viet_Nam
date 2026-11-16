@@ -10,9 +10,15 @@ Mỗi phần là tùy chọn; phần nào truyền đường dẫn thì nạp ph
       --analysis data/aggregates/current/business_questions.json
 
 Chạy lại bao nhiêu lần cũng cho cùng một trạng thái DB: mọi bản ghi được upsert
-theo khóa. Với mentions và aggregates, file được coi là toàn bộ sự thật của các
-model_version có trong file: dòng cũ của những phiên bản đó mà file không còn
-thì bị xóa, để số đếm không lẫn giữa hai lần chạy mô hình.
+theo khóa. Với mentions và aggregates, file được coi là toàn bộ dữ liệu của từng
+cặp (model_version, target_model) có trong file: dòng cũ của cặp đó mà file không
+còn thì bị xóa, để số đếm của một máy không lẫn giữa hai lần chạy mô hình. Máy và
+phiên bản không có trong file thì không bị đụng tới.
+
+Lưu ý về mentions: theo contract, mention_id là khóa và không chứa model_version,
+nên collection chỉ giữ được MỘT phiên bản nhãn cho mỗi mention. Nạp phiên bản mới
+đè lên mention của phiên bản khác sẽ làm phiên bản cũ thiếu dữ liệu; script dừng
+lại và báo, trừ khi chạy với --replace-other-versions.
 """
 import argparse
 import hashlib
@@ -79,7 +85,9 @@ def catalog_from_config(path: Path) -> List[dict]:
     for model in config.get("models") or []:
         remember(model, None, top_level=True)
     for model in config.get("models") or []:
-        rivals = [remember(rival, model.get("launch_date"), top_level=False)
+        # Đối thủ có thể viết là object hoặc chỉ là tên một mẫu đã khai báo nơi khác.
+        rivals = [remember({"name": rival} if isinstance(rival, str) else rival,
+                           model.get("launch_date"), top_level=False)
                   for rival in model.get("rivals") or []]
         entries[model["name"]]["rivals"] = rivals
 
@@ -121,13 +129,34 @@ def upsert(collection, documents: Iterable[dict], key: str) -> int:
     return count
 
 
-def prune(collection, key: str, versions: Iterable[str], keep: set) -> int:
-    """Xóa bản ghi cũ của các model_version vừa nạp mà file mới không còn."""
-    stale = [doc[key] for doc in collection.find({"model_version": {"$in": list(versions)}}, {key: 1})
-             if doc.get(key) not in keep]
+def prune(collection, key: str, documents: List[dict]) -> int:
+    """Xóa bản ghi cũ mà file mới không còn, trong phạm vi các cặp (model_version, target_model) vừa nạp.
+
+    Chỉ xóa trong đúng những cặp có mặt trong file, nên nạp một file chỉ gồm vài máy
+    không làm mất dữ liệu của các máy khác cùng phiên bản.
+    """
+    keep = {document[key] for document in documents}
+    scopes = {(document["model_version"], document.get("target_model")) for document in documents}
+    stale = []
+    for version in {version for version, _target in scopes}:
+        for doc in collection.find({"model_version": version}, {key: 1, "target_model": 1}):
+            # Bản ghi không có trường khóa không phải do script này ghi: không đụng tới.
+            if doc.get(key) and doc[key] not in keep and (version, doc.get("target_model")) in scopes:
+                stale.append(doc[key])
     for start in range(0, len(stale), BATCH):
         collection.delete_many({key: {"$in": stale[start:start + BATCH]}})
     return len(stale)
+
+
+def other_versions_holding(collection, mention_ids: List[str], versions: set) -> Dict[str, int]:
+    """Đếm mention đang có trong DB với cùng mention_id nhưng thuộc phiên bản nhãn khác."""
+    found: Dict[str, int] = {}
+    for start in range(0, len(mention_ids), BATCH):
+        for doc in collection.find({"mention_id": {"$in": mention_ids[start:start + BATCH]},
+                                    "model_version": {"$nin": sorted(versions)}}, {"model_version": 1}):
+            version = doc.get("model_version") or "không ghi phiên bản"
+            found[version] = found.get(version, 0) + 1
+    return found
 
 
 def aggregate_id(row: dict) -> str:
@@ -140,6 +169,11 @@ def check_aggregate(row: dict, where: str) -> dict:
     for key in AGGREGATE_KEY:
         if row.get(key) is None:
             raise ValueError(f"{where}: thiếu trường khóa '{key}'")
+    if type(row["week_since_launch"]) is not int:
+        raise ValueError(f"{where}: 'week_since_launch' phải là số nguyên")
+    for key in ("target_model", "aspect", "video_id", "source", "model_version"):
+        if not isinstance(row[key], str) or not row[key]:
+            raise ValueError(f"{where}: '{key}' phải là chuỗi không rỗng")
     for key in ("n_pos", "n_neg", "n_neu"):
         if type(row.get(key)) is not int or row[key] < 0:
             raise ValueError(f"{where}: '{key}' phải là số nguyên không âm (aggregates lưu số đếm, không lưu %)")
@@ -169,7 +203,7 @@ def load_comments(db, path: Path) -> str:
     return f"comments: {upsert(db.comments, documents(), 'comment_id'):,} bình luận từ {path.name}"
 
 
-def load_mentions(db, path: Path, schema_path: Path) -> str:
+def load_mentions(db, path: Path, schema_path: Path, replace_other_versions: bool = False) -> str:
     from jsonschema import Draft7Validator
 
     validator = Draft7Validator(json.loads(schema_path.read_text(encoding="utf-8")))
@@ -183,10 +217,24 @@ def load_mentions(db, path: Path, schema_path: Path) -> str:
         seen.add(mention["mention_id"])
         mentions.append(mention)
     versions = {mention["model_version"] for mention in mentions}
+    clashes = other_versions_holding(db.aspect_mentions, sorted(seen), versions)
+    replaced = ""
+    if clashes:
+        detail = ", ".join(f"{version}: {count:,}" for version, count in sorted(clashes.items()))
+        if not replace_other_versions:
+            raise ValueError(
+                f"{path}: file sẽ ghi đè mention của phiên bản nhãn khác đang có trong DB ({detail}). "
+                "mention_id là khóa nên mỗi mention chỉ giữ được một phiên bản; ghi đè một phần sẽ làm "
+                "phiên bản cũ thiếu dữ liệu. Chưa ghi gì. Nếu muốn thay hẳn, chạy lại với "
+                "--replace-other-versions (xóa toàn bộ mention của các phiên bản đó trước khi nạp).")
+        for version in clashes:
+            db.aspect_mentions.delete_many(
+                {"model_version": None if version == "không ghi phiên bản" else version})
+        replaced = f"; đã xóa toàn bộ mention của phiên bản bị thay ({detail})"
     count = upsert(db.aspect_mentions, mentions, "mention_id")
-    removed = prune(db.aspect_mentions, "mention_id", versions, seen)
+    removed = prune(db.aspect_mentions, "mention_id", mentions)
     return (f"aspect_mentions: {count:,} mention ({', '.join(sorted(versions))}) từ {path.name}; "
-            f"xóa {removed:,} mention cũ cùng phiên bản")
+            f"xóa {removed:,} mention cũ cùng phiên bản và cùng máy{replaced}")
 
 
 def load_aggregates(db, path: Path) -> str:
@@ -196,9 +244,9 @@ def load_aggregates(db, path: Path) -> str:
         raise ValueError(f"{path}: có dòng trùng khóa aggregates")
     versions = {row["model_version"] for row in rows}
     count = upsert(db.aggregates, rows, "agg_id")
-    removed = prune(db.aggregates, "agg_id", versions, ids)
+    removed = prune(db.aggregates, "agg_id", rows)
     return (f"aggregates: {count:,} dòng ({', '.join(sorted(versions))}) từ {path.name}; "
-            f"xóa {removed:,} dòng cũ cùng phiên bản")
+            f"xóa {removed:,} dòng cũ cùng phiên bản và cùng máy")
 
 
 def load_analysis(db, path: Path) -> str:
@@ -249,10 +297,13 @@ def main() -> int:
     parser.add_argument("--analysis", type=Path, help="business_questions.json của Công việc 12")
     parser.add_argument("--schema", type=Path,
                         default=REPO_ROOT / "contracts" / "aspect-mention.schema.json")
+    parser.add_argument("--replace-other-versions", action="store_true",
+                        help="cho phép --mentions thay hẳn mention của phiên bản nhãn khác đang có trong DB")
     args = parser.parse_args()
 
     steps = [(args.models, load_models), (args.comments, load_comments),
-             (args.mentions, lambda db, path: load_mentions(db, path, args.schema)),
+             (args.mentions, lambda db, path: load_mentions(db, path, args.schema,
+                                                            args.replace_other_versions)),
              (args.aggregates, load_aggregates), (args.analysis, load_analysis)]
     if not any(path for path, _ in steps):
         parser.error("chưa chọn phần nào để nạp")
@@ -265,7 +316,11 @@ def main() -> int:
     ensure_indexes(db)
     for path, loader in steps:
         if path:
-            print(loader(db, path))
+            try:
+                print(loader(db, path))
+            except ValueError as error:
+                print(f"LỖI: {error}", file=sys.stderr)
+                return 2
     return 0
 
 

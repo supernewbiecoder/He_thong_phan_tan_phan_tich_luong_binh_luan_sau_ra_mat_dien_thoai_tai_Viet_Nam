@@ -598,3 +598,144 @@ def test_demo_aggregates_keep_only_the_first_four_weeks_and_store_counts():
     assert all(r["agg_id"] == load_db.aggregate_id(r) and r["n_total"] == sum(weeks[r["week_since_launch"]])
                for r in rows)
     assert not any("pct" in key for r in rows for key in r)
+
+
+# ---------------------------------------------------------------- sau lượt review độc lập
+
+SCHEMA = REPO_ROOT / "contracts" / "aspect-mention.schema.json"
+
+
+def test_mentions_of_another_label_version_are_never_partly_overwritten(db, tmp_path):
+    old = [dict(m) for m in MENTIONS]                                   # phiên bản model-v1
+    load_db.load_mentions(db, write_jsonl(tmp_path / "old.jsonl", old), SCHEMA)
+    new = [dict(m, model_version="model-v2") for m in MENTIONS[:5]]     # cùng mention_id, phiên bản mới
+    path = write_jsonl(tmp_path / "new.jsonl", new)
+
+    with pytest.raises(ValueError, match="ghi đè mention của phiên bản nhãn khác"):
+        load_db.load_mentions(db, path, SCHEMA)
+    assert db.aspect_mentions.count_documents({"model_version": VERSION}) == len(MENTIONS)
+    assert db.aspect_mentions.count_documents({"model_version": "model-v2"}) == 0
+
+    message = load_db.load_mentions(db, path, SCHEMA, replace_other_versions=True)
+    assert "đã xóa toàn bộ mention của phiên bản bị thay" in message
+    # Không còn trạng thái lưng chừng: phiên bản cũ biến mất hẳn, phiên bản mới đủ 5 mention.
+    assert db.aspect_mentions.count_documents({"model_version": VERSION}) == 0
+    assert db.aspect_mentions.count_documents({"model_version": "model-v2"}) == 5
+
+
+def test_loading_a_file_for_some_models_keeps_other_models_of_the_same_version(db, tmp_path):
+    strip = lambda rows: [{k: v for k, v in row.items() if k != "agg_id"} for row in rows]
+    everything = [row for row in AGGREGATES if row["model_version"] == VERSION]
+    load_db.load_aggregates(db, write_jsonl(tmp_path / "all.jsonl", strip(everything)))
+    # File sau chỉ có máy X và không còn dòng BATTERY của X.
+    only_x = [row for row in everything if row["target_model"] == "x1" and row["aspect"] == "CAMERA"]
+    message = load_db.load_aggregates(db, write_jsonl(tmp_path / "x.jsonl", strip(only_x)))
+    assert "xóa 1 dòng cũ" in message
+    assert db.aggregates.count_documents({"target_model": "x1"}) == len(only_x)
+    for other in ("p1", "r1", "r2"):
+        assert db.aggregates.count_documents({"target_model": other}) == \
+            sum(row["target_model"] == other for row in everything)
+
+
+def test_prune_leaves_documents_it_did_not_write(db, tmp_path):
+    db.aggregates.insert_one({"model_version": VERSION, "target_model": "x1", "note": "không có agg_id"})
+    rows = [{k: v for k, v in AGGREGATES[0].items() if k != "agg_id"}]
+    load_db.load_aggregates(db, write_jsonl(tmp_path / "a.jsonl", rows))
+    assert db.aggregates.count_documents({"note": "không có agg_id"}) == 1
+
+
+@pytest.mark.parametrize("change, message", [
+    ({"week_since_launch": "1"}, "week_since_launch"), ({"week_since_launch": 1.0}, "week_since_launch"),
+    ({"target_model": 5}, "target_model"), ({"aspect": ""}, "aspect"),
+])
+def test_aggregate_key_fields_are_type_checked(db, tmp_path, change, message):
+    row = {**{k: v for k, v in AGGREGATES[0].items() if k != "agg_id"}, **change}
+    with pytest.raises(ValueError, match=message):
+        load_db.load_aggregates(db, write_jsonl(tmp_path / "bad.jsonl", [row]))
+
+
+def test_catalog_accepts_a_rival_written_as_a_bare_name(tmp_path):
+    config = tmp_path / "pipeline.yaml"
+    config.write_text(
+        "models:\n"
+        "  - name: a1\n    title: Samsung Galaxy A1\n    launch_date: '2024-01-01'\n"
+        "    rivals:\n      - b1\n      - name: c1\n        title: Xiaomi C1\n"
+        "  - name: b1\n    title: iPhone B1\n    launch_date: '2024-02-02'\n", encoding="utf-8")
+    catalog = {m["model_id"]: m for m in load_db.catalog_from_config(config)}
+    assert catalog["a1"]["rivals"] == ["b1", "c1"]
+    assert catalog["b1"]["launch_date"] == "2024-02-02" and catalog["b1"]["brand"] == "Apple"
+    assert catalog["c1"]["launch_date"] == "2024-01-01"      # đối thủ không ghi ngày: lấy ngày của mẫu chính
+
+
+def test_defaults_ignore_an_analysis_that_has_no_counts_in_the_database(seeded):
+    document = analysis_document()
+    document.update(analysis_id="x1|khong-co", model_version="khong-co", loaded_at="2030-01-01T00:00:00+00:00")
+    seeded.analysis_results.insert_one(document)
+    meta = get(seeded, "meta")
+    assert meta["defaults"]["model_version"] in {v["model_version"] for v in meta["versions"]}
+    assert meta["targets"], "trang mở ra phải có máy để chọn"
+    assert client_for(seeded).get("/api/launch").status_code == 200
+
+
+def test_verified_labels_without_any_significant_result_are_real_not_illustrative(seeded):
+    # Công việc 12: can_publish = false khi không phép kiểm định nào có ý nghĩa, dù nhãn đã kiểm chứng.
+    document = analysis_document()
+    document["result"]["can_publish_business_conclusions"] = False
+    document["result"]["publication_blockers"] = []
+    seeded.analysis_results.replace_one({}, document)
+    status = get(seeded, "launch")["data_status"]
+    assert status["illustrative"] is False and status["reasons"] == []
+
+
+def test_illustrative_always_comes_with_a_reason(seeded):
+    for mutate in (lambda: seeded.analysis_results.delete_many({}),
+                   lambda: seeded.aspect_mentions.update_many({}, {"$set": {"label_source": "rule"}}),
+                   lambda: seeded.aspect_mentions.delete_many({})):
+        mutate()
+        status = get(seeded, "launch", model="x1", model_version=VERSION)["data_status"]
+        assert status["illustrative"] is True and status["reasons"]
+
+
+def test_mention_without_label_source_is_counted_as_unknown_and_flagged(seeded):
+    seeded.aspect_mentions.update_one({"mention_id": MENTIONS[0]["mention_id"]},
+                                      {"$unset": {"label_source": ""}})
+    versions = {v["model_version"]: v for v in get(seeded, "meta")["versions"]}
+    assert versions[VERSION]["label_sources"]["unknown"] == 1
+    status = get(seeded, "launch")["data_status"]
+    assert status["illustrative"] is True and "Có mention không ghi nguồn nhãn" in status["reasons"]
+
+
+def test_incomplete_aggregate_rows_do_not_break_the_api(seeded):
+    seeded.aggregates.insert_one({"agg_id": "thieu", "target_model": "x1", "aspect": "CAMERA",
+                                  "week_since_launch": 9, "video_id": "v1", "source": "youtube",
+                                  "model_version": VERSION, "n_pos": 3})
+    data = get(seeded, "launch")
+    assert data["scope"]["n_mentions_outside_window"] == 99 + 3
+    assert get(seeded, "compare")["scope"]["target"] == "x1"
+
+
+def test_database_error_message_does_not_leak_the_connection_string():
+    class Broken:
+        name = "down"
+
+        def __getattr__(self, _name):
+            raise ServerSelectionTimeoutError("no server")
+
+        __getitem__ = __getattr__
+
+    secret = Settings(mongo_uri="mongodb://admin:S3cret@db.internal:27017", cache_seconds=0)
+    body = TestClient(create_app(db=Broken(), settings=secret)).get("/api/meta").text
+    assert "S3cret" not in body and "admin" not in body and "db.internal" not in body
+
+
+def test_empty_comments_collection_still_has_every_total(db):
+    totals = get(db, "overview")["totals"]
+    assert totals["total"] == 0 and totals["replies"] == 0 and totals["n_videos"] == 0
+
+
+def test_frontend_never_inserts_non_numeric_values_as_numbers():
+    script = (REPO_ROOT / "src" / "serving" / "dashboard" / "app.js").read_text(encoding="utf-8")
+    assert "const isNumber = (value) => typeof value === \"number\"" in script
+    for helper in ("fmtInt", "fmtNum", "fmtPct", "fmtSigned"):
+        definition = script[script.index(f"const {helper} ="):].split(";")[0]
+        assert "isNumber(value)" in definition, helper

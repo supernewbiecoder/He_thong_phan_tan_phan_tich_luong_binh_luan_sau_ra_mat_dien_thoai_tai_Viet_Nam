@@ -102,13 +102,15 @@ class DashboardStore:
         for row in self.db.aggregates.aggregate([{"$group": {
                 "_id": "$model_version",
                 "n": {"$sum": {"$add": ["$n_pos", "$n_neg", "$n_neu"]}}}}]):
-            totals[row["_id"]] = row["n"]
-        sources: Dict[str, Dict[str, int]] = collections.defaultdict(dict)
+            if row["_id"]:
+                totals[row["_id"]] = row["n"] or 0
+        sources: Dict[str, Dict[str, int]] = collections.defaultdict(collections.Counter)
         for row in self.db.aspect_mentions.aggregate([{"$group": {
                 "_id": {"version": "$model_version", "source": "$label_source"}, "n": {"$sum": 1}}}]):
-            sources[row["_id"]["version"]][row["_id"]["source"]] = row["n"]
+            # Mention thiếu label_source vẫn được đếm, dưới tên "unknown", để không lọt qua kiểm tra.
+            sources[row["_id"].get("version")][row["_id"].get("source") or "unknown"] += row["n"]
         return [{"model_version": version, "n_mentions_in_aggregates": totals[version],
-                 "label_sources": sources.get(version, {})}
+                 "label_sources": dict(sources.get(version, {}))}
                 for version in sorted(totals, key=lambda v: -totals[v])]
 
     def targets(self, model_version: str) -> List[Dict[str, object]]:
@@ -131,8 +133,11 @@ class DashboardStore:
     def defaults(self) -> Dict[str, Optional[str]]:
         """Phiên bản và máy mặc định: ưu tiên lần phân tích mới nhất, không có thì bộ nhiều dữ liệu nhất."""
         latest = self._latest_analysis()
-        if latest:
-            return {"model_version": latest.get("model_version"), "model": latest.get("target_model")}
+        # Chỉ theo lần phân tích mới nhất khi DB thật sự có số đếm cho đúng máy và phiên bản đó.
+        if latest and latest.get("model_version") and any(
+                item["model_id"] == latest.get("target_model")
+                for item in self.targets(latest["model_version"])):
+            return {"model_version": latest["model_version"], "model": latest["target_model"]}
         versions = self.versions()
         if not versions:
             return {"model_version": None, "model": None}
@@ -245,12 +250,10 @@ class DashboardStore:
                 text = BLOCKER_TEXT.get(blocker, blocker)
                 if text not in reasons:
                     reasons.append(text)
-        publishable = bool(analysis and analysis.get("can_publish_business_conclusions")
-                           and analysis.get("data_kind") != "fixture"
-                           and match["usable"] and sources
-                           and not set(sources) & set(UNVERIFIED_LABEL_SOURCES))
+        # Minh họa khi và chỉ khi có ít nhất một lý do ở trên. Nhãn đã kiểm chứng mà không có
+        # khác biệt nào có ý nghĩa thì vẫn là số liệu thật; từng kết luận do conclusion_allowed quyết định.
         return {
-            "illustrative": not publishable, "reasons": reasons, "label_sources": sources,
+            "illustrative": bool(reasons), "reasons": reasons, "label_sources": sources,
             "analysis": {**match, "loaded_at": (document or {}).get("loaded_at"),
                          "analysis_version": (analysis or {}).get("analysis_version"),
                          "data_kind": (analysis or {}).get("data_kind")},
@@ -265,8 +268,8 @@ class DashboardStore:
         by_cell = self._grouped(rows, "target_model", "aspect")
         match = self._analysis_matches(analysis, by_model, by_week, by_cell)
         status = self._data_status(scope["model_version"], analysis, document, match)
-        outside = sum(r["n_pos"] + r["n_neg"] + r["n_neu"] for r in rows
-                      if r.get("week_since_launch") not in set(self._weeks()))
+        outside = sum(add_counts([r for r in rows
+                                  if r.get("week_since_launch") not in set(self._weeks())]).values())
         scope["n_mentions_outside_window"] = outside
         usable = analysis if match["usable"] else None
         return scope, usable, status, by_model, by_week, by_cell
@@ -459,7 +462,7 @@ class DashboardStore:
             offset = timedelta(hours=self.settings.timezone_offset_hours)
             by_model, by_hour, by_month = collections.Counter(), collections.Counter(), collections.Counter()
             reasons, versions = collections.Counter(), collections.Counter()
-            totals = collections.Counter()
+            totals = collections.Counter(total=0, replies=0, spam=0, not_vietnamese=0, usable=0)
             videos, latest = set(), None
             cursor = self.db.comments.find({}, {
                 "_id": 0, "model": 1, "video_id": 1, "parent_id": 1, "published_at": 1, "is_spam": 1,

@@ -61,7 +61,8 @@ def create_app(db=None, settings: Optional[Settings] = None) -> FastAPI:
     async def database_down(_request: Request, error: PyMongoError):
         return JSONResponse(status_code=503, content={
             "error": "database_unavailable",
-            "detail": f"Không đọc được MongoDB tại {settings.mongo_uri}: {type(error).__name__}"})
+            # Không trả lại MONGO_URI: chuỗi kết nối có thể chứa mật khẩu.
+            "detail": f"Không đọc được MongoDB (database '{settings.mongo_db}'): {type(error).__name__}"})
 
     @app.get("/api/health")
     def health():

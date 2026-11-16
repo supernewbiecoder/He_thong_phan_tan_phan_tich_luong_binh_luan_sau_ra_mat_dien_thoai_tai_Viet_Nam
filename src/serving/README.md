@@ -51,7 +51,10 @@ python -m src.serving.load_db `
 | `--aggregates` | số đếm của Công việc 12 | `aggregates` | Số nguyên không âm, không có trường tỷ lệ, không trùng khóa |
 | `--analysis` | `business_questions.json` của Công việc 12 | `analysis_results` | Có máy X và phiên bản nhãn trong `config` |
 
-Mọi bản ghi được upsert theo khóa nên chạy lại không sinh bản trùng. Với mentions và aggregates, file được coi là toàn bộ dữ liệu của các `model_version` có trong file: dòng cũ của phiên bản đó mà file mới không còn sẽ bị xóa, phiên bản khác không bị đụng tới.
+Mọi bản ghi được upsert theo khóa nên chạy lại không sinh bản trùng. Hai điều cần biết:
+
+- **Phạm vi thay thế.** Với mentions và aggregates, file được coi là toàn bộ dữ liệu của từng cặp (`model_version`, máy) có trong file: dòng cũ của cặp đó mà file mới không còn sẽ bị xóa. Máy khác và phiên bản khác không bị đụng tới, nên nạp một file chỉ gồm 4 máy không làm mất các máy còn lại.
+- **Mỗi mention chỉ giữ được một phiên bản nhãn.** Theo contract, `mention_id` là khóa và không chứa `model_version`. Nếu file mới trùng `mention_id` với mention của phiên bản khác đang có trong DB, script dừng và không ghi gì, vì ghi đè một phần sẽ làm phiên bản cũ thiếu dữ liệu mà không ai biết. Muốn thay hẳn thì thêm `--replace-other-versions`: toàn bộ mention của phiên bản cũ bị xóa trước khi nạp. `aggregates` thì giữ được nhiều phiên bản cùng lúc.
 
 ## Mỗi tab đọc gì
 
@@ -69,7 +72,7 @@ Ngoài ra: `/api/meta` (máy và phiên bản nhãn có dữ liệu), `/api/heal
 - **Một công thức.** Mọi tỷ lệ đi qua [metrics.py](api/metrics.py): % khen = khen / (khen + chê), Net = % khen − % chê, trung tính không vào mẫu số. Gộp nhiều video bằng cách cộng số đếm rồi mới chia.
 - **Ít dữ liệu.** Ô có khen + chê < 30 được vẽ mờ hoặc gạch chéo, ghi "ít dữ liệu", không kèm kết luận.
 - **Cửa sổ.** Chỉ tính tuần 1–4 kể từ `launch_date` của từng máy. Mention của chủ kênh không tính.
-- **Số liệu minh họa.** Trang hiện băng "SỐ LIỆU MINH HỌA" và gắn chip lên từng biểu đồ khi có bất kỳ điều nào sau đây: nhãn có nguồn `rule` hoặc `llm`; không xác định được nguồn nhãn; chưa có kết quả kiểm định; Công việc 12 chưa cho phép công bố (`can_publish_business_conclusions = false`); dữ liệu là fixture. Lý do được liệt kê ngay trong băng.
+- **Số liệu minh họa.** Trang hiện băng "SỐ LIỆU MINH HỌA" và gắn chip lên từng biểu đồ khi có bất kỳ điều nào sau đây: nhãn có nguồn `rule` hoặc `llm`; có mention không ghi nguồn nhãn, hoặc không có mention nào; chưa có kết quả kiểm định; kết quả kiểm định không khớp số đếm trong DB; Công việc 12 nêu lý do chặn công bố (`publication_blockers`); dữ liệu là fixture. Băng luôn liệt kê đúng các lý do đó. Nhãn đã kiểm chứng mà không có khác biệt nào có ý nghĩa thì **không** bị coi là minh họa: đó là kết quả thật, và từng kết luận do `conclusion_allowed` của Công việc 12 quyết định.
 - **Kiểm định không tính ở đây.** Khoảng tin cậy, p-value và câu kết luận lấy nguyên từ kết quả Công việc 12. API chỉ gắn chúng vào khi số đếm trong kết quả đó khớp với số đếm đang có trong DB; lệch thì bỏ toàn bộ phần kiểm định và báo lý do, để không ghép kiểm định của lần chạy cũ với số liệu mới.
 - **Kết luận.** Không có ý nghĩa thống kê thì ghi "Chưa đủ bằng chứng", không ghi "bằng nhau".
 - **Không bịa số.** Chưa có luồng Kafka/Spark thì tab hệ thống ghi rõ là chưa triển khai, không hiện thông lượng hay consumer lag giả.
@@ -107,7 +110,8 @@ Với `TEST_MONGO_URI`, mỗi test dùng một database tạm tên `test_cv13_�
 
 ## Đã kiểm chứng
 
-- 45 test qua trên mongomock và trên MongoDB 7.0 thật.
+- Toàn bộ test trong `tests/test_serving_dashboard.py` qua trên mongomock và trên MongoDB 7.0 thật.
+- Một lượt review độc lập đã đọc lại code; các lỗi tìm được (ghi đè mention giữa hai phiên bản nhãn, xóa nhầm dữ liệu máy khác khi nạp file không đầy đủ, lộ chuỗi kết nối trong thông báo lỗi, chèn HTML từ giá trị không phải số) đã sửa và có test riêng.
 - Chạy code Công việc 12 (nhánh `task12`) trên mentions minh họa: 1.573 dòng aggregates của họ trùng khóa và trùng số đếm với `demo_data.py`; nạp `business_questions.json` của họ thì API đối chiếu khớp 56/56 ô và hiển thị được khoảng tin cậy, kiểm định.
 - Số lượt so sánh trực tiếp (Q3b) và số lượt nhắc lỗi (Q5) API đếm từ `aspect_mentions` trùng với số của Công việc 12 trên cùng dữ liệu.
 

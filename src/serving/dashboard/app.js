@@ -9,13 +9,15 @@ const state = { meta: null, tab: "launch", model: null, version: null, heatMetri
 // ---------------------------------------------------------------- tiện ích
 
 const numberFormat = new Intl.NumberFormat("vi-VN");
-const fmtInt = (value) => (value == null ? "–" : numberFormat.format(Math.round(value)));
+// Chỉ định dạng số thật. Giá trị khác (chuỗi lạ trong DB chẳng hạn) thành "–", không bao giờ chèn nguyên văn vào HTML.
+const isNumber = (value) => typeof value === "number" && Number.isFinite(value);
+const fmtInt = (value) => (isNumber(value) ? numberFormat.format(Math.round(value)) : "–");
 const fmtNum = (value, digits = 1) =>
-  value == null ? "–" : value.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits });
-const fmtPct = (value, digits = 1) => (value == null ? "–" : fmtNum(value, digits) + "%");
-const fmtSigned = (value, digits = 1) => (value == null ? "–" : (value > 0 ? "+" : value < 0 ? "−" : "") + fmtNum(Math.abs(value), digits));
-const fmtInterval = (ci, digits = 1) => (Array.isArray(ci) ? `${fmtNum(ci[0], digits)} – ${fmtNum(ci[1], digits)}` : null);
-const fmtDate = (text) => (text ? String(text).slice(0, 10).split("-").reverse().join("/") : "chưa rõ");
+  isNumber(value) ? value.toLocaleString("vi-VN", { minimumFractionDigits: digits, maximumFractionDigits: digits }) : "–";
+const fmtPct = (value, digits = 1) => (isNumber(value) ? fmtNum(value, digits) + "%" : "–");
+const fmtSigned = (value, digits = 1) => (isNumber(value) ? (value > 0 ? "+" : value < 0 ? "−" : "") + fmtNum(Math.abs(value), digits) : "–");
+const fmtInterval = (ci, digits = 1) => (Array.isArray(ci) && ci.every(isNumber) ? `${fmtNum(ci[0], digits)} – ${fmtNum(ci[1], digits)}` : null);
+const fmtDate = (text) => (/^\d{4}-\d{2}-\d{2}/.test(String(text)) ? String(text).slice(0, 10).split("-").reverse().join("/") : "chưa rõ");
 const esc = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
 // Nội dung tooltip: các dòng nối bằng ký tự xuống dòng, hiển thị bằng textContent nên không cần tin dữ liệu.
@@ -24,7 +26,8 @@ const $ = (selector) => document.querySelector(selector);
 
 async function api(path, params = {}) {
   const query = new URLSearchParams(Object.entries(params).filter(([, value]) => value));
-  const response = await fetch(`/api/${path}${query.size ? "?" + query : ""}`);
+  const text = query.toString();
+  const response = await fetch(`/api/${path}${text ? "?" + text : ""}`);
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(body.detail || `API trả mã ${response.status}`);
@@ -49,7 +52,7 @@ const tile = (value, label, hint = "") =>
 /** Kết luận của một phép kiểm định, viết đúng quy ước: không có ý nghĩa thì là "chưa đủ bằng chứng". */
 function conclusion(test) {
   if (!test) return '<span class="chip">chưa kiểm định</span>';
-  const p = test.p_adjusted == null ? "" : ` (p sau Holm = ${fmtNum(test.p_adjusted, 3)})`;
+  const p = isNumber(test.p_adjusted) ? ` (p sau Holm = ${fmtNum(test.p_adjusted, 3)})` : "";
   if (test.significant && test.conclusion_allowed) return `<span class="chip strong">${esc(test.conclusion)}</span>${p}`;
   // Có ý nghĩa thống kê nhưng Công việc 12 chưa cho phép kết luận (vd nhãn chưa kiểm chứng): giữ nguyên lời của họ.
   if (test.significant) return `<span class="chip">${esc(test.conclusion || "Chưa được phép kết luận")}</span>${p}`;
@@ -280,7 +283,7 @@ function renderLaunch(d) {
         <td>${priorityOf(row)}</td></tr>`).join("")}</tbody></table></div>`
       : empty("Không có mention nào vừa do người đã dùng máy viết vừa được gán loại lỗi."));
 
-  const alerts = card("half", "", "Cảnh báo", null,
+  const alerts = card("half", "", "Cảnh báo", d.alerts.length ? status : null,
     "So tỷ lệ chê với đời trước tại cùng số ngày sau ra mắt. Đọc từ collection <code>alerts</code>.",
     d.alerts.length ? `<div class="table-wrap"><table><thead><tr><th>Thời điểm</th><th>Khía cạnh</th><th class="num">Giá trị</th><th class="num">Mốc so sánh</th><th>Mức</th></tr></thead><tbody>
       ${d.alerts.map((a) => `<tr><td>${fmtDate(a.created_at)}</td><td>${esc(a.aspect_name)}</td><td class="num">${fmtNum(a.value)}</td><td class="num">${fmtNum(a.baseline)}</td><td><span class="chip strong">${esc(a.severity)}</span></td></tr>
@@ -317,7 +320,8 @@ function renderCompare(d) {
 
   const duels = d.q3b.filter((row) => row.n_decisive + row.n_tie > 0);
   const duelBar = (row) => {
-    const W = 300, win = row.n_decisive ? (row.n_x_win / row.n_decisive) * W : 0;
+    if (!row.n_decisive) return '<span class="chip">chỉ có mệnh đề hòa</span>';
+    const W = 300, win = (row.n_x_win / row.n_decisive) * W;
     return `<svg class="chart" viewBox="0 0 ${W} 18" style="max-width:${W}px" role="img" aria-label="Tỷ lệ thắng">
       <path d="${roundedBar(Math.max(win - 1, 0), 2, -Math.max(win - 1, 0), 14)}" fill="var(--series-1)" opacity="${row.low_data ? 0.35 : 1}"/>
       <path d="${roundedBar(Math.min(win + 1, W), 2, Math.max(W - win - 1, 0), 14)}" fill="var(--series-2)" opacity="${row.low_data ? 0.35 : 1}"/></svg>`;
@@ -357,7 +361,7 @@ function renderSystem(d) {
   const collections = card("", "", "Dữ liệu đang có trong MongoDB", null, "Số bản ghi từng collection theo thiết kế dữ liệu của nhóm.",
     `<div class="tiles">${Object.entries(d.collections).map(([name, n]) => tile(fmtInt(n), COLLECTION_NAME[name] || name, name)).join("")}</div>`);
   const cleaning = card("half", "", "Tiền xử lý và lọc spam", null,
-    `Cờ spam trong DB hiện do bộ luật <code>rule-v0</code> gắn, và bộ luật này tính cả "không phải tiếng Việt" là spam. Đánh giá ở Công việc 11 cho thấy phần lớn bình luận bị luật gắn cờ không phải spam.`,
+    `Cờ spam trong DB hiện do bộ luật <code>rule-v0</code> gắn, và bộ luật này tính cả "không phải tiếng Việt" là spam. Đánh giá tạm thời ở Công việc 11 (nhãn chưa có người duyệt) cho thấy phần lớn bình luận bị luật gắn cờ không phải spam.`,
     total ? `<div class="tiles">${tile(fmtInt(total), "Bình luận đã xử lý")}${tile(fmtInt(c.usable), "Đưa vào phân tích", share(c.usable))}${tile(fmtInt(c.spam), "Bị luật gắn cờ spam", share(c.spam))}${tile(fmtInt(c.not_vietnamese), "Bị coi là không phải tiếng Việt", share(c.not_vietnamese))}</div>
       <h3 style="margin-top:14px">Lý do gắn cờ (một bình luận có thể có nhiều lý do)</h3>
       ${horizontalBars(Object.entries(c.spam_reasons).map(([reason, n]) => ({ label: REASON_NAME[reason] || reason, value: n })), "bình luận")}`
@@ -425,7 +429,9 @@ async function loadTab() {
       panel.innerHTML = '<article class="card">Đang tải…</article>';
       state.data[key] = await api(tab, SCOPED.has(tab) ? { model: state.model, model_version: state.version } : {});
     }
-    if (state.tab !== tab) return; // người dùng đã chuyển tab trong lúc chờ
+    // Người dùng đã chuyển tab, đổi máy hoặc đổi phiên bản trong lúc chờ: bỏ kết quả cũ này.
+    const current = SCOPED.has(state.tab) ? `${state.tab}|${state.model}|${state.version}` : state.tab;
+    if (current !== key) return;
     const data = state.data[key];
     RENDER[tab](data);
     if (SCOPED.has(tab)) showBanner(data.data_status, data.scope);
@@ -497,7 +503,9 @@ async function init() {
   $("#min-n").textContent = state.meta.min_opinionated;
   const hash = new URLSearchParams(location.hash.slice(1));
   const versions = state.meta.versions.map((v) => v.model_version);
-  state.version = versions.includes(hash.get("version")) ? hash.get("version") : state.meta.defaults.model_version;
+  // Phiên bản phải là một phiên bản đang có số đếm; nếu không thì lấy phiên bản đầu danh sách.
+  const wanted = [hash.get("version"), state.meta.defaults.model_version, versions[0]];
+  state.version = wanted.find((version) => versions.includes(version)) || null;
   state.model = hash.get("model") || state.meta.defaults.model;
   fillSelect($("#version-select"), versions.map((v) => ({ value: v, label: v })), state.version);
   if (state.version) await refreshTargets();

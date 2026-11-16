@@ -28,19 +28,19 @@ Ba ảnh trên chụp khi DB chứa **số liệu minh họa** do [demo_data.py]
 
 Yêu cầu của công việc: chỗ nào còn số liệu minh họa phải ghi rõ. Thay vì gắn nhãn bằng tay, API quyết định từ dữ liệu. Số liệu chỉ được coi là **không** minh họa khi đủ cả bốn điều kiện:
 
-1. mọi nhãn của phiên bản đang xem có nguồn `model` hoặc `human` (không có `rule`, `llm`);
+1. mọi nhãn của phiên bản đang xem có nguồn `model` hoặc `human` (không có `rule`, `llm`, và không có mention nào thiếu nguồn);
 2. có kết quả kiểm định của Công việc 12 cho máy và phiên bản đó;
 3. số đếm trong kết quả đó khớp với số đếm trong DB;
-4. Công việc 12 cho phép công bố và dữ liệu không phải fixture.
+4. Công việc 12 không nêu lý do chặn công bố nào và dữ liệu không phải fixture.
 
-Thiếu điều kiện nào thì băng cảnh báo nêu đúng lý do đó. Hiện chưa có bộ nhãn nào qua được điều kiện 1, nên mọi biểu đồ ở hai tab phân tích đều mang chữ "Số liệu minh họa".
+Thiếu điều kiện nào thì băng cảnh báo nêu đúng lý do đó; băng không bao giờ hiện mà không có lý do. Nhãn đã kiểm chứng nhưng không có khác biệt nào có ý nghĩa thống kê vẫn là số liệu thật, hiển thị với kết luận "Chưa đủ bằng chứng". Hiện chưa có bộ nhãn nào qua được điều kiện 1, nên mọi biểu đồ ở hai tab phân tích đều mang chữ "Số liệu minh họa".
 
 ## 3. Kiểm chứng
 
 | Kiểm chứng | Kết quả |
 |---|---|
-| 45 test tự động cho API, script nạp DB, bộ sinh số liệu minh họa (mongomock) | Đạt |
-| Chạy lại đúng 45 test đó trên MongoDB 7.0 thật | Đạt |
+| 61 test tự động cho API, script nạp DB, bộ sinh số liệu minh họa (mongomock) | Đạt |
+| Chạy lại đúng 61 test đó trên MongoDB 7.0 thật | Đạt |
 | Nạp dữ liệu thật vào MongoDB 7.0: 109.344 bình luận, 75.387 mention minh họa (mỗi mention được kiểm theo contract v2), 7.219 dòng aggregates | Đạt |
 | Chạy code Công việc 12 (nhánh `task12`) trên cùng mentions, so với số đếm của phần này | 1.573/1.573 dòng aggregates trùng khóa và trùng số đếm |
 | Nạp `business_questions.json` do code Công việc 12 sinh ra, để API đối chiếu | Khớp 56/56 ô; khoảng tin cậy và kiểm định hiển thị được |
@@ -49,6 +49,17 @@ Thiếu điều kiện nào thì băng cảnh báo nêu đúng lý do đó. Hi�
 | Bảng màu biểu đồ qua công cụ kiểm tra khả năng phân biệt cho người mù màu | Đạt ở cả hai giao diện |
 
 Một test đã bắt được lỗi trong lúc làm: dữ liệu fixture có cờ "được công bố" từng không bị gắn nhãn minh họa. Đã sửa và giữ test.
+
+Sau khi viết xong, một lượt review độc lập đọc lại toàn bộ code và tìm thêm lỗi. Những lỗi đáng kể nhất, đều đã sửa và có test riêng:
+
+| Lỗi | Hậu quả nếu không sửa |
+|---|---|
+| Nạp mention của phiên bản nhãn mới ghi đè một phần mention của phiên bản cũ (vì `mention_id` không chứa phiên bản) | Chọn phiên bản cũ trên dashboard sẽ thấy Q1–Q4 đầy đủ nhưng Q5, Q3b và bình luận mẫu thiếu, không có cảnh báo |
+| Nạp file chỉ gồm vài máy xóa luôn số đếm của các máy khác cùng phiên bản | Mất dữ liệu khi nạp đầu ra 4 máy của Công việc 12 đè lên bộ đầy đủ |
+| Máy mặc định lấy theo lần phân tích mới nhất dù DB không có số đếm cho nó | Trang mở ra báo lỗi và không chọn lại được |
+| Băng "số liệu minh họa" hiện mà không có lý do khi nhãn đã kiểm chứng nhưng không có kết quả có ý nghĩa | Số liệu thật bị gọi nhầm là minh họa |
+| Thông báo lỗi 503 chứa nguyên chuỗi kết nối MongoDB | Lộ mật khẩu DB nếu chuỗi kết nối có mật khẩu |
+| Giá trị không phải số trong DB được chèn thẳng vào trang | Chèn được HTML nếu ai đó ghi chuỗi vào trường số |
 
 ## 4. Phát hiện cần cả nhóm xử lý
 
