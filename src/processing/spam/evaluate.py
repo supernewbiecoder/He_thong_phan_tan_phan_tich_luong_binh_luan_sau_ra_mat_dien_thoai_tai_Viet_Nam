@@ -50,25 +50,46 @@ def stratum_weights(strata: Sequence[str], population: Dict[str, int]) -> np.nda
     return np.asarray([population[name] / counts[name] for name in strata], dtype=float)
 
 
+def cluster_resamples(strata: Sequence[str], population: Dict[str, int],
+                      clusters: Optional[Sequence[str]], n_boot: int, seed: int):
+    """Sinh `n_boot` mẫu bootstrap phân tầng theo cụm: mỗi lần trả (chỉ số dòng, trọng số)."""
+    strata = np.asarray(strata)
+    clusters = np.arange(len(strata)).astype(str) if clusters is None else np.asarray(clusters)
+    rows_by_cluster: Dict[str, List[np.ndarray]] = {}
+    for name in np.unique(strata):
+        in_stratum = np.flatnonzero(strata == name)
+        rows_by_cluster[name] = [in_stratum[clusters[in_stratum] == cluster]
+                                 for cluster in np.unique(clusters[in_stratum])]
+    rng = np.random.default_rng(seed)
+    for _ in range(n_boot):
+        index, weights = [], []
+        for name, groups in rows_by_cluster.items():
+            picked = np.concatenate([groups[i] for i in rng.integers(0, len(groups), len(groups))])
+            index.append(picked)
+            weights.append(np.full(len(picked), population[name] / len(picked)))
+        yield np.concatenate(index), np.concatenate(weights)
+
+
 def bootstrap_ci(y_true: Sequence[int], y_pred: Sequence[int], strata: Sequence[str],
-                 population: Dict[str, int], n_boot: int = 2000, seed: int = 42,
+                 population: Dict[str, int], clusters: Optional[Sequence[str]] = None,
+                 n_boot: int = 2000, seed: int = 42,
                  level: float = 0.95) -> Dict[str, Optional[List[float]]]:
     """Khoảng tin cậy phân vị cho precision/recall/F1 có trọng số.
 
-    Bootstrap phân tầng: rút có hoàn lại trong từng tầng, giữ nguyên cỡ mẫu tầng,
-    vì mẫu gốc cũng được rút như vậy.
+    Bootstrap phân tầng theo cụm: trong từng tầng, rút có hoàn lại các CỤM (video) rồi
+    lấy mọi dòng của cụm được rút. Các bình luận cùng một video không độc lập (vd hàng
+    chục bài dự thi minigame của một video), rút từng dòng sẽ cho khoảng quá hẹp. Trọng
+    số tính lại ở mỗi lần rút vì số dòng của tầng thay đổi. Không truyền `clusters` thì
+    mỗi dòng là một cụm.
+
+    Giới hạn: tầng không quan sát được spam nào thì lần rút nào cũng không có spam, nên
+    khoảng này KHÔNG phản ánh khả năng tầng đó vẫn có spam. Xem `hidden_positive_bound`.
     """
     y_true = np.asarray(y_true, dtype=int)
     y_pred = np.asarray(y_pred, dtype=int)
-    strata = np.asarray(strata)
-    index_by_stratum = {name: np.flatnonzero(strata == name) for name in np.unique(strata)}
-    weights = stratum_weights(strata, population)
-    rng = np.random.default_rng(seed)
     draws: Dict[str, List[float]] = {"precision": [], "recall": [], "f1": []}
-    for _ in range(n_boot):
-        index = np.concatenate([rng.choice(idx, size=len(idx), replace=True)
-                                for idx in index_by_stratum.values()])
-        result = prf(y_true[index], y_pred[index], weights[index])
+    for index, weights in cluster_resamples(strata, population, clusters, n_boot, seed):
+        result = prf(y_true[index], y_pred[index], weights)
         for key in draws:
             if result[key] is not None:
                 draws[key].append(result[key])
@@ -81,6 +102,51 @@ def bootstrap_ci(y_true: Sequence[int], y_pred: Sequence[int], strata: Sequence[
         else:
             intervals[key] = [float(np.percentile(values, lower)), float(np.percentile(values, upper))]
     return intervals
+
+
+def zero_count_upper_rate(n: int, level: float = 0.95) -> float:
+    """Cận trên một phía (mức `level`) của tỷ lệ khi quan sát 0 ca trong n mẫu.
+
+    Công thức chính xác của phân phối nhị thức: 1 - (1 - level)^(1/n). Với level = 0,95
+    nó xấp xỉ "quy tắc số 3" (3/n).
+    """
+    return 1.0 - (1.0 - level) ** (1.0 / n) if n > 0 else 1.0
+
+
+def hidden_positive_bound(y_true: Sequence[int], strata: Sequence[str],
+                          population: Dict[str, int]) -> Dict[str, float]:
+    """Số spam tối đa có thể còn ẩn trong các tầng mà mẫu không thấy spam nào.
+
+    Mẫu có 0 spam trong một tầng không chứng minh tầng đó không có spam. Với mỗi tầng
+    như vậy, lấy cận trên 95% của tỷ lệ spam nhân với cỡ quần thể của tầng.
+    """
+    y_true = np.asarray(y_true, dtype=int)
+    strata = np.asarray(strata)
+    hidden = {}
+    for name in np.unique(strata):
+        rows = strata == name
+        if y_true[rows].sum() == 0:
+            hidden[str(name)] = population[name] * zero_count_upper_rate(int(rows.sum()))
+    return hidden
+
+
+def recall_lower_bound(y_true: Sequence[int], y_pred: Sequence[int], strata: Sequence[str],
+                       population: Dict[str, int]) -> Optional[float]:
+    """Recall trong tình huống xấu: mọi tầng không thấy spam đều có spam ở mức cận trên.
+
+    Spam ẩn trong một tầng chỉ được tính là bắt được khi phương pháp gắn cờ TOÀN BỘ dòng
+    mẫu của tầng đó; còn lại coi như bị sót.
+    """
+    y_true, y_pred, strata = np.asarray(y_true, dtype=int), np.asarray(y_pred, dtype=int), np.asarray(strata)
+    base = prf(y_true, y_pred, stratum_weights(strata, population))
+    caught = missed = 0.0
+    for name, amount in hidden_positive_bound(y_true, strata, population).items():
+        if y_pred[strata == name].all():
+            caught += amount
+        else:
+            missed += amount
+    total = base["tp"] + base["fn"] + caught + missed
+    return (base["tp"] + caught) / total if total else None
 
 
 def mcnemar_exact(y_true: Sequence[int], pred_a: Sequence[int],

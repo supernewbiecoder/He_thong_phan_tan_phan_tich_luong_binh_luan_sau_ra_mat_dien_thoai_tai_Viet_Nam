@@ -81,7 +81,7 @@ def build(results: Dict[str, object]) -> str:
         test_rows.append([
             name, f"{int(sample['tp'])} / {int(sample['fp'])} / {int(sample['fn'])}",
             f"{num(pop['precision'])} ({interval(ci['precision'])})",
-            f"{num(pop['recall'])} ({interval(ci['recall'])})",
+            f"{num(pop['recall'])} ({interval(ci['recall'])})", num(item["recall_lower_bound"]),
             f"{num(pop['f1'])} ({interval(ci['f1'])})",
         ])
 
@@ -119,7 +119,31 @@ def build(results: Dict[str, object]) -> str:
     analysed = {"fp": ["S0311", "S0325", "S0432"],
                 "fn": ["S0022", "S0029", "S0105", "S0203", "S0332", "S0419", "S0429", "S0468", "S0488"]}
     stale = (hybrid_errors["false_positive"] != analysed["fp"]
-             or hybrid_errors["false_negative"] != analysed["fn"])
+             or hybrid_errors["false_negative"] != analysed["fn"]
+             or groups["false_positive"].get("link_or_phone") != 28)
+    ci_base, ci_hybrid = (tests[name]["population_ci95"] for name in (BASELINE, HYBRID))
+    keeps = results["hybrid_keeps"]
+    test_pop = results["test_population"]
+    n_test_spam = int(tests[BASELINE]["sample"]["tp"] + tests[BASELINE]["sample"]["fn"])
+    hidden_all = sum(results["prevalence"]["hidden_spam_upper_bound"].values())
+    prevalence_upper = (prevalence["estimated_count"] + hidden_all) / config.DATASET_LINES
+    hidden_test = test_pop["hidden_spam_upper_bound"]
+    same_threshold = cv["threshold_ml"] == cv["threshold_hybrid"]
+    threshold_note = ("Cùng ngưỡng đó được chọn cho phương án kết hợp." if same_threshold else
+                      f"Ngưỡng của phương án kết hợp: {num(cv['threshold_hybrid'], 3)}.")
+    versus_rule = [results["mcnemar"][f"{name} so với {BASELINE}"] for name in (ML, HYBRID)]
+    better = all(item["p_value"] < 0.05 and item["only_a_correct"] > item["only_b_correct"]
+                 for item in versus_rule)
+    hybrid_vs_ml = results["mcnemar"][f"{HYBRID} so với {ML}"]
+    mcnemar_note = (
+        ("Phương án kết hợp và mô hình ML đều phân loại đúng nhiều hơn `rule-v0` có ý nghĩa thống kê (p < 0,05). "
+         if better else
+         "Chưa đủ bằng chứng rằng phương án kết hợp và mô hình ML phân loại đúng nhiều hơn `rule-v0`. ")
+        + ("Giữa phương án kết hợp và mô hình ML không có dòng nào khác nhau trên tập test."
+           if hybrid_vs_ml["only_a_correct"] + hybrid_vs_ml["only_b_correct"] == 0 else
+           "Phương án kết hợp và mô hình ML khác nhau ở một số dòng; xem bảng."))
+    duplicates = results["duplicate_text_check"]
+    fresh = duplicates["without_them"][HYBRID]
     stale_note = ("> ⚠ Danh sách lỗi đã khác với lúc viết phần phân tích dưới đây (nhãn hoặc mô hình "
                   "đã đổi). Cần đọc lại các ca sai và cập nhật `report.py`." + "\n\n" if stale else "")
     one_in = max(round(1 / base["precision"]), 2) if base["precision"] else 0
@@ -145,18 +169,18 @@ Người thực hiện: Nguyễn Lê Quân. Dữ liệu: `{meta['dataset']}` ({c
 
 | | `rule-v0` nguyên trạng | Phương án kết hợp |
 |---|---:|---:|
-| Precision (quy về toàn bộ dữ liệu) | {num(base['precision'])} | {num(hybrid['precision'])} |
-| Recall | {num(base['recall'])} | {num(hybrid['recall'])} |
-| F1 | {num(base['f1'])} | {num(hybrid['f1'])} |
+| Precision (KTC 95%) | {num(base['precision'])} ({interval(ci_base['precision'])}) | {num(hybrid['precision'])} ({interval(ci_hybrid['precision'])}) |
+| Recall, ước lượng điểm | {num(base['recall'])} | {num(hybrid['recall'])} |
+| Spam mà luật bắt đúng, còn được giữ lại | {keeps['rule_true_positives']} / {keeps['rule_true_positives']} | {keeps['kept_by_hybrid']} / {keeps['rule_true_positives']} |
 | Số bình luận bị loại trên toàn bộ dữ liệu | {count(full['total']['rule_v0'])} | {count(full['total']['hybrid'])} |
 
 Lý do chọn:
 
 - `rule-v0` loại {count(full['total']['rule_v0'])} bình luận ({pct(flag_rate)}), nhưng ước tính chỉ khoảng {pct(prevalence['estimate'], 2)} dữ liệu là spam thật (khoảng {count(prevalence['estimated_count'])} bình luận). Cứ {one_in} bình luận bị luật loại thì khoảng {one_in - 1} bình luận không phải spam, trong đó có ý kiến thật về sản phẩm.
 - Mô hình ML và phương án kết hợp cho cùng kết quả trên tập test. Trên toàn bộ dữ liệu hai phương án chỉ khác nhau {count(full['total']['ml'] - full['total']['hybrid'])} bình luận. Chọn phương án kết hợp vì nó không thể gắn cờ một bình luận mà luật không gắn cờ, nên rủi ro loại nhầm ở {count(full['total']['N'] - full['total']['rule_v0'])} bình luận mà luật không gắn cờ bằng 0 theo thiết kế, và mỗi quyết định vẫn kèm lý do đọc được (`spam_reasons`).
-- Cái giá: recall thấp hơn luật ({num(hybrid['recall'])} so với {num(base['recall'])}). Chấp nhận được vì spam bị sót gần như không sinh ra mention khía cạnh nào, còn ý kiến thật bị loại nhầm thì làm lệch Q1–Q5.
+- Cái giá: phương án kết hợp bỏ sót thêm {keeps['rule_true_positives'] - keeps['kept_by_hybrid']} trong {keeps['rule_true_positives']} spam mà luật bắt đúng trên tập test. Chấp nhận được vì spam bị sót gần như không sinh ra mention khía cạnh nào, còn ý kiến thật bị loại nhầm thì làm lệch Q1–Q5.
 
-Khoảng tin cậy còn rộng vì tập test chỉ có {int(tests[BASELINE]['sample']['tp'] + tests[BASELINE]['sample']['fn'])} spam; xem mục 5 và mục 8.
+**Điều chắc và điều chưa chắc.** Chênh lệch precision là kết luận vững: hai khoảng tin cậy cách xa nhau. Recall tuyệt đối thì **chưa đo được chính xác**: mẫu không thấy spam nào trong tầng "luật không bắt, không có dấu hiệu nào", nhưng tầng đó chiếm 94% dữ liệu và mẫu chỉ có {results['sample'].get('unflagged_rest/test', {}).get('n', 0)} dòng của nó trong tập test, nên không loại trừ được việc còn spam ở đó. Xem mục 3 và mục 5. Tập test có {n_test_spam} spam.
 
 ## 2. Dữ liệu gán nhãn
 
@@ -176,6 +200,8 @@ File nhãn [spam_labels_v1.tsv](../../src/processing/spam/labels/spam_labels_v1.
 
 Ước lượng từ mẫu phân tầng: **{pct(prevalence['estimate'], 2)}** bình luận là spam (khoảng tin cậy 95%: {pct(prevalence['ci95'][0], 2)} – {pct(prevalence['ci95'][1], 2)}), tức khoảng {count(prevalence['estimated_count'])} bình luận. {rest_note}
 
+Khoảng tin cậy trên chỉ tính dao động ở các tầng **có** quan sát được spam. Nếu các tầng không thấy spam nào thực ra có spam ở đúng mức cận trên 95% của chúng, sẽ có thêm tối đa khoảng {count(hidden_all)} spam, và tỷ lệ spam có thể lên tới khoảng {pct(prevalence_upper, 1)}. Vì vậy nên đọc là: **spam chiếm khoảng {pct(prevalence['estimate'], 1)}, không quá {pct(prevalence_upper, 1)}**. Muốn thu hẹp khoảng này phải gán thêm nhãn ở tầng luật không bắt.
+
 Con số "khoảng 6%" trong mô tả công việc và 2,96% trong báo cáo tiền xử lý là tỷ lệ **bị luật gắn cờ**, không phải tỷ lệ spam.
 
 ## 4. Cách so sánh
@@ -184,25 +210,30 @@ Con số "khoảng 6%" trong mô tả công việc và 2,96% trong báo cáo ti�
 - **Mô hình ML:** năm ứng viên TF-IDF (từ, ký tự, kèm đặc trưng hình thức) với Naive Bayes, Logistic Regression, Linear SVM. Link và số điện thoại được thay bằng token cố định trước khi vector hóa.
 - **Chọn mô hình và ngưỡng chỉ trên train:** cross-validation 5 phần gom nhóm theo video. Chọn mô hình theo average precision có trọng số; chọn ngưỡng theo F0,5 có trọng số (coi precision quan trọng gấp đôi recall).
 - **Tập test dùng đúng một lần** để ra bảng ở mục 5.
-- **Chỉ số:** precision, recall, F1 của lớp spam, không dùng accuracy. Cột "quy về toàn bộ dữ liệu" dùng trọng số tầng; khoảng tin cậy 95% bằng bootstrap phân tầng {count(meta['bootstrap_resamples'])} lần.
+- **Chỉ số:** precision, recall, F1 của lớp spam, không dùng accuracy. Các chỉ số được quy về quần thể bằng trọng số tầng; quần thể ở đây là toàn bộ {count(test_pop['n_comments'])} bình luận của {meta['n_videos_test']} video test.
+- **Khoảng tin cậy 95%:** bootstrap phân tầng, rút theo **video** {count(meta['bootstrap_resamples'])} lần, vì các bình luận cùng video không độc lập.
 
 Kết quả cross-validation trên train (điểm out-of-fold):
 
 {table(["Mô hình", "AP (quần thể)", "AP (mẫu)", "Precision", "Recall", "F0,5"], cv_rows)}
 
-Precision, recall, F0,5 tính tại ngưỡng tốt nhất của từng mô hình. Mô hình được chọn: `{cv['selected']}`, ngưỡng {num(cv['threshold_ml'], 3)}. Cùng ngưỡng đó được chọn cho phương án kết hợp.
+Precision, recall, F0,5 tính tại ngưỡng tốt nhất của từng mô hình. Mô hình được chọn: `{cv['selected']}`, ngưỡng {num(cv['threshold_ml'], 3)}. {threshold_note}
 
 ## 5. Kết quả trên tập test
 
-{table(["Phương pháp", "TP / FP / FN (mẫu)", "Precision (KTC 95%)", "Recall (KTC 95%)", "F1 (KTC 95%)"], test_rows)}
+{table(["Phương pháp", "TP / FP / FN (mẫu)", "Precision (KTC 95%)", "Recall (KTC 95%)", "Recall, tình huống xấu", "F1 (KTC 95%)"], test_rows)}
 
-Precision, recall, F1 đã quy về toàn bộ dữ liệu. Cột TP / FP / FN là số dòng đếm trực tiếp trên {meta['n_test']} dòng test.
+Precision, recall, F1 đã quy về quần thể. Cột TP / FP / FN là số dòng đếm trực tiếp trên {meta['n_test']} dòng test.
+
+**Cách đọc cột recall.** Khoảng tin cậy của recall và F1 giả định các tầng không quan sát được spam thì không có spam. Giả định đó có thể sai: riêng tầng "luật không bắt, không có dấu hiệu nào" có thể còn tới khoảng {count(hidden_test.get('unflagged_rest', 0))} spam trong quần thể test mà mẫu {results['sample'].get('unflagged_rest/test', {}).get('n', 0)} dòng không đủ để thấy. Cột "tình huống xấu" là recall khi mọi tầng như vậy đều có spam ở mức cận trên 95%. Recall thật nằm đâu đó giữa hai con số. Điều không phụ thuộc giả định này: phương án kết hợp giữ lại {keeps['kept_by_hybrid']}/{keeps['rule_true_positives']} spam mà luật bắt đúng, và các phương án dựa trên luật không thể bắt spam ở những tầng luật không gắn cờ. Mô hình ML đứng riêng về nguyên tắc có thể, nhưng trên tập test nó cũng không bắt được dòng nào ở các tầng đó.
+
+**Bình luận dán lặp.** Chia tập theo video không ngăn được một đoạn văn bị dán ở nhiều video. {duplicates['n_test_rows_also_in_train']} dòng test (trong đó {duplicates['n_test_spam_also_in_train']} spam) có bản sao y hệt trong train. Bỏ các dòng này ra, phương án kết hợp có precision {num(fresh['precision'])}, recall {num(fresh['recall'])}, gần như không đổi.
 
 Kiểm định McNemar chính xác (trên mẫu, không trọng số), so số dòng mà chỉ một trong hai phương pháp phân loại đúng:
 
 {table(["So sánh (A so với B)", "Chỉ A đúng", "Chỉ B đúng", "p"], mcnemar_rows)}
 
-Phương án kết hợp và mô hình ML đều phân loại đúng nhiều hơn `rule-v0` có ý nghĩa thống kê. Giữa phương án kết hợp và mô hình ML không có dòng nào khác nhau trên tập test.
+{mcnemar_note}
 
 ## 6. Áp dụng lên toàn bộ dữ liệu
 
@@ -250,7 +281,7 @@ Trong nhóm link hoặc số điện thoại, đọc tay từng dòng báo nhầ
 ## 9. Hạn chế và việc còn lại
 
 1. **Nhãn chưa có người duyệt.** Đây là hạn chế lớn nhất. Để hoàn tất: chạy `python -m src.processing.spam.labels export-review`, mở `data/labels/spam/review_test.csv` bằng Excel, duyệt {meta['n_test']} dòng test (đúng thì gõ `x` vào cột `ok`, sai thì điền nhãn đúng), rồi `import-review`, `train`, `report`. Lệnh `import-review` cũng in tỷ lệ AI gán đúng so với người duyệt.
-2. **Ít spam trong tập test** ({int(tests[BASELINE]['sample']['tp'] + tests[BASELINE]['sample']['fn'])} dòng), nên khoảng tin cậy của recall rộng. Recall còn phụ thuộc nhiều vào vài dòng spam ở các tầng có trọng số lớn.
+2. **Recall chưa đo được chính xác.** Tập test chỉ có {n_test_spam} spam, và tầng lớn nhất không có spam nào trong mẫu. Chỉ cần một dòng spam xuất hiện ở tầng đó là recall của mọi phương án giảm mạnh (mỗi dòng ở tầng đó đại diện cho khoảng 540 bình luận). Mục 5 vì thế báo thêm recall trong tình huống xấu. Muốn có con số chắc hơn cần gán thêm vài trăm bình luận ở tầng luật không bắt.
 3. **Trần recall của phương án kết hợp là recall của luật.** Hai loại spam luật không bắt (đoạn văn dán lặp, xin đăng ký kênh) cần thêm luật hoặc đặc trưng mới; ước tính luật bỏ sót khoảng {missed_share} số spam.
 4. **Mô hình chỉ đọc nội dung bình luận**, không đọc bình luận cha, nên nhầm link trả lời câu hỏi với link kéo view.
 5. **Chưa tích hợp vào `cleaner`.** `clean_data.jsonl` v1.0 vẫn mang cờ của `rule-v0`. Thay cờ spam sẽ đổi checksum của bản dữ liệu chung, nên cần cả nhóm đồng ý và phát hành phiên bản dữ liệu mới. Trong lúc chờ, `python -m src.processing.spam.predict` ghi kết quả ra file riêng theo `comment_id`.

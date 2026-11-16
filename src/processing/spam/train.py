@@ -22,8 +22,8 @@ from sklearn.model_selection import StratifiedGroupKFold
 
 from . import config, data
 from .baseline import CONTENT_REASONS, FORM_REASONS, RULE_VARIANTS, flags, rule_reasons
-from .evaluate import (average_precision, bootstrap_ci, cohen_kappa, f_beta, mcnemar_exact,
-                       prf, stratum_weights)
+from .evaluate import (average_precision, bootstrap_ci, cluster_resamples, cohen_kappa, f_beta,
+                       hidden_positive_bound, mcnemar_exact, prf, recall_lower_bound, stratum_weights)
 from .language import detect_language
 from .model import SEED, build_candidates, scores
 from .sampling import normalize_for_dup, stratum_of
@@ -68,28 +68,26 @@ def best_threshold(y: np.ndarray, score: np.ndarray, weights: np.ndarray,
     return best[1], best[0]
 
 
-def describe(y: np.ndarray, predicted: np.ndarray, strata: List[str],
-             pop: Dict[str, int], n_boot: int) -> Dict[str, object]:
+def describe(y: np.ndarray, predicted: np.ndarray, strata: List[str], pop: Dict[str, int],
+             videos: np.ndarray, n_boot: int) -> Dict[str, object]:
     weights = stratum_weights(strata, pop)
     return {
         "sample": prf(y, predicted),
         "population": prf(y, predicted, weights),
-        "population_ci95": bootstrap_ci(y, predicted, strata, pop, n_boot=n_boot, seed=SEED),
+        "population_ci95": bootstrap_ci(y, predicted, strata, pop, clusters=videos,
+                                        n_boot=n_boot, seed=SEED),
+        # Recall nếu các tầng không thấy spam nào vẫn có spam ở mức cận trên 95%.
+        "recall_lower_bound": recall_lower_bound(y, predicted, strata, pop),
     }
 
 
 def weighted_rate(values: np.ndarray, strata: List[str], pop: Dict[str, int],
-                  n_boot: int) -> Dict[str, object]:
-    """Tỷ lệ trong quần thể ước lượng từ mẫu phân tầng, kèm khoảng tin cậy bootstrap."""
+                  videos: Optional[np.ndarray], n_boot: int) -> Dict[str, object]:
+    """Tỷ lệ trong quần thể ước lượng từ mẫu phân tầng, kèm khoảng tin cậy bootstrap theo video."""
     weights = stratum_weights(strata, pop)
     estimate = float(np.sum(weights * values) / np.sum(weights))
-    strata_arr = np.asarray(strata)
-    rng = np.random.default_rng(SEED)
-    index_by = {name: np.flatnonzero(strata_arr == name) for name in np.unique(strata_arr)}
-    draws = []
-    for _ in range(n_boot):
-        index = np.concatenate([rng.choice(idx, len(idx)) for idx in index_by.values()])
-        draws.append(np.sum(weights[index] * values[index]) / np.sum(weights[index]))
+    draws = [np.sum(w * values[index]) / np.sum(w)
+             for index, w in cluster_resamples(strata, pop, videos, n_boot, SEED)]
     return {"estimate": estimate,
             "ci95": [float(np.percentile(draws, 2.5)), float(np.percentile(draws, 97.5))],
             "estimated_count": estimate * float(sum(pop.values()))}
@@ -135,7 +133,7 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
                 [r["stratum"] for r in part], np.asarray([r["video_id"] for r in part]))
 
     x_train, y_train, strata_train, groups_train = arrays(train)
-    x_test, y_test, strata_test, _ = arrays(test)
+    x_test, y_test, strata_test, videos_test = arrays(test)
     pop_train, pop_test = population(strata_info, "N_train"), population(strata_info, "N_test")
     w_train = stratum_weights(strata_train, pop_train)
     gate_train = np.asarray([flags(r["rule_reasons"], GATE_REASONS) for r in train])
@@ -177,8 +175,25 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
     }
     predictions[ML_NAME] = test_scores >= threshold_ml
     predictions[HYBRID_NAME] = gate_test & (test_scores >= threshold_hybrid)
-    test_results = {name: describe(y_test, pred, strata_test, pop_test, n_boot)
+    test_results = {name: describe(y_test, pred, strata_test, pop_test, videos_test, n_boot)
                     for name, pred in predictions.items()}
+
+    # Phương án kết hợp chỉ có thể bỏ bớt cờ của luật: nó giữ lại bao nhiêu spam mà luật bắt đúng?
+    gate_hits = gate_test & (y_test == 1)
+    kept_by_hybrid = {"rule_true_positives": int(gate_hits.sum()),
+                      "kept_by_hybrid": int((gate_hits & predictions[HYBRID_NAME]).sum())}
+
+    # Bình luận dán lặp có thể nằm ở cả train và test dù chia theo video: đo lại khi bỏ chúng ra.
+    train_texts = {normalize_for_dup(text) for text in x_train}
+    fresh = np.asarray([normalize_for_dup(text) not in train_texts for text in x_test])
+    strata_fresh = [s for s, keep in zip(strata_test, fresh) if keep]
+    duplicate_check = {
+        "n_test_rows_also_in_train": int((~fresh).sum()),
+        "n_test_spam_also_in_train": int(((~fresh) & (y_test == 1)).sum()),
+        "without_them": {name: prf(y_test[fresh], predictions[name][fresh],
+                                   stratum_weights(strata_fresh, pop_test))
+                         for name in (BASELINE_NAME, ML_NAME, HYBRID_NAME)},
+    }
     comparisons = {
         f"{name} so với {BASELINE_NAME}": mcnemar_exact(y_test, predictions[name],
                                                         predictions[BASELINE_NAME])
@@ -218,11 +233,9 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
     # --- Ngôn ngữ: chỉ chấm trên test, bỏ các dòng lang = none (không có đáp án đúng) ---
     language_rows = [r for r in test if r["lang"] != "none"]
     lang_truth = np.asarray([r["lang"] == "other" for r in language_rows])
-    lang_strata = [r["stratum"] for r in language_rows]
-    lang_pop = {name: pop_test[name] for name in set(lang_strata)}
     language = {
         "n_rows": len(language_rows), "n_other": int(lang_truth.sum()),
-        "note": "Lớp dương = ngôn ngữ khác (lang = other). Trọng số chỉ xấp xỉ vì đã bỏ dòng lang = none.",
+        "note": "Lớp dương = ngôn ngữ khác (lang = other). Đếm trên mẫu, không trọng số.",
         "rule-v0 (is_vietnamese = false)": prf(
             lang_truth, [not r["rule_is_vietnamese"] for r in language_rows]),
         "language.py (lang = other)": prf(
@@ -242,6 +255,7 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
     all_strata = [r["stratum"] for r in rows]
     pop_all = population(strata_info, "N")
     y_all = np.asarray([r["y"] for r in rows], dtype=float)
+    videos_all = np.asarray([r["video_id"] for r in rows])
     label_sources = collections.Counter(r["label_source"] for r in rows)
     test_sources = collections.Counter(r["label_source"] for r in test)
     sample_table = collections.defaultdict(lambda: {"n": 0, "n_spam": 0})
@@ -292,11 +306,13 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
         "sample": dict(sorted(sample_table.items())),
         "spam_types": dict(collections.Counter(r["spam_type"] for r in rows if r["y"])),
         "prevalence": {
-            "spam": weighted_rate(y_all, all_strata, pop_all, n_boot),
+            "spam": weighted_rate(y_all, all_strata, pop_all, videos_all, n_boot),
+            # Số spam tối đa có thể còn ẩn trong các tầng mà mẫu không thấy spam nào.
+            "hidden_spam_upper_bound": hidden_positive_bound(y_all, all_strata, pop_all),
             "flag_rate": {
                 name: weighted_rate(
                     np.asarray([flags(r["rule_reasons"], active) for r in rows], dtype=float),
-                    all_strata, pop_all, n_boot)["estimate"]
+                    all_strata, pop_all, None, 1)["estimate"]
                 for name, active in RULE_VARIANTS.items()
             },
         },
@@ -307,6 +323,10 @@ def run(n_boot: int = 2000, save_model: bool = True, full_data: bool = True) -> 
             "rule_gate_population": rule_gate_oof,
         },
         "test": test_results,
+        "test_population": {"n_comments": int(sum(pop_test.values())),
+                            "hidden_spam_upper_bound": hidden_positive_bound(y_test, strata_test, pop_test)},
+        "hybrid_keeps": kept_by_hybrid,
+        "duplicate_text_check": duplicate_check,
         "mcnemar": comparisons,
         "errors": errors,
         "rule_v0_flags_by_reason_group": {"false_positive": rule_fp_groups, "true_positive": rule_tp_groups},

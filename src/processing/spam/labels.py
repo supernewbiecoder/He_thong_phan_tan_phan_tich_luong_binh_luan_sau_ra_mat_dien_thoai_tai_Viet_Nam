@@ -59,7 +59,13 @@ def _read_annotator(name: str, expected_ids: List[str]) -> Dict[str, Dict[str, s
     return rows
 
 
-def merge(annotator_names: str, annotator_ids: str) -> int:
+def merge(annotator_names: str, annotator_ids: str, force: bool = False) -> int:
+    if config.LABELS_PATH.exists() and not force:
+        reviewed = sum(row["label_source"] == "human" for row in data.read_tsv(config.LABELS_PATH))
+        if reviewed:
+            print(f"Dừng: file nhãn hiện có {reviewed} dòng đã được người duyệt. Gộp lại sẽ xóa kết quả duyệt đó. "
+                  "Nếu thật sự muốn làm lại từ đầu, chạy với --force.")
+            return 1
     sample = data.read_tsv(config.SAMPLE_PATH)
     ids = [row["item_id"] for row in sample]
     first, second = annotator_names.split(",")
@@ -153,44 +159,80 @@ def export_review(split: str) -> int:
     return 0
 
 
-def import_review(path: str, reviewer: str) -> int:
+OK_MARKS = {"x", "ok", "1", "yes", "y", "đ", "d", "✓", "✔", "v"}
+
+
+def _read_review(path: str) -> List[Dict[str, str]]:
+    """Đọc CSV đã duyệt. Excel ở máy dùng tiếng Việt thường lưu lại với dấu ; thay cho dấu phẩy."""
     with open(path, encoding="utf-8-sig", newline="") as handle:
-        reviewed = {row["item_id"]: row for row in csv.DictReader(handle)}
+        header = handle.readline()
+        handle.seek(0)
+        delimiter = ";" if header.count(";") > header.count(",") else ","
+        rows = list(csv.DictReader(handle, delimiter=delimiter))
+    missing = [field for field in REVIEW_FIELDS if not rows or field not in rows[0]]
+    if missing:
+        raise ValueError(f"{path}: thiếu cột {missing}. File phải giữ nguyên các cột do export-review tạo ra.")
+    return [{key: (value or "").strip() for key, value in row.items() if key} for row in rows]
+
+
+def import_review(path: str, reviewer: str) -> int:
+    reviewed = {row["item_id"]: row for row in _read_review(path)}
     labels = data.read_tsv(config.LABELS_PATH)
-    llm_labels, human_labels, changed, done = [], [], [], 0
+    updates, problems = [], []
     for row in labels:
         review = reviewed.get(row["item_id"])
         if review is None:
             continue
-        ok = (review.get("ok") or "").strip().lower() in ("x", "ok", "1", "yes", "y", "đ", "d")
-        human_label = (review.get("human_label") or "").strip().lower()
-        if not ok and not human_label:
+        mark = review["ok"].lower()
+        corrections = {field: review[f"human_{field}"].lower() for field in ("label", "spam_type", "lang")}
+        if not mark and not any(corrections.values()):
             continue  # chưa duyệt dòng này
-        if ok and human_label:
-            raise ValueError(f"{row['item_id']}: vừa đánh dấu ok vừa điền human_label")
-        before = (row["label"], row["spam_type"], row["lang"])
-        if not ok:
-            row["label"] = human_label
-            row["spam_type"] = (review.get("human_spam_type") or "").strip().lower()
-            row["lang"] = (review.get("human_lang") or "").strip().lower() or row["lang"]
-            _validate(row, "review")
-        llm_labels.append(before[0])
-        human_labels.append(row["label"])
-        if before != (row["label"], row["spam_type"], row["lang"]):
-            changed.append(row["item_id"])
-            row["resolution"] = "human_corrected"
-        note = (review.get("human_note") or "").strip()
-        if note:
-            row["note"] = " | ".join(part for part in (row["note"], f"human: {note}") if part)
-        row["label_source"], row["reviewed_by"] = "human", reviewer
-        done += 1
-    if not done:
+        item = row["item_id"]
+        if mark and mark not in OK_MARKS:
+            problems.append(f"{item}: cột ok có giá trị lạ '{review['ok']}' (dùng x)")
+            continue
+        if mark and any(corrections.values()):
+            problems.append(f"{item}: vừa đánh dấu ok vừa điền nhãn sửa")
+            continue
+        if (review["label"], review["spam_type"], review["lang"]) != (row["label"], row["spam_type"], row["lang"]):
+            problems.append(f"{item}: nhãn trong file duyệt khác nhãn hiện tại; xuất lại file bằng export-review")
+            continue
+        after = dict(row)
+        if not mark:
+            after["label"] = corrections["label"] or row["label"]
+            after["lang"] = corrections["lang"] or row["lang"]
+            # Đổi sang ham thì bỏ loại spam; còn lại lấy loại người duyệt điền, không điền thì giữ.
+            after["spam_type"] = "" if after["label"] == "ham" else (corrections["spam_type"] or row["spam_type"])
+            try:
+                _validate(after, "review")
+            except ValueError as error:
+                problems.append(str(error))
+                continue
+        updates.append((row, after, review["human_note"]))
+    if problems:
+        print("Không nhập được, chưa ghi gì. Sửa các dòng sau rồi chạy lại:")
+        for problem in problems:
+            print("  -", problem)
+        return 1
+    if not updates:
         print("Không có dòng nào được duyệt trong file.")
         return 1
+
+    llm_labels, human_labels, changed = [], [], []
+    for row, after, note in updates:
+        llm_labels.append(row["label"])
+        human_labels.append(after["label"])
+        if (after["label"], after["spam_type"], after["lang"]) != (row["label"], row["spam_type"], row["lang"]):
+            changed.append(row["item_id"])
+            row["resolution"] = "human_corrected"
+        row.update(label=after["label"], spam_type=after["spam_type"], lang=after["lang"],
+                   label_source="human", reviewed_by=reviewer)
+        if note:
+            row["note"] = " | ".join(part for part in (row["note"], f"human: {note}") if part)
     data.write_tsv(config.LABELS_PATH, labels, LABEL_FIELDS)
-    agreement = sum(x == y for x, y in zip(llm_labels, human_labels)) / done
+    agreement = sum(x == y for x, y in zip(llm_labels, human_labels)) / len(updates)
     kappa = cohen_kappa(llm_labels, human_labels)
-    print(f"Đã duyệt {done} dòng; người duyệt sửa {len(changed)} dòng: {changed[:20]}")
+    print(f"Đã duyệt {len(updates)} dòng; người duyệt sửa {len(changed)} dòng: {changed[:20]}")
     print(f"Nhãn AI đúng so với người duyệt (label): {agreement:.4f}"
           + (f" | kappa = {kappa:.4f}" if kappa is not None else ""))
     remaining = sum(1 for row in labels if row["label_source"] != "human")
@@ -207,6 +249,8 @@ def main() -> int:
     merge_cmd.add_argument("--annotators", default="A,B", help="hậu tố file annotator_<x>.tsv")
     merge_cmd.add_argument("--annotator-ids", required=True,
                            help="mã hai người gán và người phân giải, ghi vào cột annotators")
+    merge_cmd.add_argument("--force", action="store_true",
+                           help="gộp lại dù file nhãn đã có dòng được người duyệt (xóa kết quả duyệt)")
     review_cmd = commands.add_parser("export-review", help="xuất CSV cho người duyệt")
     review_cmd.add_argument("--split", choices=["test", "train", "all"], default="test")
     import_cmd = commands.add_parser("import-review", help="nhập CSV đã duyệt")
@@ -215,7 +259,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "merge":
-        return merge(args.annotators, args.annotator_ids)
+        return merge(args.annotators, args.annotator_ids, args.force)
     if args.command == "export-review":
         return export_review(args.split)
     return import_review(args.file, args.reviewer)

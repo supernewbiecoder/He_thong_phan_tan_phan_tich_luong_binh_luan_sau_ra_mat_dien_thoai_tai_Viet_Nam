@@ -409,3 +409,118 @@ def test_rule_v0_recomputed_on_text_matches_stored_dataset_output():
     rows = data.attach_text(data.read_tsv(config.LABELS_PATH)[:150])
     for row in rows:
         assert sorted(rule_reasons(row["text"])) == sorted(row["rule_reasons"])
+
+
+# ---------------------------------------------------------------- sau lượt review độc lập
+
+def test_cluster_bootstrap_is_wider_when_errors_come_from_one_video():
+    # 40 dòng bị gắn cờ: 20 spam ở 20 video khác nhau, 20 báo nhầm cùng MỘT video.
+    y_true = np.r_[np.ones(20, int), np.zeros(20, int)]
+    y_pred = np.ones(40, int)
+    strata = ["flagged"] * 40
+    videos = [f"v{i}" for i in range(20)] + ["minigame"] * 20
+    population = {"flagged": 400}
+    by_row = bootstrap_ci(y_true, y_pred, strata, population, n_boot=400, seed=3)["precision"]
+    by_video = bootstrap_ci(y_true, y_pred, strata, population, clusters=videos, n_boot=400, seed=3)["precision"]
+    assert (by_video[1] - by_video[0]) > 1.5 * (by_row[1] - by_row[0])
+    assert by_video[0] <= 0.5 <= by_video[1]
+
+
+def test_zero_observed_spam_does_not_mean_zero_spam():
+    from src.processing.spam.evaluate import (hidden_positive_bound, recall_lower_bound,
+                                              zero_count_upper_rate)
+    assert zero_count_upper_rate(200) == pytest.approx(1 - 0.05 ** (1 / 200))
+    assert zero_count_upper_rate(200) == pytest.approx(3 / 200, rel=0.02)      # "quy tắc số 3"
+    # Tầng "flagged": 10 dòng, 5 spam, luật bắt cả 10. Tầng "rest": 100 dòng, 0 spam, luật không bắt.
+    y_true = np.r_[np.ones(5, int), np.zeros(5, int), np.zeros(100, int)]
+    y_pred = np.r_[np.ones(10, int), np.zeros(100, int)]
+    strata = ["flagged"] * 10 + ["rest"] * 100
+    population = {"flagged": 100, "rest": 100_000}
+    hidden = hidden_positive_bound(y_true, strata, population)
+    assert set(hidden) == {"rest"} and hidden["rest"] == pytest.approx(100_000 * zero_count_upper_rate(100))
+    assert prf(y_true, y_pred, stratum_weights(strata, population))["recall"] == 1.0
+    worst = recall_lower_bound(y_true, y_pred, strata, population)
+    assert worst == pytest.approx(50 / (50 + hidden["rest"])) and worst < 0.02
+
+
+def test_hidden_spam_counts_as_caught_only_if_the_method_flags_the_whole_stratum():
+    from src.processing.spam.evaluate import recall_lower_bound
+    y_true = np.r_[np.ones(4, int), np.zeros(10, int)]
+    strata = ["a"] * 4 + ["empty"] * 10
+    population = {"a": 4, "empty": 1000}
+    flags_all = recall_lower_bound(y_true, np.ones(14, int), strata, population)
+    flags_some = recall_lower_bound(y_true, np.r_[np.ones(13, int), 0], strata, population)
+    assert flags_all == pytest.approx(1.0) and flags_some < 0.05
+
+
+def _reviewed_workspace(label_workspace):
+    same = [{"item_id": "S0001", "label": "ham", "spam_type": "", "lang": "vi"},
+            {"item_id": "S0002", "label": "spam", "spam_type": "ad", "lang": "vi"},
+            {"item_id": "S0003", "label": "ham", "spam_type": "", "lang": "none"}]
+    _write_annotator(label_workspace, "A", same)
+    _write_annotator(label_workspace, "B", same)
+    assert labels.merge("A,B", "A=x;B=y") == 0
+    assert labels.export_review("test") == 0
+    import csv
+    path = label_workspace / "review_test.csv"
+    with open(path, encoding="utf-8-sig", newline="") as handle:
+        return path, list(csv.DictReader(handle))
+
+
+def _save_review(path, rows, delimiter=","):
+    import csv
+    with open(path, "w", encoding="utf-8-sig", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=labels.REVIEW_FIELDS, delimiter=delimiter)
+        writer.writeheader()
+        writer.writerows(rows)
+
+
+@pytest.mark.parametrize("edit, message", [
+    ({"ok": "x", "human_lang": "other"}, "vừa đánh dấu ok vừa điền"),
+    ({"ok": "x", "human_spam_type": "ad"}, "vừa đánh dấu ok vừa điền"),
+    ({"ok": "?"}, "giá trị lạ"),
+    ({"human_label": "spam"}, "spam_type"),                   # sửa thành spam mà không ghi loại
+    ({"ok": "x", "label": "spam"}, "khác nhãn hiện tại"),     # file duyệt cũ, nhãn đã đổi
+])
+def test_review_import_refuses_ambiguous_rows_and_writes_nothing(label_workspace, capsys, edit, message):
+    path, rows = _reviewed_workspace(label_workspace)
+    rows[0].update(edit)
+    rows[1]["ok"] = "x"
+    _save_review(path, rows)
+    before = config.LABELS_PATH.read_text("utf-8")
+    assert labels.import_review(str(path), "nlquan") == 1
+    assert message in capsys.readouterr().out
+    assert config.LABELS_PATH.read_text("utf-8") == before
+
+
+def test_review_can_fix_only_the_language_and_accepts_excel_semicolon_csv(label_workspace):
+    path, rows = _reviewed_workspace(label_workspace)
+    rows[0]["human_lang"] = "none"          # chỉ sửa ngôn ngữ, nhãn spam/ham giữ nguyên
+    rows[1]["ok"] = "✓"
+    _save_review(path, rows, delimiter=";")
+    assert labels.import_review(str(path), "nlquan") == 0
+    result = {row["item_id"]: row for row in data.read_tsv(config.LABELS_PATH)}
+    assert (result["S0001"]["label"], result["S0001"]["lang"]) == ("ham", "none")
+    assert result["S0001"]["resolution"] == "human_corrected" and result["S0001"]["label_source"] == "human"
+    assert result["S0002"]["label_source"] == "human" and result["S0002"]["resolution"] == "agree"
+    assert result["S0003"]["label_source"] == "llm"
+
+
+def test_merge_refuses_to_discard_human_review_unless_forced(label_workspace, capsys):
+    path, rows = _reviewed_workspace(label_workspace)
+    rows[0]["ok"] = "x"
+    _save_review(path, rows)
+    assert labels.import_review(str(path), "nlquan") == 0
+    assert labels.merge("A,B", "A=x;B=y") == 1
+    assert "đã được người duyệt" in capsys.readouterr().out
+    assert any(row["label_source"] == "human" for row in data.read_tsv(config.LABELS_PATH))
+    assert labels.merge("A,B", "A=x;B=y", force=True) == 0
+    assert all(row["label_source"] == "llm" for row in data.read_tsv(config.LABELS_PATH))
+
+
+def test_vietnamese_evidence_list_excludes_common_english_words():
+    from src.processing.spam.language import _EN_WORDS, _VI_WORDS
+    assert not {"on", "day", "the", "do", "it", "man"} & _VI_WORDS
+    assert not _VI_WORDS & _EN_WORDS
+    # Có từ tiếng Anh thông dụng và không có bằng chứng tiếng Việt nào: không phải tiếng Việt.
+    assert detect_language("Have a good day and thanks for the video") == "other"

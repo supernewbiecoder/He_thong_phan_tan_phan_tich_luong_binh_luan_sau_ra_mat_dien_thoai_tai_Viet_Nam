@@ -42,7 +42,7 @@ bao nhieu khi nao tai lam viec choi xem coi nghe noi hoi tra loi cam on thanks
 nam thang ngay hom qua mai sau truoc tren duoi trong ngoai
 """.split())
 _VI_WORDS -= {"a", "the", "do", "may", "man", "cam", "pin", "it", "con", "tra", "mai", "lam", "nam",
-              "sao", "hay", "thanks", "lag", "vs", "uh", "uk", "ah"}
+              "sao", "hay", "thanks", "lag", "vs", "uh", "uk", "ah", "on", "day"}
 
 # Từ tiếng Anh thông dụng và không trùng âm tiết tiếng Việt không dấu.
 _EN_WORDS: Set[str] = set("""

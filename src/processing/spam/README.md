@@ -34,7 +34,9 @@ Bước 1 và 2 đã làm xong; chỉ chạy lại khi đổi thiết kế mẫu
    - Nhãn sai: để trống `ok`, điền `human_label` (`spam`/`ham`), `human_spam_type` nếu là spam, `human_lang` nếu ngôn ngữ cũng sai.
 3. Lưu lại dưới dạng CSV UTF-8, rồi `python -m src.processing.spam.labels import-review --reviewer nlquan`.
 
-Dòng nào để trống cả `ok` và `human_label` được coi là chưa duyệt và giữ `label_source = llm`.
+Dòng nào để trống `ok` và mọi cột `human_*` được coi là chưa duyệt và giữ `label_source = llm`. Chỉ sai ngôn ngữ thì chỉ cần điền `human_lang`.
+
+Lệnh nhập kiểm tra cả file trước khi ghi. Nó dừng và không ghi gì nếu có dòng vừa đánh dấu `ok` vừa điền nhãn sửa, có ký hiệu lạ ở cột `ok`, sửa thành spam mà thiếu loại spam, hoặc nhãn trong file khác nhãn hiện tại (file duyệt đã cũ, cần xuất lại). File Excel lưu với dấu `;` cũng đọc được. Sau khi đã có dòng được người duyệt, lệnh `merge` từ chối chạy lại trừ khi thêm `--force`, để không xóa nhầm kết quả duyệt.
 
 ## Dùng trong code
 

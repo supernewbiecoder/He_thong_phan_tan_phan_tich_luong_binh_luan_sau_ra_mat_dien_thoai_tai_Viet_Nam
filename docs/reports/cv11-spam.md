@@ -12,18 +12,18 @@ Người thực hiện: Nguyễn Lê Quân. Dữ liệu: `clean_data v1.0` (109.
 
 | | `rule-v0` nguyên trạng | Phương án kết hợp |
 |---|---:|---:|
-| Precision (quy về toàn bộ dữ liệu) | 0,14 | 0,87 |
-| Recall | 0,78 | 0,65 |
-| F1 | 0,24 | 0,74 |
+| Precision (KTC 95%) | 0,14 (0,08 – 0,22) | 0,87 (0,72 – 1,00) |
+| Recall, ước lượng điểm | 0,78 | 0,65 |
+| Spam mà luật bắt đúng, còn được giữ lại | 25 / 25 | 21 / 25 |
 | Số bình luận bị loại trên toàn bộ dữ liệu | 3.233 | 452 |
 
 Lý do chọn:
 
 - `rule-v0` loại 3.233 bình luận (3,0%), nhưng ước tính chỉ khoảng 0,60% dữ liệu là spam thật (khoảng 654 bình luận). Cứ 7 bình luận bị luật loại thì khoảng 6 bình luận không phải spam, trong đó có ý kiến thật về sản phẩm.
 - Mô hình ML và phương án kết hợp cho cùng kết quả trên tập test. Trên toàn bộ dữ liệu hai phương án chỉ khác nhau 4 bình luận. Chọn phương án kết hợp vì nó không thể gắn cờ một bình luận mà luật không gắn cờ, nên rủi ro loại nhầm ở 106.111 bình luận mà luật không gắn cờ bằng 0 theo thiết kế, và mỗi quyết định vẫn kèm lý do đọc được (`spam_reasons`).
-- Cái giá: recall thấp hơn luật (0,65 so với 0,78). Chấp nhận được vì spam bị sót gần như không sinh ra mention khía cạnh nào, còn ý kiến thật bị loại nhầm thì làm lệch Q1–Q5.
+- Cái giá: phương án kết hợp bỏ sót thêm 4 trong 25 spam mà luật bắt đúng trên tập test. Chấp nhận được vì spam bị sót gần như không sinh ra mention khía cạnh nào, còn ý kiến thật bị loại nhầm thì làm lệch Q1–Q5.
 
-Khoảng tin cậy còn rộng vì tập test chỉ có 30 spam; xem mục 5 và mục 8.
+**Điều chắc và điều chưa chắc.** Chênh lệch precision là kết luận vững: hai khoảng tin cậy cách xa nhau. Recall tuyệt đối thì **chưa đo được chính xác**: mẫu không thấy spam nào trong tầng "luật không bắt, không có dấu hiệu nào", nhưng tầng đó chiếm 94% dữ liệu và mẫu chỉ có 77 dòng của nó trong tập test, nên không loại trừ được việc còn spam ở đó. Xem mục 3 và mục 5. Tập test có 30 spam.
 
 ## 2. Dữ liệu gán nhãn
 
@@ -49,7 +49,9 @@ File nhãn [spam_labels_v1.tsv](../../src/processing/spam/labels/spam_labels_v1.
 
 ## 3. Tỷ lệ spam trong dữ liệu
 
-Ước lượng từ mẫu phân tầng: **0,60%** bình luận là spam (khoảng tin cậy 95%: 0,46% – 0,75%), tức khoảng 654 bình luận. Trong 200 bình luận rút từ tầng "luật không bắt, không có dấu hiệu nào" không có spam nào; theo quy tắc số 3, tỷ lệ spam ở tầng này dưới 1,5% với độ tin cậy 95%.
+Ước lượng từ mẫu phân tầng: **0,60%** bình luận là spam (khoảng tin cậy 95%: 0,44% – 0,79%), tức khoảng 654 bình luận. Trong 200 bình luận rút từ tầng "luật không bắt, không có dấu hiệu nào" không có spam nào; theo quy tắc số 3, tỷ lệ spam ở tầng này dưới 1,5% với độ tin cậy 95%.
+
+Khoảng tin cậy trên chỉ tính dao động ở các tầng **có** quan sát được spam. Nếu các tầng không thấy spam nào thực ra có spam ở đúng mức cận trên 95% của chúng, sẽ có thêm tối đa khoảng 1.617 spam, và tỷ lệ spam có thể lên tới khoảng 2,1%. Vì vậy nên đọc là: **spam chiếm khoảng 0,6%, không quá 2,1%**. Muốn thu hẹp khoảng này phải gán thêm nhãn ở tầng luật không bắt.
 
 Con số "khoảng 6%" trong mô tả công việc và 2,96% trong báo cáo tiền xử lý là tỷ lệ **bị luật gắn cờ**, không phải tỷ lệ spam.
 
@@ -59,7 +61,8 @@ Con số "khoảng 6%" trong mô tả công việc và 2,96% trong báo cáo ti�
 - **Mô hình ML:** năm ứng viên TF-IDF (từ, ký tự, kèm đặc trưng hình thức) với Naive Bayes, Logistic Regression, Linear SVM. Link và số điện thoại được thay bằng token cố định trước khi vector hóa.
 - **Chọn mô hình và ngưỡng chỉ trên train:** cross-validation 5 phần gom nhóm theo video. Chọn mô hình theo average precision có trọng số; chọn ngưỡng theo F0,5 có trọng số (coi precision quan trọng gấp đôi recall).
 - **Tập test dùng đúng một lần** để ra bảng ở mục 5.
-- **Chỉ số:** precision, recall, F1 của lớp spam, không dùng accuracy. Cột "quy về toàn bộ dữ liệu" dùng trọng số tầng; khoảng tin cậy 95% bằng bootstrap phân tầng 2.000 lần.
+- **Chỉ số:** precision, recall, F1 của lớp spam, không dùng accuracy. Các chỉ số được quy về quần thể bằng trọng số tầng; quần thể ở đây là toàn bộ 44.389 bình luận của 139 video test.
+- **Khoảng tin cậy 95%:** bootstrap phân tầng, rút theo **video** 2.000 lần, vì các bình luận cùng video không độc lập.
 
 Kết quả cross-validation trên train (điểm out-of-fold):
 
@@ -75,16 +78,20 @@ Precision, recall, F0,5 tính tại ngưỡng tốt nhất của từng mô hìn
 
 ## 5. Kết quả trên tập test
 
-| Phương pháp | TP / FP / FN (mẫu) | Precision (KTC 95%) | Recall (KTC 95%) | F1 (KTC 95%) |
-|:---|---:|---:|---:|---:|
-| rule-v0 (nguyên trạng) | 25 / 115 / 5 | 0,14 (0,09 – 0,19) | 0,78 (0,56 – 0,97) | 0,24 (0,17 – 0,30) |
-| rule-v0 bỏ lý do ngôn ngữ | 25 / 95 / 5 | 0,16 (0,11 – 0,21) | 0,78 (0,56 – 0,97) | 0,26 (0,19 – 0,33) |
-| rule-v0 chỉ nội dung + hình thức | 25 / 80 / 5 | 0,23 (0,16 – 0,30) | 0,78 (0,56 – 0,97) | 0,35 (0,26 – 0,45) |
-| rule-v0 chỉ nội dung | 24 / 50 / 6 | 0,32 (0,22 – 0,43) | 0,74 (0,53 – 0,95) | 0,45 (0,33 – 0,57) |
-| ML | 21 / 3 / 9 | 0,87 (0,72 – 1,00) | 0,65 (0,45 – 0,87) | 0,74 (0,58 – 0,90) |
-| Kết hợp (luật nội dung + hình thức, ML xác nhận) | 21 / 3 / 9 | 0,87 (0,72 – 1,00) | 0,65 (0,45 – 0,87) | 0,74 (0,58 – 0,90) |
+| Phương pháp | TP / FP / FN (mẫu) | Precision (KTC 95%) | Recall (KTC 95%) | Recall, tình huống xấu | F1 (KTC 95%) |
+|:---|---:|---:|---:|---:|---:|
+| rule-v0 (nguyên trạng) | 25 / 115 / 5 | 0,14 (0,08 – 0,22) | 0,78 (0,55 – 0,97) | 0,15 | 0,24 (0,14 – 0,35) |
+| rule-v0 bỏ lý do ngôn ngữ | 25 / 95 / 5 | 0,16 (0,09 – 0,25) | 0,78 (0,55 – 0,97) | 0,14 | 0,26 (0,16 – 0,39) |
+| rule-v0 chỉ nội dung + hình thức | 25 / 80 / 5 | 0,23 (0,13 – 0,36) | 0,78 (0,55 – 0,97) | 0,10 | 0,35 (0,22 – 0,51) |
+| rule-v0 chỉ nội dung | 24 / 50 / 6 | 0,32 (0,18 – 0,53) | 0,74 (0,50 – 0,95) | 0,10 | 0,45 (0,28 – 0,65) |
+| ML | 21 / 3 / 9 | 0,87 (0,72 – 1,00) | 0,65 (0,42 – 0,87) | 0,09 | 0,74 (0,56 – 0,88) |
+| Kết hợp (luật nội dung + hình thức, ML xác nhận) | 21 / 3 / 9 | 0,87 (0,72 – 1,00) | 0,65 (0,42 – 0,87) | 0,09 | 0,74 (0,56 – 0,88) |
 
-Precision, recall, F1 đã quy về toàn bộ dữ liệu. Cột TP / FP / FN là số dòng đếm trực tiếp trên 272 dòng test.
+Precision, recall, F1 đã quy về quần thể. Cột TP / FP / FN là số dòng đếm trực tiếp trên 272 dòng test.
+
+**Cách đọc cột recall.** Khoảng tin cậy của recall và F1 giả định các tầng không quan sát được spam thì không có spam. Giả định đó có thể sai: riêng tầng "luật không bắt, không có dấu hiệu nào" có thể còn tới khoảng 1.588 spam trong quần thể test mà mẫu 77 dòng không đủ để thấy. Cột "tình huống xấu" là recall khi mọi tầng như vậy đều có spam ở mức cận trên 95%. Recall thật nằm đâu đó giữa hai con số. Điều không phụ thuộc giả định này: phương án kết hợp giữ lại 21/25 spam mà luật bắt đúng, và các phương án dựa trên luật không thể bắt spam ở những tầng luật không gắn cờ. Mô hình ML đứng riêng về nguyên tắc có thể, nhưng trên tập test nó cũng không bắt được dòng nào ở các tầng đó.
+
+**Bình luận dán lặp.** Chia tập theo video không ngăn được một đoạn văn bị dán ở nhiều video. 14 dòng test (trong đó 1 spam) có bản sao y hệt trong train. Bỏ các dòng này ra, phương án kết hợp có precision 0,87, recall 0,63, gần như không đổi.
 
 Kiểm định McNemar chính xác (trên mẫu, không trọng số), so số dòng mà chỉ một trong hai phương pháp phân loại đúng:
 
@@ -95,7 +102,7 @@ Kiểm định McNemar chính xác (trên mẫu, không trọng số), so số d
 | rule-v0 chỉ nội dung + hình thức so với rule-v0 (nguyên trạng) | 35 | 0 | < 0,001 |
 | Kết hợp (luật nội dung + hình thức, ML xác nhận) so với ML | 0 | 0 | 1,000 |
 
-Phương án kết hợp và mô hình ML đều phân loại đúng nhiều hơn `rule-v0` có ý nghĩa thống kê. Giữa phương án kết hợp và mô hình ML không có dòng nào khác nhau trên tập test.
+Phương án kết hợp và mô hình ML đều phân loại đúng nhiều hơn `rule-v0` có ý nghĩa thống kê (p < 0,05). Giữa phương án kết hợp và mô hình ML không có dòng nào khác nhau trên tập test.
 
 ## 6. Áp dụng lên toàn bộ dữ liệu
 
@@ -116,7 +123,7 @@ Số bình luận từng phương án gắn cờ trên 109.344 bình luận. B�
 
 `rule-v0` coi mọi bình luận không phải tiếng Việt là spam. Hàm nhận diện trong cleaner còn có lỗi: tập ký tự tiếng Việt chứa cả nguyên âm không dấu, nên câu tiếng Anh có nguyên âm được coi là tiếng Việt, còn thứ bị gắn "không phải tiếng Việt" chủ yếu là emoji, ":)))", "vl", "tks". Trên toàn bộ dữ liệu luật gắn 1.372 bình luận là không phải tiếng Việt.
 
-[language.py](../../src/processing/spam/language.py) trả về ba giá trị: `vi`, `other` (ngôn ngữ khác), `none` (không xác định được: emoji, số, tên máy). Trên toàn bộ dữ liệu: `vi` 105.953, `other` 495, `none` 2.896.
+[language.py](../../src/processing/spam/language.py) trả về ba giá trị: `vi`, `other` (ngôn ngữ khác), `none` (không xác định được: emoji, số, tên máy). Trên toàn bộ dữ liệu: `vi` 105.952, `other` 496, `none` 2.896.
 
 Đánh giá trên 233 dòng test có ngôn ngữ xác định:
 
@@ -159,7 +166,7 @@ Trong nhóm link hoặc số điện thoại, đọc tay từng dòng báo nhầ
 ## 9. Hạn chế và việc còn lại
 
 1. **Nhãn chưa có người duyệt.** Đây là hạn chế lớn nhất. Để hoàn tất: chạy `python -m src.processing.spam.labels export-review`, mở `data/labels/spam/review_test.csv` bằng Excel, duyệt 272 dòng test (đúng thì gõ `x` vào cột `ok`, sai thì điền nhãn đúng), rồi `import-review`, `train`, `report`. Lệnh `import-review` cũng in tỷ lệ AI gán đúng so với người duyệt.
-2. **Ít spam trong tập test** (30 dòng), nên khoảng tin cậy của recall rộng. Recall còn phụ thuộc nhiều vào vài dòng spam ở các tầng có trọng số lớn.
+2. **Recall chưa đo được chính xác.** Tập test chỉ có 30 spam, và tầng lớn nhất không có spam nào trong mẫu. Chỉ cần một dòng spam xuất hiện ở tầng đó là recall của mọi phương án giảm mạnh (mỗi dòng ở tầng đó đại diện cho khoảng 540 bình luận). Mục 5 vì thế báo thêm recall trong tình huống xấu. Muốn có con số chắc hơn cần gán thêm vài trăm bình luận ở tầng luật không bắt.
 3. **Trần recall của phương án kết hợp là recall của luật.** Hai loại spam luật không bắt (đoạn văn dán lặp, xin đăng ký kênh) cần thêm luật hoặc đặc trưng mới; ước tính luật bỏ sót khoảng 22% số spam.
 4. **Mô hình chỉ đọc nội dung bình luận**, không đọc bình luận cha, nên nhầm link trả lời câu hỏi với link kéo view.
 5. **Chưa tích hợp vào `cleaner`.** `clean_data.jsonl` v1.0 vẫn mang cờ của `rule-v0`. Thay cờ spam sẽ đổi checksum của bản dữ liệu chung, nên cần cả nhóm đồng ý và phát hành phiên bản dữ liệu mới. Trong lúc chờ, `python -m src.processing.spam.predict` ghi kết quả ra file riêng theo `comment_id`.
