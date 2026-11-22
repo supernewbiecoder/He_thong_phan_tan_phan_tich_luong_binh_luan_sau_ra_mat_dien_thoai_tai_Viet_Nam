@@ -1,20 +1,16 @@
-# Mục đích: File không đưa lên git: dữ liệu, môi trường Python, file bí mật, file tự sinh; cập nhật lần cuối: 2026-11-11.
+# Mục đích: File không đưa lên git: dữ liệu, file model, môi trường Python, file bí mật, file tự sinh; cập nhật lần cuối: 2026-11-19.
 
-# Large dataset files (GitHub hard limit is 100MB)
-data/*
-# Keep the Task 9 report, but continue ignoring datasets and model artifacts.
-!data/task9/
-data/task9/*
-!data/task9/Công việc 9 Mô hình cảm xúc theo khía cạnh cho bình luận điện thoại.md
-# Nhãn spam của Công việc 11 (nhánh nlquan).
-!data/labels/
-!data/labels/*.jsonl
+# Dữ liệu (GitHub giới hạn 100 MB/file; dữ liệu chia sẻ ngoài git, xem docs/0-chung/cai-dat.md)
+data/
 *.jsonl
-!data/labels/*.jsonl
 *.csv
 *.parquet
 *.zip
 *.tar.gz
+
+# File model đã huấn luyện: sinh lại bằng code, không đưa lên git
+*.pkl
+*.joblib
 
 # Python & Jupyter
 __pycache__/

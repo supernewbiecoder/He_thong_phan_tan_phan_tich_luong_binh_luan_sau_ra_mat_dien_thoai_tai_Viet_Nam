@@ -1,4 +1,4 @@
-# Mục đích: Dựng Kafka 1 node và MongoDB 7.0 trên máy để thử phần streaming (tùy chọn, docs/spec/pipeline.md) và cơ sở dữ liệu (Công việc 3); cập nhật lần cuối: 2026-11-16.
+# Mục đích: Dựng Kafka 1 node và MongoDB 7.0 trên máy để thử phần streaming (tùy chọn, docs/0-chung/luong-xu-ly.md) và cơ sở dữ liệu (Công việc 3); cập nhật lần cuối: 2026-11-16.
 # Kafka 1 node (KRaft) chỉ để dev crawler/replay trên máy bạn.
 # Cụm 3 broker + Spark do bạn phụ trách "Kafka và Spark" dựng riêng.
 services:

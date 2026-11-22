@@ -4,7 +4,7 @@ Mục đích: Cửa vào dòng lệnh của crawler: python -m crawler.main <l�
 Lệnh chính: discover (tìm video theo kênh), crawl (cào bình luận), run (tự chạy theo lịch), status, models, snapshot-videos, replay.
 Dọn/sửa dữ liệu: dedupe, relabel, repair-missing. Tài khoản người bình luận (schema v3): backfill-authors, enrich-authors,
 apply-authors, authors-export, authors-import. Chia máy: worker-init. Tìm kênh: resolve-names, find-channels.
-Lệnh ghi dữ liệu xin khóa (lock.py) để chỉ một tiến trình ghi tại một thời điểm. Chi tiết: src/ingest/README.md.
+Lệnh ghi dữ liệu xin khóa (lock.py) để chỉ một tiến trình ghi tại một thời điểm. Chi tiết: docs/1-thu-thap/huong-dan.md.
 """
 import argparse
 import functools

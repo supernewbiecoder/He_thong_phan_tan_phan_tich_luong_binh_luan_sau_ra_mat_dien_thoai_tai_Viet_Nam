@@ -1704,7 +1704,7 @@ models:
 
 # Chia việc nhiều người (mỗi người 1 khóa API, 1 nhóm kênh, CÙNG danh sách models):
 #   mỗi máy đặt CRAWLER_WORKER=p1|p2 trong .env; kênh ghi `owner: p2` chỉ máy p2 cào, kênh không ghi owner thuộc default_owner.
-#   Hướng dẫn cho người thứ hai: docs/crawl-2-may.md
+#   Hướng dẫn cho người thứ hai: docs/huong-dan-crawl-2-may.md
 workers:
   default_owner: p1
 
