@@ -36,7 +36,7 @@ Mọi file dữ liệu nằm **ngoài git**, giữ đúng đường dẫn như t
 |---|---|---|---|---|
 | **v4** | `comments.jsonl` | 473.786 | `722d0e1e8547566b0462ccff78b17c9ce43bac3960dc4170e6f4fa3df0652b45` | 3 |
 
-Kiểm, từ gốc thư mục nhánh:
+Kiểm, từ gốc repo:
 
 ```bash
 wc -l src/ingest/data/raw/comments.jsonl

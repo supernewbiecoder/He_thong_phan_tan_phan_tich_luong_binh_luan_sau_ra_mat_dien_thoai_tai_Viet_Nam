@@ -2,7 +2,7 @@
 
 > Mục đích: Cách chạy notebook `1_raw_audit` (bước B1 của kế hoạch nhánh): cần gì, chạy thế nào, notebook đo những gì, tham số nào hay đổi, làm gì sau khi chạy, lỗi hay gặp; cập nhật lần cuối: 2026-11-22.
 
-Lệnh viết cho **PowerShell trên Windows**, chạy từ **gốc thư mục nhánh** (`C:\Users\Admin\Desktop\khdl-kham-pha-nhan` trên máy trưởng nhóm). Kết quả đã chạy: [báo cáo kiểm tra dữ liệu](bao-cao-kiem-tra-du-lieu.md).
+Lệnh viết cho **PowerShell trên Windows**, chạy từ **gốc repo**. Nhánh này dùng chung thư mục với `main`: chuyển sang nhánh `kham-pha-nhan` trong GitHub Desktop (*Current branch*) trước khi làm. Kết quả đã chạy: [báo cáo kiểm tra dữ liệu](bao-cao-kiem-tra-du-lieu.md).
 
 ## 1. Cần có trước
 
@@ -13,7 +13,7 @@ Lệnh viết cho **PowerShell trên Windows**, chạy từ **gốc thư mục n
 | Vài GB RAM trống | | Notebook nạp cả 473.786 bình luận vào bộ nhớ |
 
 **Môi trường Python**, chọn một trong hai cách:
-- **Dùng lại `.venv` của thư mục `main`** (nhanh nhất): trong VS Code, chọn kernel → *Select Another Kernel* → *Python Environments* → chọn `…\He_thong_phan_tan_phan_tich_nguon_binh_luan_sau_ra_mat_dien_thoai_tai_viet_nam\.venv\Scripts\python.exe`.
+- **Dùng `.venv` đã có trong thư mục repo** (nhanh nhất): `.venv` nằm ngoài git nên vẫn còn khi chuyển nhánh. Trong VS Code chọn kernel → *Python Environments* → `.venv`.
 - **Tạo môi trường riêng cho nhánh:**
 
   ```powershell
@@ -23,7 +23,7 @@ Lệnh viết cho **PowerShell trên Windows**, chạy từ **gốc thư mục n
 
 ## 2. Chạy
 
-1. Trong VS Code, *File → Open Folder* và mở **thư mục của nhánh**, không phải thư mục `main`.
+1. Trong GitHub Desktop, chuyển *Current branch* sang `kham-pha-nhan`. VS Code đang mở thư mục repo sẽ tự hiện các file của nhánh.
 2. Mở `notebooks/1_raw_audit.ipynb`, chọn kernel (mục 1), bấm *Run All*. Mất vài phút.
 3. Notebook chỉ đọc và đếm, **không ghi file nào**.
 

@@ -34,7 +34,7 @@ src/ingest/data/raw/videos.jsonl
 src/ingest/data/models.json
 ```
 
-Trên máy trưởng nhóm, dữ liệu đã được chép sẵn vào thư mục của nhánh (`C:\Users\Admin\Desktop\khdl-kham-pha-nhan`).
+Nhánh này và `main` dùng **chung một thư mục**, chuyển qua lại bằng GitHub Desktop (*Current branch*). Dữ liệu và `.venv` nằm ngoài git nên ở nguyên khi chuyển nhánh, dùng chung cho cả hai. Trước khi chuyển nhánh phải commit hoặc bỏ các thay đổi đang dở.
 
 ## Bắt đầu
 

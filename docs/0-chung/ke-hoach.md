@@ -17,9 +17,9 @@ Cách chạy notebook, cách mã hóa: xem các file hướng dẫn trong [mục
 - Nhánh này **bắt đầu lại từ dữ liệu**. Nó chỉ có dữ liệu v4 và notebook kiểm tra cấu trúc. Mục tiêu là rút ra bộ nhãn từ chính dữ liệu, kèm phân bố có khoảng tin cậy.
 - Trong lúc làm, **tạm không xét contract** và các thiết kế đã có trên `main` (trưởng nhóm quyết ngày 22/11).
 
-**Vì sao là nhánh mồ côi** (không chung lịch sử với `main`) và nằm ở thư mục riêng:
+**Vì sao là nhánh mồ côi** (không chung lịch sử với `main`):
 - **Không ai vô tình merge được nhánh này vào `main`.** Merge sẽ xóa sạch `main`, nhưng git từ chối merge hai nhánh không chung lịch sử nếu không cố ý.
-- Thư mục `main` trên máy trưởng nhóm còn nhiều thay đổi chưa commit. Làm ở thư mục riêng (`git worktree`) thì không đụng tới chúng.
+- Nhánh này và `main` dùng chung một thư mục, chuyển bằng GitHub Desktop. Dữ liệu và `.venv` nằm ngoài git nên dùng chung. Trước khi chuyển nhánh phải commit hoặc bỏ thay đổi đang dở.
 - Kết quả của nhánh (bộ nhãn, báo cáo, notebook) đưa về `main` bằng cách **chép file**, không merge.
 
 ## 2. Nhánh đang có gì
