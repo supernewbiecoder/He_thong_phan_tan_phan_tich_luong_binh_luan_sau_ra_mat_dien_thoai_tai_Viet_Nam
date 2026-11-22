@@ -1,0 +1,32 @@
+# Mục đích: File không đưa lên git của nhánh kham-pha-nhan: dữ liệu bình luận, phiếu mã hóa, môi trường Python, file tự sinh; cập nhật lần cuối: 2026-11-22.
+
+# Dữ liệu v4 và mọi file chứa nội dung bình luận thật (mẫu, phiếu mã hóa): giữ trên máy, chia sẻ ngoài git
+src/ingest/data/
+data/
+state.db
+*.jsonl
+*.csv
+*.xlsx
+*.parquet
+*.zip
+*.tar.gz
+
+# Python & Jupyter
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Môi trường Python
+.venv/
+venv/
+env/
+
+# Hệ điều hành, trình soạn thảo
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Nhật ký, bí mật
+*.log
+.env

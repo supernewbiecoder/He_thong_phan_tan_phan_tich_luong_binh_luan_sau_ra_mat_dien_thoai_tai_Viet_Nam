@@ -1,0 +1,8 @@
+# Mục đích: Bộ 4 máy ứng viên (X, đời trước, 2 đối thủ) mà notebook 1_raw_audit mục 3.4 đọc qua helpers.doc_bo_may; cập nhật lần cuối: 2026-11-22.
+# Bộ chính thức CHƯA CHỐT. Đây là bộ cũ, chỉ để xem thử. Muốn xem bộ khác thì sửa ở đây, hoặc gán lại BO_MAY trong ô của notebook.
+# Mã máy phải có trong config/pipeline.yaml (trường name).
+target_model: s23u
+predecessor_model: s22u
+rival_models:
+  - ip14prm
+  - xiaomi13u
