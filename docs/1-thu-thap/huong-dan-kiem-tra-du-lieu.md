@@ -37,7 +37,7 @@ Lệnh viết cho **PowerShell trên Windows**, chạy từ **gốc repo**. Nhá
 | 4. Video, kênh, reply, like | 4.1 theo kênh · 4.2 theo loại video · 4.3 video tặng quà · 4.4 reply và chủ kênh · 4.5 like |
 | 5. Tổng hợp | Các số chính của mục 3–4 trên một bảng |
 
-Tất cả là **cấu trúc** dữ liệu: các trường có sẵn. Notebook không đo bình luận nói về cái gì. Phần đó là bước khám phá nhãn (B2–B7 của [kế hoạch](../0-chung/ke-hoach.md)).
+Tất cả là **cấu trúc** dữ liệu: các trường có sẵn. Notebook không đo bình luận nói về cái gì. Phần đó là bước khám phá nhãn (B2–B8 của [kế hoạch](../0-chung/ke-hoach.md)).
 
 ## 4. Tham số hay đổi
 

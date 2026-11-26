@@ -1,6 +1,6 @@
 # Kế hoạch nhánh `kham-pha-nhan`: từ dữ liệu v4 tới bộ nhãn
 
-> Mục đích: Nhánh này làm gì và vì sao; đang có gì; các bước B1–B8 (làm gì, ai làm, ra gì, khi nào là xong, vì sao làm vậy); việc sau nhánh; quyết định đang chờ; cập nhật lần cuối: 2026-11-22.
+> Mục đích: Nhánh này làm gì và vì sao; đang có gì; các bước B1–B8 (làm gì, ai làm, ra gì, khi nào là xong, vì sao làm vậy); việc sau nhánh; quyết định đang chờ; cập nhật lần cuối: 2026-11-25.
 
 **Cách đọc:**
 - Mục 1–2: vì sao có nhánh và nhánh đang có gì.
@@ -30,6 +30,7 @@ Cách chạy notebook, cách mã hóa: xem các file hướng dẫn trong [mục
 | Cấu hình đã dùng để crawl v4 | `config/pipeline.yaml` | Danh mục máy, kênh, cửa sổ thời gian. `helpers.py` cũng dựa vào file này để tìm gốc repo |
 | Bộ 4 máy ứng viên | `config/analysis.yaml` | Bộ cũ, chưa chốt; chỉ notebook mục 3.4 dùng |
 | Kiểm tra cấu trúc dữ liệu (EDA) | `notebooks/1_raw_audit.ipynb`, `notebooks/helpers.py` | Chép từ `main` ngày 22/11. Ô code giữ nguyên; đã xóa output vì output chứa bình luận thật |
+| Code khám phá nhãn | `src/labeling/` (lấy mẫu, HAC, công thức thống kê), `tests/test_labeling.py` | Theo [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md) mục 10 |
 | Tài liệu | `docs/` | [Mục lục](../README.md) |
 | Luật cho trợ lý AI | `AGENTS.md` | Claude Code đọc qua `CLAUDE.md` |
 
@@ -37,42 +38,45 @@ Cách chạy notebook, cách mã hóa: xem các file hướng dẫn trong [mục
 
 ## 3. Lộ trình
 
+Từ 22/11 tìm nhãn bằng **ba nguồn rồi so với nhau**: HAC trên cả bộ dữ liệu, mã hóa mở trên mẫu ngẫu nhiên, và bộ nhãn đặt sẵn trên `main`. Từ 23/11 HAC chỉ để đối chiếu, không ai chấm. **Claude mã hóa, trưởng nhóm kiểm.** Luật chi tiết: [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md).
+
 | Bước | Làm gì | Ai | Đầu ra | Xong khi | Trạng thái |
 |---|---|---|---|---|---|
-| B1 | Kiểm tra cấu trúc dữ liệu: chạy lại `1_raw_audit` trên nhánh | Trưởng nhóm | [Báo cáo kiểm tra dữ liệu](../1-thu-thap/bao-cao-kiem-tra-du-lieu.md) đủ số | Điền hết các ô "chờ chạy" | Level 0 đã có số (chạy 11/11); mục 3–5 chờ chạy |
-| B2 | Lấy mẫu khám phá: 300 bình luận ngẫu nhiên (lô 1–3), 100 để kiểm bộ nhãn (lô 4), ~100 chọn có chủ đích | Notebook `3_label_discovery` (**chưa có**) | File mẫu, phiếu mã hóa | Đúng [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md) mục 2 | Chưa làm |
-| B3 | Mã hóa mở lô 1–3 | 2 người | Phiếu có mã tự do | Bình luận nào cũng có ít nhất một mã | Chưa làm |
-| B4 | Gom mã thành bộ nhãn; theo dõi bão hòa | 2 người | Bộ nhãn nháp; bảng số nhãn mới theo lô | Lô cuối không thêm nhãn mới | Chưa làm |
-| B5 | Kiểm bộ nhãn trên lô 4 | 2 người | Kappa từng chiều | Kappa ≥ 0,6 ở mọi chiều dùng tiếp | Chưa làm |
-| B6 | Gán cả mẫu ngẫu nhiên theo bộ nhãn cuối | 2 người | Bảng phân bố, khoảng tin cậy 95% | Đủ mọi chiều, đủ các nhóm | Chưa làm |
-| B7 | So với bộ nhãn đã đặt trên `main`; chốt bộ nhãn | Trưởng nhóm | Bộ nhãn chốt, kèm lý do | Nhãn nào cũng có lý do giữ, thêm, gộp hay bỏ | Chưa làm |
-| B8 (tùy chọn) | Khám phá trên cả 473 nghìn bình luận, không cần nhãn | ___ | Danh sách gợi ý mã | | Chưa làm |
+| B1 | Kiểm tra cấu trúc dữ liệu: chạy `1_raw_audit` | Trưởng nhóm (Claude chạy) | [Báo cáo kiểm tra dữ liệu](../1-thu-thap/bao-cao-kiem-tra-du-lieu.md) | Điền hết các ô "chờ chạy" | **Xong 22/11.** Phát hiện: từ khóa nhận video tặng quà sai cả hai chiều; 5 kênh chiếm 62,7% bình luận; 2,84% là bình luận của chủ kênh |
+| B2 | Lấy mẫu: 800 ngẫu nhiên (lô 1–5, K, D1, D2), 100 có chủ đích; xuất phiếu lô 1–5 | Claude | `data/kham-pha/mau.csv`, `phieu_ma_hoa_mo.csv` | Đúng đặc tả mục 3 | **Xong 22/11** |
+| B3 | HAC trên cả bộ dữ liệu → 300 ứng viên khía cạnh | Claude | `data/kham-pha/hac_ung_vien.csv` | Đúng đặc tả mục 4 | **Xong 22/11** |
+| B4 | Mã hóa mở lô 1–5 và mẫu có chủ đích. **Thí điểm:** xong lô 1 thì dừng cho trưởng nhóm xem | Claude | Phiếu có mã | Bình luận nào cũng có ít nhất một mã | **Xong 23/11** (600 bình luận, Claude tự rà 2 lượt; [thống kê](../3-gan-nhan/bao-cao-ma-hoa-mo.md)). Trưởng nhóm chưa kiểm từng mã. Cùng ngày trưởng nhóm tự mã tay cả 600 bình luận để đo đồng thuận ([đặc tả 7d](../3-gan-nhan/dac-ta-kham-pha-nhan.md#7-kiểm-b6)); đã so 599 bình luận (bỏ 1 dòng bị Excel làm hỏng ô), kết quả ở `data/kham-pha/dong_thuan_ma_hoa_mo.csv`; bảng hành vi trong guideline sửa theo kết quả này |
+| B5 | Gom mã thành bộ nhãn; đếm bão hòa | Claude; trưởng nhóm duyệt | `docs/3-gan-nhan/dac-ta-bo-nhan.md` | Lô 5 không thêm nhãn mới | **Xong 25/11:** nháp 23/11, trưởng nhóm duyệt 25/11: 6 chiều; bão hòa đạt (lô 4, 5 không có nhãn mới; [báo cáo](../3-gan-nhan/bao-cao-bo-nhan.md)) |
+| B6 | Kiểm: gán mù lô K; kiểm nhãn của Claude | **Trưởng nhóm** (Claude gán lô K) | Kappa; tỷ lệ nhãn phải sửa | Kappa ≥ 0,6 ở mọi chiều dùng tiếp | **Xong 26/11:** [so lô K](../3-gan-nhan/bao-cao-lo-k.md): mọi chiều κ ≥ 0,6 (chiều 1: 0,72; chiều 2, 3 xét kappa gộp: 0,81, 0,83). 52 ca lệch: Claude đề xuất, trưởng nhóm duyệt. Thêm luật 8, 9 của bộ nhãn |
+| B7 | Gán cả mẫu (600) theo bộ nhãn cuối → phân bố | Claude; trưởng nhóm kiểm | Bảng phân bố, khoảng tin cậy Wilson và bootstrap theo video | Đủ mọi chiều, đủ các nhóm | **Xong 26/11:** mẫu 600 (lô 1–5 Claude gán, trưởng nhóm kiểm cả 500, phải sửa 17% [10,9; 25,5] ở phần ngẫu nhiên; lô K đã phân xử). [Báo cáo](../3-gan-nhan/bao-cao-phan-bo-nhan.md) có tỷ lệ và KTC |
+| B8 | So ba nguồn (HAC: Claude đối chiếu trên cả bộ dữ liệu); chốt bộ nhãn | Claude đề xuất, trưởng nhóm quyết | Bộ nhãn chốt, kèm lý do | Nhãn nào cũng có lý do giữ, thêm, gộp hay bỏ | **Xong 26/11:** trưởng nhóm duyệt [đề xuất](../3-gan-nhan/bao-cao-kham-pha-nhan.md); [bộ nhãn chốt](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611): gộp `nhiet_do`, `am_thanh`, `khong_noi_dung`; thêm `mua_ban` (sửa định nghĩa) |
 
 **Vì sao từng bước:**
 
 - **B1. Kiểm tra cấu trúc trước khi đọc nội dung.**
   - Biết dữ liệu hỏng hay lệch ở đâu: rỗng, trùng, tiếng nước ngoài, đăng dồn.
-  - Các trường có sẵn (máy của video, loại video, gốc hay reply, kênh) sẽ là **nhóm** để tách phân bố ở B6.
+  - Các trường có sẵn (gốc hay reply, kênh, tuần, của chủ kênh) là **nhóm** để tách phân bố ở B7.
   - Thấy sớm nguồn nhiễu lớn: 4 trong 5 video đông nhất là video tặng quà, cộng lại 15.998 bình luận.
 - **B2. Lấy mẫu, vì không ai đọc nổi 473 nghìn bình luận.**
   - Mẫu **ngẫu nhiên** cho phân bố không thiên lệch.
-  - 300 là đủ để thấy: một loại chiếm 1% số bình luận có 95% khả năng xuất hiện ít nhất một lần trong mẫu.
-  - Lô 4 tách riêng để kiểm bộ nhãn trên những bình luận **chưa ai đọc**. Kiểm trên bình luận đã đem ra bàn thì mức đồng thuận bị thổi phồng.
-  - Mẫu có chủ đích (tìm theo "lỗi", "bảo hành"…) chỉ để không sót những loại hiếm mà quan trọng. Nó **không tính vào phân bố**, vì chọn theo từ khóa là thiên lệch.
-- **B3. Mã hóa mở, không cầm danh sách nhãn có sẵn.**
-  - Cầm danh sách thì chỉ xác nhận lại cái mình đã nghĩ sẵn, không phát hiện được cái thiếu.
-  - Hai người mã hóa độc lập ở lô 1 thì thấy ngay chỗ hai người hiểu khác nhau.
-- **B4. Bão hòa là luật dừng có căn cứ.** Nó trả lời câu "bao nhiêu nhãn là đủ" bằng dữ liệu, không bằng cảm tính.
-- **B5. Kiểm đồng thuận.** Nhãn mà hai người không thống nhất được thì không đếm tin được, và cũng không dùng được để dạy mô hình.
-- **B6. Đây là câu trả lời trực tiếp** cho câu hỏi "dữ liệu có những nhãn nào, phân bố ra sao". Cần khoảng tin cậy vì 400 bình luận chỉ là mẫu.
-- **B7. So và quyết theo luật viết sẵn** ([đặc tả khám phá nhãn mục 7](../3-gan-nhan/dac-ta-kham-pha-nhan.md#7-so-với-bộ-nhãn-đã-đặt-và-chốt-bộ-nhãn-b7)) để không quyết theo cảm tính. Kết quả cho biết thiết kế trên `main` đúng, thiếu hay thừa ở đâu.
-- **B8. Chỉ để gợi ý mã.** Lần thử phân cụm trên `main` cho silhouette chỉ khoảng 0,17–0,20, tức gần như không có cụm rõ. Vì vậy kết quả B8 không dùng làm phân bố.
+  - **Vì sao 500 bình luận mã hóa mở** (đặc tả mục 3.3):
+    - nhãn chiếm 0,5% có 92% khả năng xuất hiện (với 300 chỉ 78%);
+    - cộng 100 của lô K thành n = 600, đúng cỡ mẫu để sai số mọi tỷ lệ không quá ±4%;
+    - mỗi nhóm cần so (reply, kênh lớn, tuần 3–4) có từ 194 bình luận trở lên (nhỏ nhất là tuần 3–4), sai số khoảng ±7%.
+  - Lô K để riêng, **không ai đọc trước B6**, để đo đồng thuận trên bình luận chưa ai bàn.
+  - Mẫu có chủ đích (tìm theo "lỗi", "bảo hành"…) chỉ để không sót loại hiếm mà quan trọng. Nó **không tính vào phân bố**.
+- **B3. HAC trên cả bộ dữ liệu.** Thuật toán của bài báo nhóm đã đọc (Wiegard và cộng sự, ECIS 2017), bản tiếng Việt không cần tách từ. Nó tìm được khía cạnh hiếm mà mẫu 600 bình luận có thể sót. Nhưng nó chỉ ra **ứng viên khía cạnh**, không ra các chiều khác, và không cho phân bố. Ngay ở bài gốc chỉ 35–50% ứng viên là đúng. Ngày 23/11 trưởng nhóm quyết không chấm, vì danh sách nhiễu (mảnh từ, teencode); HAC chỉ dùng để đối chiếu ở B8.
+- **B4. Mã hóa mở**, ghi đối tượng bằng từ của chính bình luận, không dùng tên 9 khía cạnh đặt sẵn. Thí điểm lô 1 để trưởng nhóm sửa cách mã sớm, trước khi làm 500 bình luận.
+- **B5. Bão hòa là luật dừng có căn cứ.** Nó trả lời câu "bao nhiêu nhãn là đủ" bằng dữ liệu.
+- **B6. Phần không thay được bằng AI** (khoảng 3 giờ của trưởng nhóm). Nhãn do Claude gán là nhãn của AI. Chỉ có gán mù lô K và kiểm nhãn mới đo được AI đúng tới đâu.
+- **B7. Câu trả lời trực tiếp** cho câu hỏi "dữ liệu có những nhãn nào, phân bố ra sao". Khoảng tin cậy chính tính bằng bootstrap theo video, vì bình luận cùng video giống nhau (đặc tả mục 8).
+- **B8. So và quyết theo luật viết sẵn** ([đặc tả mục 9](../3-gan-nhan/dac-ta-kham-pha-nhan.md#9-so-ba-nguồn-và-chốt-bộ-nhãn-b8)) để không quyết theo cảm tính.
 
 ## 4. Sau nhánh này
 
-Thứ tự dự kiến. Chi tiết viết khi tới bước đó.
+Thứ tự dự kiến. Kế hoạch chi tiết cho cả dự án sau nhánh này (đề xuất, chờ duyệt): [kế hoạch tổng thể](ke-hoach-tong-the.md).
 
-1. **Viết guideline gán nhãn** theo bộ nhãn chốt ở B7.
+1. **Viết guideline gán nhãn** theo bộ nhãn chốt ở B8. **Xong 26/11:** [huong-dan-gan-nhan-chinh-thuc.md](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), trưởng nhóm duyệt cả mục 9 ngày 26/11 (nối nhận xét với máy, so sánh có bên thắng, cờ tiếng Việt). Loại lỗi để sau, làm trên mẫu riêng các bình luận báo lỗi.
 2. **Gán nhãn chính thức**, hai mẫu:
    - mẫu chất lượng dữ liệu, lấy từ dữ liệu **chưa lọc**, để đo bộ lọc spam và tiếng Việt;
    - tập test cho mô hình, gán đôi và phân xử.
@@ -80,16 +84,27 @@ Thứ tự dự kiến. Chi tiết viết khi tới bước đó.
 4. **Trả lời Q1–Q6**, kèm khoảng tin cậy, phép kiểm sai số mô hình và phép kiểm độ nhạy.
 5. **Đưa kết quả về `main`** bằng cách chép file. Contract và thiết kế dữ liệu trên `main` sửa theo bộ nhãn mới nếu cần.
 
-## 5. Quyết định đang chờ trưởng nhóm
+## 5. Quyết định
 
-| # | Quyết định | Lựa chọn | Ảnh hưởng tới |
-|---|---|---|---|
-| 1 | Cỡ mẫu khám phá | 300 (đề xuất) hay 500 bình luận cho lô 1–3 | Độ rộng khoảng tin cậy, công đọc |
-| 2 | Ai mã hóa | Trưởng nhóm + 1 người (đề xuất): đây là bước định nghĩa bài toán | Chất lượng bộ nhãn |
-| 3 | Cho LLM gợi ý mã trên mẫu lớn hơn | Có hay không. Có thì phải gửi bình luận ra dịch vụ bên ngoài; nhãn LLM vẫn phải có người kiểm và không dùng làm phân bố | B4, B8 |
-| 4 | B8 làm khi nào | Ngay, hay sau B7 | Công sức |
-| 5 | Bình luận dưới video tặng quà | Giữ, gắn cờ, hay loại khỏi phân tích. B6 cho biết chúng chiếm bao nhiêu | Phân bố, các câu hỏi |
-| 6 | Bộ 4 máy | Chốt sau | Notebook mục 3.4 |
+**Đã chốt (22–25/11):**
+
+| # | Quyết định | Chốt |
+|---|---|---|
+| 1 | Cỡ mẫu | Mã hóa mở **500**; mẫu phân bố 600 (cộng lô K). Lý do ở đặc tả mục 3.3 |
+| 2 | Ai mã hóa | **Claude** mã hóa; trưởng nhóm kiểm (gán mù lô K, kiểm nhãn, duyệt bộ nhãn) |
+| 3 | Dùng AI đọc bình luận | Chỉ Claude, trong phiên Claude Code của trưởng nhóm; chỉ gửi chữ bình luận, không gửi thông tin người viết |
+| 4 | Khám phá trên cả bộ dữ liệu | Làm ngay bằng HAC bản không cần tách từ, kết hợp với mã hóa mở |
+| 5 | Bình luận minigame | **Giữ** trong dữ liệu. Về sau đánh dấu các video giveaway lớn để kiểm độ nhạy (bình luận có thưởng dễ khen quá tay) |
+| 6 | Lượt bình luận ngoài tuần 1–4 | Để đó, giữ nguyên dữ liệu |
+| 9 | Từ dùng trong tài liệu (chốt 24/11) | *Nhãn* và *khía cạnh* theo một nghĩa: mọi khía cạnh là nhãn của chiều 2, không phải nhãn nào cũng là khía cạnh ([thuật ngữ](../3-gan-nhan/dac-ta-kham-pha-nhan.md#thuật-ngữ)). Chiều 2 đổi tên thành "Nói về phần nào của điện thoại" |
+| 8 | Chấm danh sách HAC (chốt 23/11) | **Không chấm.** HAC chỉ để Claude đối chiếu ở B8, kết quả ghi là AI làm (đặc tả mục 4.4) |
+| 10 | Luật chốt bộ nhãn (chốt 25/11) | Ngưỡng 3% và 1% tính trên phần áp dụng của từng chiều, trong mẫu phân bố; nhãn mới dưới 3% thì gộp, trừ khi có câu hỏi cần riêng nó; nhãn dưới 1% chỉ gộp khi không phục vụ câu hỏi nào và không giúp đánh giá chất lượng dữ liệu; quyết theo tỷ lệ đo được, sát ngưỡng thì ghi để xem lại ([đặc tả mục 9](../3-gan-nhan/dac-ta-kham-pha-nhan.md#9-so-ba-nguồn-và-chốt-bộ-nhãn-b8)) |
+| 11 | Duyệt bộ nhãn (chốt 25/11) | Nhãn hiếm để riêng tới B8; không tách hãng và fan; bài test trong video là `ngu_canh`; tách `dua` và `cong_kich`; cà khịa không tính là chê; máy tính bảng là `khong_lien_quan`; máy đẹp, xấu chung chung là `thiet_ke` ([đặc tả bộ nhãn mục 7](../3-gan-nhan/dac-ta-bo-nhan.md#7-trưởng-nhóm-đã-quyết-khi-duyệt-2511)) |
+| 12 | Chốt bộ nhãn B8 (chốt 26/11) | Duyệt cả đề xuất của Claude: 5 chiều 1, 11 khía cạnh + `may_chung`, `hang_nguoi_dung`, `khac`, 13 mục đích; `mua_ban` thêm (Claude chọn khi trưởng nhóm giao: "như đề xuất"). Trước khi gán chính thức: sửa định nghĩa `dua`, `khong_xac_dinh`; thêm trường tên máy ([đặc tả bộ nhãn mục 8](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)) |
+| 13 | Trước khi gán chính thức (26/11) | Sửa định nghĩa `dua`, `khong_xac_dinh` (chiều 1) theo ca lệch lô K; thêm trường `ten_may`. Kiểm lại trên 50 bình luận đầu lô D2: xong 26/11, mọi chiều κ ≥ 0,6 ([báo cáo](../3-gan-nhan/bao-cao-lo-d2.md)); ba chỗ luật còn lệch đã làm rõ 26/11 ([đặc tả khám phá nhãn mục 7b](../3-gan-nhan/dac-ta-kham-pha-nhan.md#7-kiểm-b6)) |
+| 7 | Bộ 4 máy (chốt 26/11) | **Không chọn bộ 4 máy.** Dòng máy nào có trong dữ liệu thì phân tích hết. Trước mắt lấy nhãn để làm mô hình phân loại cảm xúc. Hệ quả: đặc tả mục tiêu và đặc tả gán nhãn trên `main` (đang dựa trên X, đời trước, 2 đối thủ) phải sửa khi chép kết quả về; mẫu gán chính thức nên dồn vào bình luận `dien_thoai`, đủ cặp (bình luận, khía cạnh) cho từng khía cạnh |
+
+**Còn chờ:** không còn.
 
 ## 6. Câu hỏi của đề tài (tóm tắt)
 
@@ -102,7 +117,7 @@ Thứ tự dự kiến. Chi tiết viết khi tới bước đó.
 | Q5 | Người đã dùng X báo lỗi gì, lỗi nào cần sửa trước? |
 | Q6 | Có tài khoản ảo seeding không, và nó làm lệch kết quả bao nhiêu? (đề xuất) |
 
-Bộ nhãn chốt ở B7 phải đủ để trả lời các câu này. Nhãn không phục vụ câu nào và không giúp đánh giá chất lượng dữ liệu thì không cần gán.
+Bộ nhãn chốt ở B8 phải đủ để trả lời các câu này. Nhãn không phục vụ câu nào và không giúp đánh giá chất lượng dữ liệu thì không cần gán.
 
 ## 7. Quy tắc của nhánh
 

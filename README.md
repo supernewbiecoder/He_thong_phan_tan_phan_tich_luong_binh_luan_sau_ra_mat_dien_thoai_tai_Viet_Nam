@@ -13,12 +13,15 @@ config/pipeline.yaml        cấu hình đã dùng để crawl dữ liệu v4 (d
 config/analysis.yaml        bộ 4 máy ứng viên (chưa chốt), cho notebook mục 3.4
 notebooks/1_raw_audit.ipynb kiểm tra cấu trúc dữ liệu (EDA): rỗng, trùng, độ dài, ngôn ngữ, thời gian, theo máy, kênh, video
 notebooks/helpers.py        hàm dùng chung cho notebook
+src/labeling/               code khám phá nhãn: lấy mẫu, HAC, công thức thống kê
+tests/test_labeling.py      test của src/labeling (python -m unittest tests.test_labeling)
 docs/                       tài liệu: kế hoạch, đặc tả dữ liệu, khám phá nhãn (mục lục: docs/README.md)
 AGENTS.md, CLAUDE.md        luật cho trợ lý AI
 src/ingest/data/            dữ liệu v4 (NGOÀI GIT, xem dưới)
+data/kham-pha/              mẫu, phiếu mã hóa, ứng viên HAC (NGOÀI GIT: có nội dung bình luận thật)
 ```
 
-**Cố ý không có:** code crawler, tiền xử lý, mô hình, phân tích, DB. Chúng ở nhánh `main`. Nhánh này là **nhánh mồ côi**: không chung lịch sử với `main`, nên không merge vào `main`. Kết quả đưa về `main` bằng cách chép file.
+**Cố ý không có:** code crawler, tiền xử lý, mô hình, phân tích Q1–Q6, DB. Chúng ở nhánh `main`. Nhánh này là **nhánh mồ côi**: không chung lịch sử với `main`, nên không merge vào `main`. Kết quả đưa về `main` bằng cách chép file.
 
 ## Dữ liệu
 
@@ -40,6 +43,6 @@ Nhánh này và `main` dùng **chung một thư mục**, chuyển qua lại bằ
 
 1. Đọc [kế hoạch nhánh](docs/0-chung/ke-hoach.md).
 2. Chạy kiểm tra cấu trúc (bước B1): [hướng dẫn](docs/1-thu-thap/huong-dan-kiem-tra-du-lieu.md).
-3. Bước khám phá nhãn (B2–B7): [đặc tả](docs/3-gan-nhan/dac-ta-kham-pha-nhan.md) và [hướng dẫn cho người mã hóa](docs/3-gan-nhan/huong-dan-kham-pha-nhan.md).
+3. Bước khám phá nhãn (B2–B8): [đặc tả](docs/3-gan-nhan/dac-ta-kham-pha-nhan.md) và [guideline mã hóa](docs/3-gan-nhan/huong-dan-kham-pha-nhan.md).
 
 **Chưa push lên GitHub.** Trưởng nhóm quyết khi nào push.
