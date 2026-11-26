@@ -2,8 +2,10 @@
 
 # Dữ liệu (GitHub giới hạn 100 MB/file; dữ liệu chia sẻ ngoài git, xem docs/0-chung/cai-dat.md)
 data/
+state.db
 *.jsonl
 *.csv
+*.xlsx
 *.parquet
 *.zip
 *.tar.gz

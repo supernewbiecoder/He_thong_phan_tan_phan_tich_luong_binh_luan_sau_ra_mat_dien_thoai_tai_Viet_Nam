@@ -1,8 +1,10 @@
 # Đặc tả tầng 3: gán nhãn
 
-> Mục đích: Quy định gán nhãn người cho cả dự án: lấy hai mẫu nào, lấy thế nào, phiếu gán có gì, gán đôi, đo đồng thuận, phân xử, và tính tỷ lệ spam, không liên quan… kèm khoảng tin cậy từ nhãn người; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Quy định gán nhãn người cho cả dự án: lấy hai mẫu nào, lấy thế nào, phiếu gán có gì, gán đôi, đo đồng thuận, phân xử, và tính tỷ lệ spam, không liên quan… kèm khoảng tin cậy từ nhãn người; cập nhật lần cuối: 2026-11-26.
 
-**Trạng thái:** đặc tả nháp ngày 20/11, chưa có code. Các script ở mục 9 còn phải viết. Cách gán từng bình luận nằm ở [guideline v1](huong-dan-gan-nhan-binh-luan.md), file này không chép lại.
+**Trạng thái:** đặc tả nháp ngày 20/11, chưa có code. Các script ở mục 9 còn phải viết. Cách gán từng bình luận nằm ở [hướng dẫn gán chính thức](huong-dan-gan-nhan-chinh-thuc.md), file này không chép lại.
+
+**Cập nhật 26/11:** bộ nhãn đã chốt ([đặc tả bộ nhãn mục 8](dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)). Phần quy trình (hai mẫu, gán đôi, phân xử) vẫn dùng; phần nhãn, phiếu và bộ 4 máy trong file này còn theo bản cũ, sửa ở bước 0.5 của [kế hoạch tổng thể](../0-chung/ke-hoach-tong-the.md).
 
 ## 1. Vì sao cần nhãn người
 
@@ -103,7 +105,7 @@ Một phiếu là một bảng tính (Google Sheets hoặc CSV, mã hóa UTF-8).
 | `tieng_viet` | Người gán | `co` / `khong` |
 | `spam` | Người gán | `khong` / `quang_cao` / `lua_dao` / `khac` |
 | `lien_quan` | Người gán | `truc_tiep` / `ngu_canh` / `khong` |
-| `nhan` | Người gán | Các bộ nhãn theo cú pháp ở [guideline mục 5](huong-dan-gan-nhan-binh-luan.md#5-cách-ghi-trên-phiếu-người-gán) |
+| `nhan` | Người gán | Các nhãn theo cách ghi ở [hướng dẫn gán chính thức mục 10](huong-dan-gan-nhan-chinh-thuc.md#10-phiếu-và-cách-làm) |
 | `ghi_chu` | Người gán | Chỗ khó, đề xuất sửa guideline |
 
 Phiếu **không** có `author_name`, `author_hash` hay bất cứ thông tin nào về người viết.

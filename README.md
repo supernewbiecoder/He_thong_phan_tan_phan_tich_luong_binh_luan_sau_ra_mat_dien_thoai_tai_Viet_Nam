@@ -1,6 +1,6 @@
 # Phân tích bình luận sau ra mắt điện thoại tại Việt Nam
 
-> Mục đích: Bức tranh toàn cảnh của dự án: bài toán, trạng thái hiện tại, luồng dữ liệu, chỗ tìm tài liệu và cấu trúc thư mục; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Bức tranh toàn cảnh của dự án: bài toán, trạng thái hiện tại, luồng dữ liệu, chỗ tìm tài liệu và cấu trúc thư mục; cập nhật lần cuối: 2026-11-26.
 
 Đồ án môn Khoa học dữ liệu, nhóm 11 người. Đọc file này trước, sau đó đọc [Kế hoạch dự án](docs/0-chung/ke-hoach.md).
 
@@ -21,9 +21,9 @@ Mục đích, mục tiêu và chi tiết từng câu hỏi (đo bằng gì, khi 
 ### Phạm vi
 
 - **Nguồn:** YouTube (chính). Nguồn bổ sung đang khảo sát, xem [Công việc 15](docs/0-chung/ke-hoach.md#công-việc-15-bổ-sung-nguồn-dữ-liệu-ngoài-youtube).
-- **Bốn máy so sánh:** X, đời trước của X (P), hai đối thủ cùng phân khúc ra mắt cùng thời điểm (R1, R2). Danh sách chốt ở Công việc 2.
+- **Máy:** không chọn bộ 4 máy (trưởng nhóm quyết 26/11). Dòng máy nào có trong dữ liệu thì phân tích. Cách đặt lại Q1–Q5: [kế hoạch tổng thể mục 5](docs/0-chung/ke-hoach-tong-the.md#5-q1q6-khi-không-có-bộ-4-máy-đề-xuất) (đề xuất).
 - **Cửa sổ:** 4 tuần đầu kể từ `launch_date` của từng máy (khớp với dữ liệu đã crawl, `window_weeks: 4` trong [config/pipeline.yaml](config/pipeline.yaml)).
-- **9 khía cạnh (đã chốt ở Công việc 4, mã trong [docs/0-chung/thiet-ke-du-lieu.md](docs/0-chung/thiet-ke-du-lieu.md#danh-mục-mã)):** Pin & sạc, Màn hình, Hiệu năng (gồm nhiệt độ), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi.
+- **Bộ nhãn (chốt 26/11):** 6 chiều, 41 nhãn, trong đó 11 khía cạnh: pin và sạc, màn hình, hiệu năng (gồm nóng máy), camera, thiết kế, độ bền, phần mềm, phần cứng khác (gồm âm thanh), giá, mua bán, bảo hành và sửa chữa ([đặc tả bộ nhãn mục 8](docs/3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)). Contract và [thiết kế dữ liệu](docs/0-chung/thiet-ke-du-lieu.md) còn theo 9 khía cạnh cũ, sửa ở bước 0.4 của [kế hoạch tổng thể](docs/0-chung/ke-hoach-tong-the.md).
 - **Ngoài phạm vi:** hình ảnh/âm thanh/nội dung video; bình luận không phải tiếng Việt; tên thật của người bình luận (chỉ lưu `author_hash`).
 
 ## 2. Trạng thái hiện tại
@@ -63,7 +63,8 @@ Mục lục đầy đủ, xếp theo tầng xử lý, kèm quy tắc đặt tên
 | [docs/0-chung/cai-dat.md](docs/0-chung/cai-dat.md) | Dựng môi trường, đặt dữ liệu |
 | [docs/0-chung/ban-do-code.md](docs/0-chung/ban-do-code.md) | Không biết một file code để làm gì, hay muốn sửa một thứ mà không biết sửa ở đâu |
 | [AGENTS.md](AGENTS.md) | Dùng trợ lý AI (Claude, ChatGPT, Copilot…) để làm việc trong repo: luật AI phải theo |
-| [docs/3-gan-nhan/dac-ta.md](docs/3-gan-nhan/dac-ta.md) | Tham gia gán nhãn |
+| [docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md](docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md) | Tham gia gán nhãn (định nghĩa nhãn ở [đặc tả bộ nhãn](docs/3-gan-nhan/dac-ta-bo-nhan.md)) |
+| [docs/0-chung/ke-hoach-tong-the.md](docs/0-chung/ke-hoach-tong-the.md) | Muốn biết lộ trình từ giờ tới báo cáo cuối (đề xuất 26/11) |
 
 ## 5. Bắt đầu
 
@@ -83,11 +84,11 @@ docs/            tài liệu, mỗi tầng một thư mục (0-chung, 1-thu-thap
 src/ingest/      tầng 1: crawler YouTube; dữ liệu ở src/ingest/data/ (ngoài git)
 src/run.py       lệnh chạy cả chuỗi theo lô: tiền xử lý → suy luận → aggregates, Q1–Q5
 src/processing/  tầng 2: làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ, lệnh chạy ra data/processed/
-src/models/      tầng 4: bước suy luận (run.py, luật mốc), khía cạnh (aspect/), cảm xúc (sentiment/), dataset ngoài
+src/labeling/    tầng 3: lấy mẫu, phiếu gán, so hai người gán (kappa), phân bố nhãn có khoảng tin cậy
+src/models/      tầng 4: bước suy luận (run.py), luật mốc khía cạnh (aspect/keywords.py), cảm xúc (sentiment/rules.py), máy được nhắc, dataset ngoài
 src/analysis/    tầng 5: aggregates, Q1–Q5
 src/storage/     tầng 6: MongoDB
-notebooks/       mỗi bước một notebook: 1_raw_audit, 2_1_clean, 2_2_normalize, 2_3_clauses, 3_aspect_keywords, 4_sentiment_report
-tests/           test tầng 2, 4, 5
-artifacts/       bảng điểm mô hình (file model không vào git)
+notebooks/       mỗi bước một notebook: 1_raw_audit, 2_1_clean, 2_2_normalize, 2_3_clauses, 3_aspect_keywords, 3_label_distribution
+tests/           test tầng 2, 3, 4, 5
 data/            dữ liệu đã xử lý, nhãn, đầu ra (ngoài git)
 ```

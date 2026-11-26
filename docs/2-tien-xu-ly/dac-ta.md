@@ -1,6 +1,6 @@
 # Đặc tả tầng 2: tiền xử lý bình luận
 
-> Mục đích: Luật chung của tầng 2 (làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam): các bước, đầu vào, đầu ra, trường nào dùng cho việc gì, kiểm thử, phiên bản, quyết định đang chờ; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Luật chung của tầng 2 (làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam): các bước, đầu vào, đầu ra, trường nào dùng cho việc gì, kiểm thử, phiên bản, quyết định đang chờ; cập nhật lần cuối: 2026-11-26.
 
 **Phạm vi:** code trong `src/processing/`. Luật chi tiết từng bước nằm ở 4 đặc tả con (mục 1). Cách chạy: [hướng dẫn](huong-dan.md). Số liệu sau khi chạy: [báo cáo](bao-cao.md). File này không chép lại những thứ đó.
 
@@ -85,7 +85,7 @@ Contract `comment-event` khóa `additionalProperties: false`, nên **không** d�
 
 `clause_idx` của contract `aspect-mention` là `clauses[i].idx`. Contract ghi `clause_text` là "chữ gốc của mệnh đề, không phải `text_norm`": `clauses[i].text` đúng là như vậy.
 
-**Công việc 9:** `src/models/sentiment/extract_clauses.py` đọc được file này, nhưng phải chạy với `--index-base 0` để `clause_idx` khớp contract (mặc định của script đếm từ 1).
+**Công việc 9 cũ** (`extract_clauses.py`, đã gỡ khỏi `main` 26/11) đọc được file này, nhưng phải chạy với `--index-base 0` để `clause_idx` khớp contract (mặc định của script đếm từ 1).
 
 ## 4. Notebook và code dùng chung
 

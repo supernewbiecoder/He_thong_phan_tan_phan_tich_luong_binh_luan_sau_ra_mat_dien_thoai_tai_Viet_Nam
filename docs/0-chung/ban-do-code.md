@@ -1,6 +1,6 @@
 # Bản đồ code: file nào để làm gì
 
-> Mục đích: Giải thích từng thư mục và file code để làm gì, đọc gì, ghi gì, khi nào phải sửa; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Giải thích từng thư mục và file code để làm gì, đọc gì, ghi gì, khi nào phải sửa; cập nhật lần cuối: 2026-11-26.
 
 **Đọc theo thứ tự này:** mục 1 để thấy dữ liệu đi qua những thư mục nào; mục 2 để tra một file cụ thể; mục 4 khi cần sửa một thứ mà không biết sửa ở đâu.
 
@@ -12,8 +12,8 @@ Tài liệu (docs) có mục lục riêng ở [docs/README.md](../README.md), k�
 |---|---|---|---|---|---|
 | 1. Thu thập | Tìm video trên các kênh trong config, cào bình luận | `src/ingest/` | YouTube API, `config/pipeline.yaml` | `src/ingest/data/raw/comments.jsonl` (v4), `videos.jsonl`, `state.db`, `models.json` | Chạy được |
 | 2. Tiền xử lý | Làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam | `src/processing/` | file raw của tầng 1 | `data/processed/comments.jsonl` + manifest | Chạy được (`processing-2.0`), chưa chạy trên v4 |
-| 3. Gán nhãn | Người gán theo guideline; LLM gán phần train | `src/models/sentiment/llm_label.py` | mệnh đề (guideline v0.3); từ 20/11 phải chuyển sang cả bình luận | `data/task9/` | Nhãn LLM có trên máy người làm Công việc 9; chưa có nhãn người |
-| 4. Suy luận, mô hình | Suy luận theo cả bình luận → `aspect_mentions`; huấn luyện mô hình khía cạnh, cảm xúc | `src/models/` | `data/processed/comments.jsonl`; dataset ngoài, nhãn LLM | `data/aspect_mentions.jsonl` (+ `.comments.jsonl`, manifest); `artifacts/`, `data/task9/model/` | Suy luận chạy được bằng luật mốc `rule-v1`, chưa đo. Mô hình mới đo trên dataset ngoài hoặc nhãn LLM |
+| 3. Gán nhãn | Lấy mẫu, xuất phiếu, so hai người gán, tính phân bố nhãn | `src/labeling/` | file raw của tầng 1; phiếu người gán | `data/kham-pha/` (ngoài git); báo cáo ở `docs/3-gan-nhan/` | Đã dùng cho khám phá nhãn; gán nhãn chính thức chưa bắt đầu |
+| 4. Suy luận, mô hình | Suy luận theo cả bình luận → `aspect_mentions` | `src/models/` | `data/processed/comments.jsonl` | `data/aspect_mentions.jsonl` (+ `.comments.jsonl`, manifest) | Chạy được bằng luật mốc `rule-v1`, chưa đo. Chưa có mô hình (kế hoạch tổng thể GĐ3) |
 | 5. Phân tích | Đếm khen/chê, khoảng tin cậy, kiểm định Q1–Q5 | `src/analysis/` | `data/aspect_mentions.jsonl`, `data/aspect_mentions.comments.jsonl` | `data/aggregates/` | Chạy được; `config/analysis.yaml` còn là bộ máy cũ |
 
 **Cả chuỗi 2 → 4 → 5** chạy bằng `python -m src.run` (file `src/run.py`), mỗi ngày một lần: [luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô).
@@ -77,21 +77,28 @@ Chạy từ `src/ingest/` bằng `python -m crawler.main <lệnh>`. Hướng d�
 | File | Để làm gì | Lưu ý |
 |---|---|---|
 | `run.py` | Bước suy luận theo cả bình luận: đọc file tầng 2, ghi `data/aspect_mentions.jsonl` (đúng contract v2), `aspect_mentions.comments.jsonl` (cho Công việc 12) và manifest; giữ `MODEL_VERSION` | Hiện dùng luật mốc `rule-v1`; thay từng phần bằng mô hình theo đặc tả mục 9 |
-| `aspect/keywords.py` | Bộ từ khóa 9 khía cạnh và hàm `khia_canh`; dùng chung với notebook `3_aspect_keywords` | Chuyển từ notebook 19/11; khác `rule_baseline.py` |
+| `aspect/keywords.py` | Bộ từ khóa 9 khía cạnh và hàm `khia_canh`; dùng chung với notebook `3_aspect_keywords` | Chuyển từ notebook 19/11. Phải sửa theo 11 khía cạnh của bộ nhãn chốt (kế hoạch tổng thể bước 0.6) |
 | `sentiment/rules.py` | Luật cảm xúc mốc: cụm khen/chê, phủ định, câu hỏi | Chưa đo trên nhãn người |
 | `target_model.py` | Nhận tên máy theo danh mục, xác định máy được nhắc cho từng nhận xét (xét cả bình luận, comment cha, máy của video), tính `days_since_launch` | Chưa nhận câu so sánh (`compare_with`) |
 | `owner_defect.py` | Luật mốc `is_owner`, `defect_type` cho Q5 | Không thấy dấu hiệu thì `null` |
 | `external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA (nhãn theo đoạn) về 9 khía cạnh; tạo trang duyệt nhãn `FEATURES`. Đọc dataset đặt cạnh repo, ghi `data/external/normalized/` | `FEATURES` chưa chốt |
-| `aspect/rule_baseline.py` | Công việc 8: luật từ khóa `rule-v0` cho 9 khía cạnh, chạy trên chữ bỏ dấu | Xếp nóng máy vào `HARDWARE_OTHER`, trái thiết kế dữ liệu (`PERFORMANCE`) |
-| `aspect/train.py` | Công việc 8: TF-IDF + Logistic Regression / LinearSVC đa nhãn, dò ngưỡng trên dev; ghi `artifacts/aspect_models/` | Đọc `data/uit_visd4sa/`, không khớp chỗ `external_absa.py` ghi ra; dữ liệu không có `SOFTWARE`. Báo cáo: [bao-cao-khia-canh.md](../4-mo-hinh/bao-cao-khia-canh.md) |
-| `sentiment/extract_clauses.py` | Công việc 9: lấy mệnh đề từ file đã xử lý ra `data/task9/clauses.jsonl` | Với file của tầng 2, chạy kèm `--index-base 0` |
-| `sentiment/llm_label.py` | Gán khía cạnh + cảm xúc bằng LLM theo [guideline](../3-gan-nhan/huong-dan-gan-nhan.md); lưu vết đủ prompt, model, SHA | Nhãn LLM chỉ để train, không làm test |
-| `sentiment/build_sentiment_dataset.py` | Làm phẳng nhãn LLM thành cặp (mệnh đề, khía cạnh, cảm xúc); chia train/val theo video | |
-| `sentiment/train_baseline.py` | TF-IDF + Logistic Regression cho cảm xúc; đường cong học | Đo trên nhãn LLM. Báo cáo: [bao-cao-cam-xuc.md](../4-mo-hinh/bao-cao-cam-xuc.md) |
-| `sentiment/review_sample.py`, `review_sentiment.py`, `eval_labels.py` | Xuất mẫu cho người kiểm tra nhãn, chấm lại; so hai bộ nhãn | |
-| `sentiment/make_report_figures.py` | Vẽ hình báo cáo cảm xúc vào `docs/4-mo-hinh/hinh-cam-xuc/` | |
 
-Hướng dẫn chạy phần cảm xúc: [huong-dan-cam-xuc.md](../4-mo-hinh/huong-dan-cam-xuc.md).
+Mô hình khía cạnh (Công việc 8) và toàn bộ phần cảm xúc dùng nhãn LLM (Công việc 9) đã gỡ khỏi `main` 26/11, còn ở nhánh `xhquan/cong-viec-8` và `kien/cong-viec-9`.
+
+### `src/labeling/`: tầng 3, lấy mẫu và đo nhãn
+
+Viết ở nhánh khám phá nhãn (22–26/11). Luật: [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md) mục 10. Chạy từ gốc repo bằng `python -m src.labeling.<tên>`. Đầu ra có chữ bình luận ghi vào `data/kham-pha/` (ngoài git).
+
+| File | Để làm gì |
+|---|---|
+| `stats.py` | Công thức: xác suất gặp nhãn hiếm, cỡ mẫu, khoảng Wilson, quy tắc ba, kappa, đồng ý dương, bootstrap theo cụm video |
+| `light_clean.py` | Làm sạch nhẹ chữ để hiện trên phiếu; che tên `@…`, `+Tên Họ` |
+| `sample.py` | Lấy mẫu ngẫu nhiên chia lô, mẫu có chủ đích, xuất phiếu; không ghi đè phiếu đã điền |
+| `hac.py` | HAC tiếng Việt: ứng viên khía cạnh trên cả bộ dữ liệu |
+| `code_stats.py`, `agreement.py`, `label_set.py` | Mã hóa mở: thống kê mã, đồng thuận hai người, gom mã thành bộ nhãn |
+| `lot_k.py` | So nhãn hai người gán mù (lô K, lô D2): đồng ý thô, kappa, đồng ý dương, phân xử. Dùng lại được cho gán nhãn chính thức |
+| `b7_labels.py`, `distribution.py` | Kiểm nhãn của người gán thứ nhất, tính phân bố nhãn kèm khoảng tin cậy |
+| `b8.py` | So ba nguồn, áp luật chốt bộ nhãn, bảng gộp nhãn khám phá → nhãn chốt (`GOP`) |
 
 ### `src/analysis/`: tầng 5, aggregates và Q1–Q5
 
@@ -123,8 +130,8 @@ Hướng dẫn: [docs/5-phan-tich/huong-dan.md](../5-phan-tich/huong-dan.md). Ch
 | `helpers.py` | Hàm dùng chung cho mọi notebook: tìm gốc repo, đường dẫn dữ liệu, đọc JSONL và manifest, đọc bộ 4 máy từ `config/analysis.yaml`, in bảng trước → sau |
 | `1_raw_audit.ipynb` | Tầng 1: kiểm tra dữ liệu gốc (Level 0); theo máy, tuần sau ra mắt, bộ 4 máy; kênh, loại video, video tặng quà, reply, like. Đọc file raw |
 | `2_1_clean.ipynb`, `2_2_normalize.ipynb`, `2_3_clauses.ipynb` | Tầng 2: từng bước làm sạch, chuẩn hóa, tách mệnh đề, trước → sau. Đọc `data/processed/comments.jsonl` và tự kiểm file khớp code |
+| `3_label_distribution.ipynb` | Tầng 3: biểu đồ phân bố nhãn của mẫu khám phá nhãn; đọc `data/kham-pha/phieu_b7.csv` |
 | `3_aspect_keywords.ipynb` | Khía cạnh theo từ khóa; bộ 4 máy × khía cạnh. Đọc file đã xử lý; bộ từ khóa lấy từ `src/models/aspect/keywords.py` |
-| `4_sentiment_report.ipynb` | Tầng 4: vẽ hình báo cáo cảm xúc từ `data/task9/model/metrics.json` |
 
 Notebook không ghi file nào. Cách chạy, thứ tự chạy: [hướng dẫn tầng 2 mục 2](../2-tien-xu-ly/huong-dan.md#2-notebook).
 
@@ -137,17 +144,13 @@ Chạy hết: `python -m pytest tests -q` (cần `pytest` và `src/analysis/requ
 | `test_processing.py` | Tầng 2: làm sạch, chuẩn hóa, từ điển, emoji, lệnh chạy (21 test) |
 | `test_processing_clauses.py` | Tầng 2: tách mệnh đề (11 test) |
 | `test_processing_flags.py` | Tầng 2: gắn cờ tiếng Việt và spam (7 test) |
+| `test_labeling.py` | Tầng 3: làm sạch nhẹ, che tên, công thức thống kê, chia lô, không ghi đè phiếu, đồng thuận, HAC, bộ nhãn, so lô K |
 | `test_models_run.py` | Bước suy luận: từng luật mốc, quy tắc gộp, đúng contract, chạy thông tới aggregates của Công việc 12 (13 test) |
 | `test_models_external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA |
 | `test_analysis_validation.py`, `test_analysis_aggregation.py`, `test_analysis_questions.py` + `fixtures/` | Công việc 12: kiểm tra đầu vào, đếm aggregates, khoảng tin cậy, Holm. `fixtures/` cũng là dữ liệu cho `--demo` |
 
 Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 
-### `artifacts/`
-
-| File | Nội dung |
-|---|---|
-| `aspect_models/aspect_f1_comparison.csv`, `.md` | Bảng F1 của Công việc 8. File model `.pkl` do `aspect/train.py` sinh ra, không đưa lên git |
 
 ## 3. Thư mục không vào git (`.gitignore`)
 
@@ -179,4 +182,4 @@ Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 | Sửa luật spam, nhận tiếng Việt | `src/processing/flags.py` + [dac-ta-gan-co.md](../2-tien-xu-ly/dac-ta-gan-co.md) + test | Tăng `PIPELINE_VERSION`, chạy lại cả chuỗi |
 | Sửa từ khóa khía cạnh, luật cảm xúc, luật nhận máy, luật Q5 | `src/models/aspect/keywords.py`, `sentiment/rules.py`, `target_model.py`, `owner_defect.py` + [dac-ta-suy-luan.md](../4-mo-hinh/dac-ta-suy-luan.md) + `tests/test_models_run.py` | Đổi `MODEL_VERSION` trong `src/models/run.py`, chạy lại `python -m src.run --tu suy_luan` |
 | Đổi bộ 4 máy cho phân tích | `config/analysis.yaml` | Chạy lại `python -m src.run --tu phan_tich` |
-| Đổi quy tắc gán nhãn | [huong-dan-gan-nhan.md](../3-gan-nhan/huong-dan-gan-nhan.md), tăng `guideline_version` ở đầu file | File này được nhúng vào prompt của `llm_label.py`: nhãn LLM gán bằng bản cũ phải gán lại |
+| Đổi định nghĩa nhãn hay cách gán | [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md) trước, rồi [hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), `src/labeling/label_set.py`, `tests/test_labeling.py` | Nhãn đã gán bằng bản cũ phải xem lại |

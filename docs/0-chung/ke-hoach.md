@@ -1,6 +1,13 @@
 # Kế hoạch dự án: tình hình, việc tiếp theo, yêu cầu từng công việc
 
-> Mục đích: Một chỗ duy nhất cho kế hoạch: tình hình hiện tại, việc làm tiếp, quyết định đang chờ, tiến độ và yêu cầu của 15 công việc, phân công, quy tắc làm việc; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Một chỗ duy nhất cho kế hoạch: tình hình hiện tại, việc làm tiếp, quyết định đang chờ, tiến độ và yêu cầu của 15 công việc, phân công, quy tắc làm việc; cập nhật lần cuối: 2026-11-26.
+
+**Cập nhật 26/11, sau nhánh `kham-pha-nhan`:**
+- Bộ nhãn đã chốt: [đặc tả bộ nhãn mục 8](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611); cách gán: [hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md).
+- Trưởng nhóm quyết **không chọn bộ 4 máy** (thay quyết định 5 ở mục 3).
+- Lộ trình mới cho cả dự án: [kế hoạch tổng thể](ke-hoach-tong-the.md) (đề xuất, chờ duyệt). Duyệt xong thì thay mục 2 dưới đây.
+- Đã gỡ khỏi `main`: mô hình và báo cáo cũ của Công việc 8, 9 (còn ở nhánh `xhquan/cong-viec-8`, `kien/cong-viec-9`), guideline v0.3 và guideline v1 nháp.
+- Quá trình khám phá nhãn: [kế hoạch nhánh](ke-hoach-kham-pha-nhan.md), [báo cáo quá trình](bao-cao-qua-trinh.md).
 
 **Cách đọc:**
 - Mỗi tuần đọc mục 1–3 (khoảng 5 phút).
@@ -18,7 +25,7 @@ Trạng thái lấy từ `main` trên máy trưởng nhóm ngày 20/11/2026 (đ�
   - bước 2.4 gắn cờ (`src/processing/flags.py`, tầng 2 lên `processing-2.0`);
   - bước suy luận bằng luật mốc `rule-v1` (`src/models/run.py`, [đặc tả](../4-mo-hinh/dac-ta-suy-luan.md)), ghi `aspect_mentions` đúng contract v2 và qua được bước kiểm của Công việc 12;
   - một lệnh chạy cả chuỗi `python -m src.run` ([luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô));
-  - tài liệu gán nhãn mới: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md) (mẫu A cho chất lượng dữ liệu, mẫu B cho tập test) và [nháp guideline v1 theo bình luận](../3-gan-nhan/huong-dan-gan-nhan-binh-luan.md);
+  - tài liệu gán nhãn mới: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md) (mẫu A cho chất lượng dữ liệu, mẫu B cho tập test) và nháp guideline v1 theo bình luận (đã gỡ khỏi `main` 26/11);
   - [AGENTS.md](../../AGENTS.md): luật bắt buộc cho trợ lý AI;
   - quy ước thống kê thêm phép kiểm sai số mô hình, độ nhạy và luật chọn mô hình ([muc-tieu.md mục 6](muc-tieu.md#6-quy-ước-dùng-chung-cho-mọi-câu)).
 
@@ -43,7 +50,7 @@ Làm theo thứ tự giai đoạn; trong một giai đoạn, các việc không 
 
 ### 2.2 Giai đoạn 1: dữ liệu và nhãn người
 
-Quy trình gán nhãn: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Cách gán từng bình luận: [guideline v1 (nháp)](../3-gan-nhan/huong-dan-gan-nhan-binh-luan.md).
+Quy trình gán nhãn: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Cách gán từng bình luận: guideline v1 (nháp) (đã gỡ khỏi `main` 26/11).
 
 | # | Việc | CV | Ai | Đầu ra | Xong khi | Nhãn |
 |---|---|---|---|---|---|---|
@@ -90,7 +97,7 @@ Quy trình gán nhãn: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Cách 
 | 1 | Cửa sổ trước ra mắt | Q1–Q5 dùng `[0, 28)` (CV12). Phần `-7` ngày: sửa crawler rồi crawl lại, hoặc bỏ khỏi thiết kế dữ liệu | Thiết kế dữ liệu, crawler |
 | 2 | Bình luận không nêu tên máy | Luật mốc `rule-v1` đang làm: mệnh đề → mệnh đề trước → cả bình luận → comment cha → máy của video → `null` ([đặc tả suy luận mục 5](../4-mo-hinh/dac-ta-suy-luan.md#5-máy-được-nhắc)). Giữ bước "máy của video", hay để `null` khi chỉ dựa vào video: chờ CV10 đo | Cỡ mẫu Q1–Q5, nhất là Q3, Q4 |
 | 3 | `author_name` trong dữ liệu chia sẻ | Bỏ khỏi file chia sẻ, hoặc sửa yêu cầu trong README | Contract `comment-event` v3, quyền riêng tư |
-| 4 | Baseline luật khía cạnh | Đề xuất lấy `rule-v1` (`src/models/aspect/keywords.py`) làm mốc chung; `rule-v0` của CV8 (`rule_baseline.py`) và của `seed_db` đổi tên | CV8, `seed_db`, CV12 |
+| 4 | Baseline luật khía cạnh | Đề xuất lấy `rule-v1` (`src/models/aspect/keywords.py`) làm mốc chung; `rule-v0` của CV8 (`rule_baseline.py`, đã gỡ khỏi `main` 26/11) và của `seed_db` đổi tên | CV8, `seed_db`, CV12 |
 | 5 | Bộ 4 máy chính thức | Chốt (CV2) | CV12 và mọi phân tích |
 | 6 | Nhãn `FEATURES` của dataset ngoài | Phần cứng / phần mềm / tùy ngữ cảnh / bỏ | CV5, CV8 |
 | 7 | Câu khen chê chung ("máy quá ngon") | Thêm nhãn cảm xúc chung, hay bỏ khỏi Q1 | Contract, Q1 |
@@ -111,15 +118,15 @@ Ký hiệu: ✅ đã có trên `main` · ⚠️ có nhưng còn vấn đề ph�
 
 | CV | Việc | Trạng thái | Đã có (ai, ở đâu) | Còn thiếu / vấn đề |
 |---|---|---|---|---|
-| 1 | Gán nhãn | ⚠️ | Guideline v0.3 [huong-dan-gan-nhan.md](../3-gan-nhan/huong-dan-gan-nhan.md) (Kiên), đã chỉnh qua 2 lần thử với Gemini | Guideline v0.3 gán theo mệnh đề: phải viết **v1 theo cả bình luận** (bản v0.3 giữ nguyên vì báo cáo CV9 ghi SHA). Chưa hiệu chỉnh cả nhóm. Chưa có tập test người gán, chưa có kappa |
+| 1 | Gán nhãn | ⚠️ | Guideline v0.3 huong-dan-gan-nhan.md (đã gỡ khỏi `main` 26/11) (Kiên), đã chỉnh qua 2 lần thử với Gemini | Guideline v0.3 gán theo mệnh đề: phải viết **v1 theo cả bình luận** (bản v0.3 giữ nguyên vì báo cáo CV9 ghi SHA). Chưa hiệu chỉnh cả nhóm. Chưa có tập test người gán, chưa có kappa |
 | 2 | Danh mục máy | ⚠️ | `config/pipeline.yaml` là đúng config đã dùng để crawl bản v4: 139 mã máy, 50 kênh; mọi máy trong dữ liệu đều có `launch_date` | Chưa ghi nguồn cho `launch_date`. Chưa có `predecessor`. 12 máy khai trong config nhưng không có dữ liệu. Bộ 4 máy chưa chốt |
 | 3 | DB | ⚠️ | MongoDB 7 collection, `src/storage/` (`init_db`, `seed_db`, `verify_db`), [đặc tả](../6-luu-tru/dac-ta.md) (Việt / davebui306, 07/11) | Theo contract **v1**, trong khi contract đã lên v2 (08/11). `seed_db.py` sinh dữ liệu giả (xem ghi chú dưới bảng), chỉ dùng được làm demo cho DB |
 | 4 | Contract | ✅ | `aspect-mention` v2 (08/11); `comment-event` v3 (11/11), khớp từng trường với crawler và dữ liệu v4 | `author_name` vẫn nằm trong dữ liệu và contract, trái README (quyết định 3) |
 | 5 | Dataset ngoài | ⚠️ | Chuẩn hóa UIT-ViSD4SA (có span) + test + trang duyệt `FEATURES`: `src/models/external_absa.py` (phudatdam, 09/11). Bỏ ViSFD vì không có span | Chờ nhóm duyệt 50 mẫu `FEATURES`. Yêu cầu CV5 ở mục 6 còn ghi ViSFD. Ghi ra `data/external/normalized/`, trong khi CV8 đọc `data/uit_visd4sa/` |
 | 6 | Tiền xử lý | ⚠️ | Tầng 2 cho v4 (`processing-2.0`): làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam (`src/processing/`), lệnh chạy ghi file + manifest, 39 test, [đặc tả](../2-tien-xu-ly/dac-ta.md) + 4 đặc tả con, [báo cáo](../2-tien-xu-ly/bao-cao.md) (trưởng nhóm, 16–20/11). Bản cũ `cleaner/` đã gỡ, còn ở commit `59e2d16` | Chưa chạy trên v4, chưa có file chung. Luật gắn cờ là mốc, chưa đo (CV11). 8 quyết định ở đặc tả tầng 2 mục 7 |
 | 7 | Khung đánh giá | ❌ | | Không có file chia tập chung hay `evaluate.py`. CV9 tự chia theo video, CV8 dùng tập test của dataset ngoài, nên điểm các mô hình không so được với nhau |
-| 8 | Mô hình khía cạnh | ⚠️ | TF-IDF + LinearSVC đa nhãn, `src/models/aspect/`, [báo cáo](../4-mo-hinh/bao-cao-khia-canh.md) (Nguyễn Xuân Hồng Quân, 11/11): macro-F1 0,71 trên tập test UIT-ViSD4SA | Đo trên đánh giá Thế Giới Di Động, chưa trên YouTube. Không bao giờ đoán `SOFTWARE`. Luật `rule-v0` xếp nóng máy vào `HARDWARE_OTHER`, trái thiết kế dữ liệu. Lệnh tái lập trong báo cáo không chạy; báo cáo tả bước dùng nhãn YouTube mà code không có. File model `.pkl` đã gỡ khỏi git (không nạp được theo hướng dẫn) |
-| 9 | Mô hình cảm xúc | ⚠️ | Nhãn LLM (Gemini/NVIDIA), tập train/val chia theo video, baseline TF-IDF + LR: `src/models/sentiment/`, [báo cáo](../4-mo-hinh/bao-cao-cam-xuc.md), [hướng dẫn](../4-mo-hinh/huong-dan-cam-xuc.md) (Kiên, 09/11) | Điểm mới đo trên nhãn LLM, dữ liệu cũ 225.968 dòng. Với file tầng 2 mới, `extract_clauses.py` phải chạy với `--index-base 0`. File nhãn chỉ có trên máy Kiên |
+| 8 | Mô hình khía cạnh | ⚠️ | TF-IDF + LinearSVC đa nhãn, `src/models/aspect/`, báo cáo (đã gỡ khỏi `main` 26/11) (Nguyễn Xuân Hồng Quân, 11/11): macro-F1 0,71 trên tập test UIT-ViSD4SA | Đo trên đánh giá Thế Giới Di Động, chưa trên YouTube. Không bao giờ đoán `SOFTWARE`. Luật `rule-v0` xếp nóng máy vào `HARDWARE_OTHER`, trái thiết kế dữ liệu. Lệnh tái lập trong báo cáo không chạy; báo cáo tả bước dùng nhãn YouTube mà code không có. File model `.pkl` đã gỡ khỏi git (không nạp được theo hướng dẫn) |
+| 9 | Mô hình cảm xúc | ⚠️ | Nhãn LLM (Gemini/NVIDIA), tập train/val chia theo video, baseline TF-IDF + LR: `src/models/sentiment/`, báo cáo (đã gỡ khỏi `main` 26/11), hướng dẫn (đã gỡ khỏi `main` 26/11) (Kiên, 09/11) | Điểm mới đo trên nhãn LLM, dữ liệu cũ 225.968 dòng. Với file tầng 2 mới, `extract_clauses.py` phải chạy với `--index-base 0`. File nhãn chỉ có trên máy Kiên |
 | 10 | Máy được nhắc | ⚠️ | Luật mốc `rule-v1`: nhận tên máy có chữ số theo `config/pipeline.yaml`, xét mệnh đề → mệnh đề trước → cả bình luận → comment cha → video (`src/models/target_model.py`, trưởng nhóm, 20/11) | Chưa đo. Chưa nhận câu so sánh (`compare_with` luôn `null`). Tên hãng trơn ("táo", "ss") không nhận |
 | 11 | Spam | ⚠️ | Luật mốc `src/processing/flags.py` (20/11): link, số điện thoại, mời liên hệ, cờ bạc; tách `is_vietnamese` riêng ([đặc tả](../2-tien-xu-ly/dac-ta-gan-co.md)). Bản của nhánh `nlquan` (Nguyễn Lê Quân, 28/10) đã gộp rồi gỡ khỏi `main` ngày 19/11: 500 "nhãn" do regex sinh ra, ba con số F1 mâu thuẫn, phụ thuộc `cleaner/` đã xóa. Còn trên nhánh `nlquan` | Đo luật mốc bằng nhãn mẫu A (lộ trình 1.6), rồi quyết giữ luật hay đổi |
 | 12 | Aggregates + Q1–Q5 | ✅ | `src/analysis/`: kiểm tra đầu vào, aggregates, Q1–Q5, bootstrap-t theo cụm video, Holm, 235 test + dữ liệu demo, [hướng dẫn](../5-phan-tich/huong-dan.md) (Hải Minh, 09/11). Từ 20/11 nhận đầu ra của bước suy luận qua `python -m src.run` (đã thử trên dữ liệu giả) | `config/analysis.yaml` vẫn là bộ máy cũ (S23U/S22U/iPhone 14 PM/Xiaomi 13U): phải đổi theo CV2 thì mới có mention để tính |
@@ -212,9 +219,9 @@ Mỗi công việc điền **Phụ trách** và **Hạn** trước khi bắt đ�
   - Chọn mẫu rải đều theo video và theo máy trong phạm vi.
   - **Tập test (~800 bình luận) bắt buộc do người gán**, mỗi bình luận 2 người độc lập, tính Cohen's kappa.
   - Thêm **mẫu A** (~850 bình luận từ dữ liệu chưa lọc) để ước lượng spam, không liên quan, ngoại ngữ và đo luật gắn cờ.
-  - Cách lấy hai mẫu, phiếu, đồng thuận, phân xử: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Nháp guideline v1: [huong-dan-gan-nhan-binh-luan.md](../3-gan-nhan/huong-dan-gan-nhan-binh-luan.md).
+  - Cách lấy hai mẫu, phiếu, đồng thuận, phân xử: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Nháp guideline v1: huong-dan-gan-nhan-binh-luan.md (đã gỡ khỏi `main` 26/11).
   - Được dùng AI hỗ trợ gán phần train, nhưng ghi `label_source = "llm"` và cho người kiểm tra lại ~200 mẫu để biết AI đúng bao nhiêu %. Không dùng nhãn AI làm test.
-- **Đầu ra:** `docs/3-gan-nhan/huong-dan-gan-nhan.md`, file nhãn đúng [thiết kế dữ liệu mục 7](thiet-ke-du-lieu.md#7-gold_labels), chỉ số kappa.
+- **Đầu ra:** hướng dẫn gán (từ 26/11: `docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md`), file nhãn đúng [thiết kế dữ liệu mục 7](thiet-ke-du-lieu.md#7-gold_labels), chỉ số kappa.
 - **Phụ thuộc:** 4, 6
 
 ### Công việc 2: Danh mục máy trong phạm vi

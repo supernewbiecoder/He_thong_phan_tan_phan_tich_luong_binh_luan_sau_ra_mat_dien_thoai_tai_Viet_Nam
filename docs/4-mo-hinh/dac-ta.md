@@ -1,6 +1,6 @@
 # Vòng đời mô hình học máy
 
-> Mục đích: Mô tả các nhiệm vụ ML, nguồn dữ liệu có nhãn, cách gán nhãn, huấn luyện, đánh giá và đưa mô hình vào aspect_mentions; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Mô tả các nhiệm vụ ML, nguồn dữ liệu có nhãn, cách gán nhãn, huấn luyện, đánh giá và đưa mô hình vào aspect_mentions; cập nhật lần cuối: 2026-11-26.
 
 ## 1. Các nhiệm vụ
 
@@ -90,7 +90,7 @@ Giới hạn:
 ## 4. Gán nhãn
 
 - **Đơn vị gán là cả bình luận.** Người gán ghi danh sách (máy, khía cạnh, cảm xúc), mỗi bộ kèm mệnh đề làm bằng chứng. Guideline phải lên **v1** theo đơn vị này. Bản v0.3 gán theo mệnh đề, giữ nguyên từng byte vì báo cáo Công việc 9 ghi SHA của nó.
-- **Guideline trước, gán sau.** Guideline (`docs/3-gan-nhan/huong-dan-gan-nhan.md`) có: định nghĩa từng khía cạnh và ví dụ biên, ví dụ `pos`/`neg`/`neu`, cách xử lý phủ định ("không lag chút nào" = khen), mỉa mai, so sánh 2 máy, reply (đọc `parent_text`), bình luận không có khía cạnh.
+- **Guideline trước, gán sau.** Guideline ([hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), định nghĩa nhãn ở [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md)) có: định nghĩa từng khía cạnh và ví dụ biên, ví dụ `pos`/`neg`/`neu`, cách xử lý phủ định ("không lag chút nào" = khen), mỉa mai, so sánh 2 máy, reply (đọc `parent_text`), bình luận không có khía cạnh.
 - **Hiệu chỉnh:** cả nhóm gán thử 50 bình luận giống nhau, so kết quả, sửa guideline, rồi mới gán thật. Ghi `guideline_version`.
 - **Chọn mẫu:** rải đều theo `video_id` và theo máy trong phạm vi; không lấy dồn vào vài video lớn.
 - **Tập test (~800 bình luận):** chỉ người gán; mỗi bình luận 2 người độc lập; tính **Cohen's kappa** cho khía cạnh và cảm xúc (mục tiêu ≥ 0,6). Bình luận lệch nhau do người thứ ba quyết định.

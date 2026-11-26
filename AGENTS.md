@@ -1,6 +1,6 @@
 # Quy tắc cho trợ lý AI làm việc trong repo
 
-> Mục đích: Luật bắt buộc cho mọi trợ lý AI (Claude Code, Codex, Cursor, Copilot, ChatGPT, Gemini…) khi đọc, sửa code, tài liệu hay dữ liệu của dự án; người trong nhóm cũng theo; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Luật bắt buộc cho mọi trợ lý AI (Claude Code, Codex, Cursor, Copilot, ChatGPT, Gemini…) khi đọc, sửa code, tài liệu hay dữ liệu của dự án; người trong nhóm cũng theo; cập nhật lần cuối: 2026-11-26.
 
 Claude Code đọc file này qua `CLAUDE.md`. Codex, Cursor, Copilot tự đọc `AGENTS.md`. Dùng ChatGPT hay Gemini trên web thì dán file này vào đầu cuộc trò chuyện.
 
@@ -18,7 +18,7 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 |---|---|---|---|---|
 | 1. Thu thập | `docs/1-thu-thap/dac-ta.md` | `src/ingest/` | | `SCHEMA_VERSION` (`crawler/schema.py`) |
 | 2. Tiền xử lý | `docs/2-tien-xu-ly/dac-ta*.md` | `src/processing/` | `tests/test_processing*.py` | `PIPELINE_VERSION` (`src/processing/__init__.py`) |
-| 3. Gán nhãn | `docs/3-gan-nhan/dac-ta.md`, guideline | (chưa có) | | `guideline_version` (đầu file guideline) |
+| 3. Gán nhãn | `docs/3-gan-nhan/dac-ta*.md` (bộ nhãn chốt ở `dac-ta-bo-nhan.md`), cách gán ở `huong-dan-gan-nhan-chinh-thuc.md` | `src/labeling/` | `tests/test_labeling.py` | ngày chốt ghi ở đầu `dac-ta-bo-nhan.md` |
 | 4. Suy luận, mô hình | `docs/4-mo-hinh/dac-ta*.md` | `src/models/` | `tests/test_models_*.py` | `MODEL_VERSION` (`src/models/run.py`) |
 | 5. Phân tích | `docs/0-chung/muc-tieu.md`, `docs/5-phan-tich/huong-dan.md` | `src/analysis/` | `tests/test_analysis_*.py` | `AGGREGATOR_VERSION`, `ANALYSIS_VERSION` |
 | Định dạng dữ liệu | `contracts/*.schema.json`, `docs/0-chung/thiet-ke-du-lieu.md` | | | `schema_version` |
@@ -32,7 +32,6 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 
 | Thứ | Vì sao |
 |---|---|
-| `docs/3-gan-nhan/huong-dan-gan-nhan.md` (guideline v0.3) | Báo cáo Công việc 9 ghi SHA-256 của nó; sửa một byte là báo cáo sai. Bản mới viết ở file khác |
 | `contracts/aspect-mention.schema.json`, `docs/0-chung/thiet-ke-du-lieu.md` | Trưởng nhóm chốt giữ nguyên (20/11). Cần đổi thì đề xuất, không tự sửa |
 | File raw `src/ingest/data/raw/*` | Dữ liệu gốc duy nhất. Mọi bước ghi ra file mới |
 | Báo cáo đã phát hành (`docs/*/bao-cao*.md`) của người khác | Là bản ghi lịch sử; muốn đính chính thì ghi chú, không sửa số |
@@ -58,7 +57,8 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 
 - Tập test chỉ chứa nhãn người (`label_source = "human"`), gán đôi, đã phân xử ([đặc tả gán nhãn](docs/3-gan-nhan/dac-ta.md)). Nhãn LLM và nhãn luật **không bao giờ** vào tập test.
 - Không huấn luyện trên bình luận thuộc video test (chia theo `video_id`).
-- Gán nhãn bằng LLM thì theo guideline hiện hành ([v1](docs/3-gan-nhan/huong-dan-gan-nhan-binh-luan.md)) và ghi `label_source = "llm"`, `annotator`, `guideline_version`.
+- Gán nhãn (người hay LLM) theo [bộ nhãn chốt](docs/3-gan-nhan/dac-ta-bo-nhan.md) và [hướng dẫn gán chính thức](docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md). Nhãn LLM ghi `label_source = "llm"`, `annotator`, phiên bản hướng dẫn.
+- Các từ *mã*, *nhãn*, *chiều*, *khía cạnh* dùng theo [bảng thuật ngữ](docs/3-gan-nhan/dac-ta-kham-pha-nhan.md#thuật-ngữ): mọi khía cạnh là nhãn của chiều 2, không phải nhãn nào cũng là khía cạnh.
 
 ## 6. Thiết kế đã chốt (không quay lại nếu chưa có quyết định mới)
 

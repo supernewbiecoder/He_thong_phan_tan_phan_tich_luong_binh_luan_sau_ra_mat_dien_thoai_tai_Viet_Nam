@@ -1,6 +1,6 @@
 # Hướng dẫn tầng 2: EDA, làm sạch, chuẩn hóa, tách mệnh đề
 
-> Mục đích: Từng bước chạy các notebook kiểm tra dữ liệu, chạy lệnh tầng 2 ra file cho các bước sau, kiểm tra kết quả, sửa từ điển hay luật, kèm các lỗi hay gặp; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Từng bước chạy các notebook kiểm tra dữ liệu, chạy lệnh tầng 2 ra file cho các bước sau, kiểm tra kết quả, sửa từ điển hay luật, kèm các lỗi hay gặp; cập nhật lần cuối: 2026-11-26.
 
 Luật: [đặc tả tầng 2](dac-ta.md) và 4 đặc tả con. Số liệu đã chạy: [báo cáo](bao-cao.md). Lệnh dưới đây viết cho **PowerShell trên Windows**, chạy từ **gốc repo**.
 
@@ -24,7 +24,6 @@ Mỗi bước một notebook trong `notebooks/`, đánh số theo tầng. Mở t
 | `2_2_normalize.ipynb` | Bước 2.2 chuẩn hóa: số bình luận mỗi bước sửa, ví dụ trước → sau từng bước N1–N7, token, emoji, từ vựng, viết tắt chưa có trong từ điển, kiểu dấu thanh | File đã xử lý |
 | `2_3_clauses.ipynb` | Bước 2.3 tách mệnh đề: số mệnh đề, độ dài, cắt ở đâu, từ nối, ví dụ, chỗ có thể bỏ sót | File đã xử lý |
 | `3_aspect_keywords.ipynb` | Khía cạnh theo từ khóa; bộ 4 máy × khía cạnh | File đã xử lý |
-| `4_sentiment_report.ipynb` | Hình cho báo cáo cảm xúc (Công việc 9) | Model cảm xúc, xem [hướng dẫn cảm xúc](../4-mo-hinh/huong-dan-cam-xuc.md) |
 
 **Thứ tự chạy:** `1_raw_audit` chạy được ngay. Các notebook `2_*`, `3_*` đọc file `data/processed/comments.jsonl`, nên phải chạy lệnh ở mục 3 trước. Chúng không tự xử lý lại cả bộ dữ liệu, chỉ đọc file rồi so sánh:
 - số đếm trên toàn bộ dữ liệu lấy từ manifest;
@@ -147,7 +146,7 @@ gan_co(s)                                     # {"is_vietnamese": True, "is_spam
 
 Trường nào dùng cho việc gì: [đặc tả mục 3](dac-ta.md#3-dùng-trường-nào-cho-việc-gì).
 
-**Công việc 9** (`src/models/sentiment/extract_clauses.py`) đọc được file này. Chạy với `--input data/processed/comments.jsonl --index-base 0` để `clause_idx` đếm từ 0 như contract.
+Script lấy mệnh đề của Công việc 9 cũ (`extract_clauses.py`) đã gỡ khỏi `main` 26/11; ai dùng lại thì chạy với `--index-base 0` để `clause_idx` đếm từ 0 như contract.
 
 ## 7. Lỗi hay gặp
 
