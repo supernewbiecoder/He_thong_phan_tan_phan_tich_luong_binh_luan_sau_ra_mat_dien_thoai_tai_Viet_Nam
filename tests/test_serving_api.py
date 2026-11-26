@@ -1,6 +1,6 @@
-"""Kiểm thử Công việc 13: API cho dashboard, script nạp DB và bộ sinh số liệu minh họa.
+"""Mục đích: Kiểm API dashboard (src/serving) và script nạp DB (src/storage/load_db.py) theo contract aspect-mention v3; cập nhật lần cuối: 2026-11-26.
 
-Chạy từ thư mục gốc repo:  python -m pytest tests/test_serving_dashboard.py -q
+Chạy từ thư mục gốc repo:  python -m pytest tests/test_serving_api.py -q
 Dùng mongomock nên không cần MongoDB. Đặt biến môi trường TEST_MONGO_URI (vd
 mongodb://localhost:27017) để chạy lại đúng các test này trên MongoDB thật.
 """
@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 from jsonschema import Draft7Validator
 from pymongo.errors import ServerSelectionTimeoutError
 
-from src.serving import demo_data, load_db
+from src.storage import load_db
 from src.serving.api.app import create_app
 from src.serving.api.metrics import add_counts, same_counts, summarize
 from src.serving.api.settings import ASPECTS, REPO_ROOT, Settings
@@ -28,21 +28,25 @@ SETTINGS = Settings(cache_seconds=0)
 def agg(target, aspect, week, video, pos, neg, neu, version=VERSION):
     row = {"target_model": target, "aspect": aspect, "week_since_launch": week, "video_id": video,
            "source": "youtube", "model_version": version, "n_pos": pos, "n_neg": neg, "n_neu": neu}
-    return {**row, "agg_id": load_db.aggregate_id(row), "n_total": pos + neg + neu,
+    return {**row, "n_cmp": 0, "agg_id": load_db.aggregate_id(row), "n_total": pos + neg + neu,
             "updated_at": "2026-11-10T00:00:00+00:00"}
 
 
 def mention(mention_id, target, aspect, sentiment, days, *, source="model", creator=False, owner=None,
-            defect=None, compare_with=None, winner=None, confidence=0.9, version=VERSION):
+            compare_with=None, winner=None, confidence=0.9, version=VERSION):
     comment_id = mention_id.split("#")[0]
+    sentiment = {"pos": "tich_cuc", "neg": "tieu_cuc", "neu": "khong_danh_gia"}.get(sentiment, sentiment)
+    if compare_with:
+        sentiment = "so_sanh"   # contract v3: có máy so sánh thì thái độ là so_sanh
     return {
         "mention_id": f"{comment_id}#0#{aspect}", "comment_id": comment_id, "parent_id": None,
         "clause_idx": 0, "clause_text": f"mệnh đề {mention_id}", "source": "youtube", "video_id": "v1",
         "video_model": target or "x1", "target_model": target, "author_hash": "a" * 64,
         "author_is_creator": creator, "aspect": aspect, "sentiment": sentiment,
-        "confidence": None if source == "human" else confidence, "is_owner": owner, "defect_type": defect,
+        "confidence": None if source == "human" else confidence, "is_owner": owner, "purposes": None,
+        "model_mention": None, "target_model_source": None, "defect_type": None,
         "compare_with": compare_with, "compare_winner": winner, "published_at": "2023-02-10T03:15:00Z",
-        "days_since_launch": days, "label_source": source, "model_version": version, "schema_version": 2,
+        "days_since_launch": days, "label_source": source, "model_version": version, "schema_version": 3,
     }
 
 
@@ -58,27 +62,27 @@ MODELS = [
 ]
 AGGREGATES = [
     # X: camera tuần 1 ở hai video, pin tuần 2, và một dòng tuần 0 (trước ra mắt, ngoài cửa sổ).
-    agg("x1", "CAMERA", 1, "v1", 30, 10, 5), agg("x1", "CAMERA", 1, "v2", 10, 10, 0),
-    agg("x1", "BATTERY", 2, "v1", 5, 15, 2), agg("x1", "CAMERA", 0, "v1", 99, 0, 0),
-    agg("p1", "CAMERA", 1, "v3", 20, 20, 0), agg("p1", "BATTERY", 1, "v3", 30, 10, 0),
-    agg("r1", "CAMERA", 1, "v4", 45, 5, 0), agg("r2", "CAMERA", 1, "v5", 1, 1, 0),
+    agg("x1", "camera", 1, "v1", 30, 10, 5), agg("x1", "camera", 1, "v2", 10, 10, 0),
+    agg("x1", "pin_sac", 2, "v1", 5, 15, 2), agg("x1", "camera", 0, "v1", 99, 0, 0),
+    agg("p1", "camera", 1, "v3", 20, 20, 0), agg("p1", "pin_sac", 1, "v3", 30, 10, 0),
+    agg("r1", "camera", 1, "v4", 45, 5, 0), agg("r2", "camera", 1, "v5", 1, 1, 0),
     # Phiên bản nhãn khác không được lẫn vào.
-    agg("x1", "CAMERA", 1, "v1", 500, 500, 0, version="other-v9"),
+    agg("x1", "camera", 1, "v1", 500, 500, 0, version="other-v9"),
 ]
 MENTIONS = [
-    mention("c1", "x1", "CAMERA", "neg", 3, confidence=0.95),
-    mention("c2", "x1", "CAMERA", "neg", 4, confidence=0.60),
-    mention("c3", "x1", "CAMERA", "pos", 5, confidence=0.80),
-    mention("c4", "x1", "CAMERA", "neg", 2, creator=True, confidence=0.99),       # chủ kênh: bỏ
-    mention("c5", "x1", "CAMERA", "neg", 40, confidence=0.99),                    # ngoài 4 tuần: bỏ
-    mention("c6", "x1", "BATTERY", "neg", 8, owner=True, defect="BATTERY_DRAIN"),
-    mention("c7", "x1", "BATTERY", "neg", 9, owner=True, defect="BATTERY_DRAIN"),
-    mention("c8", "x1", "BATTERY", "neg", 1, owner=None, defect="BATTERY_DRAIN"),  # không rõ đã dùng: bỏ
-    mention("c9", "x1", "PERFORMANCE", "neg", 10, owner=True, defect="OVERHEAT", creator=True),  # chủ kênh: bỏ
-    mention("d1", "x1", "CAMERA", "pos", 3, compare_with="r1", winner="target"),   # X thắng
-    mention("d2", "r1", "CAMERA", "pos", 3, compare_with="x1", winner="target"),   # viết từ phía R1: X thua
-    mention("d3", "x1", "CAMERA", "neu", 3, compare_with="r1", winner="tie"),
-    mention("d4", "x1", "CAMERA", "pos", 3, compare_with="zz", winner="target"),   # máy ngoài phạm vi: bỏ
+    mention("c1", "x1", "camera", "neg", 3, confidence=0.95),
+    mention("c2", "x1", "camera", "neg", 4, confidence=0.60),
+    mention("c3", "x1", "camera", "pos", 5, confidence=0.80),
+    mention("c4", "x1", "camera", "neg", 2, creator=True, confidence=0.99),       # chủ kênh: bỏ
+    mention("c5", "x1", "camera", "neg", 40, confidence=0.99),                    # ngoài 4 tuần: bỏ
+    mention("c6", "x1", "pin_sac", "neg", 8, owner=True),
+    mention("c7", "x1", "pin_sac", "neg", 9, owner=True),
+    mention("c8", "x1", "pin_sac", "neg", 1, owner=None),  # không rõ đã dùng: bỏ
+    mention("c9", "x1", "hieu_nang", "neg", 10, owner=True, creator=True),  # chủ kênh: bỏ
+    mention("d1", "x1", "camera", "pos", 3, compare_with="r1", winner="target"),   # X thắng
+    mention("d2", "r1", "camera", "pos", 3, compare_with="x1", winner="target"),   # viết từ phía R1: X thua
+    mention("d3", "x1", "camera", "neu", 3, compare_with="r1", winner="tie"),
+    mention("d4", "x1", "camera", "pos", 3, compare_with="zz", winner="target"),   # máy ngoài phạm vi: bỏ
 ]
 
 
@@ -98,17 +102,17 @@ def analysis_document(overall_x=(45, 35, 7), can_publish=True, data_kind="provid
                    "expected_model_version": VERSION},
         "answers": {"Q1": {"status": "ok"}},
         "q1": {"overall": overall, "weekly": [], "tests": [test]},
-        "q2": [{"aspect": "BATTERY", "test_id": "Q2/BATTERY", "estimate": 31.25, "p_adjusted": 0.01,
+        "q2": [{"aspect": "pin_sac", "test_id": "Q2/pin_sac", "estimate": 31.25, "p_adjusted": 0.01,
                 "significant": True, "conclusion": "Nhược điểm tương đối", "conclusion_allowed": can_publish,
                 "status": "ok"}],
-        "q3a": {"matrix": [{"aspect": "CAMERA", "target_model": "x1", "n_pos": 40, "n_neg": 20, "n_neu": 5,
+        "q3a": {"matrix": [{"aspect": "camera", "target_model": "x1", "n_pos": 40, "n_neg": 20, "n_neu": 5,
                             "praise_ci95": [55.0, 75.0]}], "omnibus": [], "pairwise": []},
-        "q3b": [{"aspect": "CAMERA", "n_x_win": 1, "n_x_loss": 1, "n_tie": 1, "win_ci95": [10.0, 90.0],
-                 "test_id": "Q3b/CAMERA", "significant": False, "conclusion": "chưa phân định", "status": "ok"}],
-        "q4": [{"aspect": "CAMERA", "test_id": "Q4/CAMERA", "p_adjusted": 0.2, "significant": False,
+        "q3b": [{"aspect": "camera", "n_x_win": 1, "n_x_loss": 1, "n_tie": 1, "win_ci95": [10.0, 90.0],
+                 "test_id": "Q3b/camera", "significant": False, "conclusion": "chưa phân định", "status": "ok"}],
+        "q4": [{"aspect": "camera", "test_id": "Q4/camera", "p_adjusted": 0.2, "significant": False,
                 "conclusion": "Chưa đủ bằng chứng", "conclusion_allowed": False, "status": "ok"}],
-        "q5": [{"defect_type": "BATTERY_DRAIN", "n_defect": 2, "priority": None, "priority_candidate": "P3",
-                "trend": "not_testable", "test_id": "Q5/BATTERY_DRAIN", "status": "insufficient_data"}],
+        "q5": [{"aspect": "pin_sac", "n_defect": 2, "priority": None, "priority_candidate": "P3",
+                "trend": "not_testable", "test_id": "Q5/pin_sac", "status": "insufficient_data"}],
     }
     return {"analysis_id": f"x1|{VERSION}", "target_model": "x1", "model_version": VERSION,
             "loaded_at": "2026-11-11T00:00:00+00:00", "result": result}
@@ -118,9 +122,9 @@ COMMENTS = [
     {"comment_id": "k1", "video_id": "v1", "parent_id": None, "model": "x1", "is_spam": False,
      "is_vietnamese": True, "spam_reasons": [], "published_at": "2023-02-10T18:30:00Z"},   # 01:30 giờ VN
     {"comment_id": "k2", "video_id": "v1", "parent_id": "k1", "model": "x1", "is_spam": True,
-     "is_vietnamese": True, "spam_reasons": ["contains_url"], "published_at": "2023-02-10T03:15:00Z"},
+     "is_vietnamese": True, "spam_reasons": ["lien_ket"], "published_at": "2023-02-10T03:15:00Z"},
     {"comment_id": "k3", "video_id": "v2", "parent_id": None, "model": "r1|x1", "is_spam": True,
-     "is_vietnamese": False, "spam_reasons": ["non_vietnamese_language"], "published_at": "2023-02-11T03:59:00Z"},
+     "is_vietnamese": False, "spam_reasons": [], "published_at": "2023-02-11T03:59:00Z"},
 ]
 
 
@@ -184,7 +188,7 @@ def test_low_data_threshold_is_thirty_opinionated_mentions():
 
 def test_counts_are_added_before_dividing():
     total = add_counts([{"n_pos": 75, "n_neg": 25, "n_neu": 0}, {"n_pos": 5, "n_neg": 5, "n_neu": 3}])
-    assert total == {"n_pos": 80, "n_neg": 30, "n_neu": 3}
+    assert total == {"n_pos": 80, "n_neg": 30, "n_neu": 3, "n_cmp": 0}
     # Trung bình hai tỷ lệ (75% và 50%) sẽ ra 62,5%: sai. Cộng tử và mẫu ra 72,7%.
     assert summarize(**total)["praise_pct"] == pytest.approx(100 * 80 / 110)
     assert same_counts(total, {"n_pos": 80, "n_neg": 30, "n_neu": 3, "extra": 1})
@@ -243,7 +247,7 @@ def test_inference_from_cv12_is_attached_when_counts_match(seeded):
     x = data["q1"]["overall"][0]
     assert x["praise_ci95"] == [50.0, 60.0] and x["net_ci95"] == [1.0, 20.0]
     assert data["q1"]["tests"][0]["conclusion"] == "X kém hơn đời trước"
-    battery = next(a for a in data["q2"]["aspects"] if a["aspect"] == "BATTERY")
+    battery = next(a for a in data["q2"]["aspects"] if a["aspect"] == "pin_sac")
     assert battery["test"]["conclusion"] == "Nhược điểm tương đối"
 
 
@@ -299,7 +303,7 @@ def test_q2_is_sorted_by_net_and_gap_uses_the_same_criticism_definition(seeded):
     q2 = get(seeded, "launch")["q2"]
     assert q2["overall"]["criticism_pct"] == pytest.approx(43.75)
     with_data = [a for a in q2["aspects"] if a["net"] is not None]
-    assert [a["aspect"] for a in with_data] == ["CAMERA", "BATTERY"]
+    assert [a["aspect"] for a in with_data] == ["camera", "pin_sac"]
     battery = with_data[1]
     assert battery["criticism_pct"] == pytest.approx(75.0)
     assert battery["criticism_gap_vs_overall"] == pytest.approx(75.0 - 43.75)
@@ -308,13 +312,13 @@ def test_q2_is_sorted_by_net_and_gap_uses_the_same_criticism_definition(seeded):
 
 
 def test_sample_comments_skip_creator_and_out_of_window_and_need_review(seeded):
-    camera = next(a for a in get(seeded, "launch")["q2"]["aspects"] if a["aspect"] == "CAMERA")
-    negatives = [s for s in camera["samples"] if s["sentiment"] == "neg"]
+    camera = next(a for a in get(seeded, "launch")["q2"]["aspects"] if a["aspect"] == "camera")
+    negatives = [s for s in camera["samples"] if s["sentiment"] == "tieu_cuc"]
     # c4 (chủ kênh) và c5 (ngày 40) có confidence cao nhất nhưng không được lấy.
     assert [s["clause_text"] for s in negatives] == ["mệnh đề c1", "mệnh đề c2"]
     assert all(s["requires_human_review"] for s in camera["samples"])
     seeded.aspect_mentions.update_many({}, {"$set": {"label_source": "human", "confidence": None}})
-    reviewed = next(a for a in get(seeded, "launch")["q2"]["aspects"] if a["aspect"] == "CAMERA")
+    reviewed = next(a for a in get(seeded, "launch")["q2"]["aspects"] if a["aspect"] == "camera")
     assert not any(s["requires_human_review"] for s in reviewed["samples"])
 
 
@@ -322,23 +326,23 @@ def test_q5_counts_only_owner_reported_defects_and_uses_all_mentions_as_denomina
     q5 = get(seeded, "launch")["q5"]
     assert q5["n_owner_defect_mentions"] == 2 and q5["n_target_mentions"] == 87
     drain = q5["defects"][0]
-    assert drain["defect_type"] == "BATTERY_DRAIN" and drain["n_defect"] == 2
+    assert drain["aspect"] == "pin_sac" and drain["n_defect"] == 2
     week2 = drain["weekly"][1]
     assert (week2["n_defect"], week2["n_denominator"]) == (2, 22)
     assert week2["defect_mention_pct"] == pytest.approx(100 * 2 / 22)
     assert drain["weekly"][2]["defect_mention_pct"] is None      # tuần 3 không có mention nào
     assert drain["priority"] is None and drain["priority_candidate"] == "P3"
     assert drain["count_differs_from_analysis"] is False
-    overheat = next(d for d in q5["defects"] if d["defect_type"] == "OVERHEAT")
+    overheat = next(d for d in q5["defects"] if d["aspect"] == "hieu_nang")
     assert overheat["n_defect"] == 0                              # mention của chủ kênh không tính
 
 
 def test_alerts_are_read_from_the_collection_with_sample_text(seeded):
     assert get(seeded, "launch")["alerts"] == []
     seeded.alerts.insert_one({"alert_id": "a1", "created_at": "2023-02-12T00:00:00Z", "target_model": "x1",
-                              "aspect": "BATTERY", "metric": "criticism_pct", "value": 75.0, "baseline": 25.0,
+                              "aspect": "pin_sac", "metric": "criticism_pct", "value": 75.0, "baseline": 25.0,
                               "threshold": 20.0, "severity": "high",
-                              "sample_mention_ids": ["c6#0#BATTERY", "khong-co"]})
+                              "sample_mention_ids": ["c6#0#pin_sac", "khong-co"]})
     alert = get(seeded, "launch")["alerts"][0]
     assert alert["aspect_name"] == "Pin & sạc" and alert["severity"] == "high"
     assert [s["clause_text"] for s in alert["samples"]] == ["mệnh đề c6"]
@@ -349,15 +353,15 @@ def test_alerts_are_read_from_the_collection_with_sample_text(seeded):
 def test_q3a_matrix_has_every_aspect_and_model_with_counts_from_aggregates(seeded):
     matrix = {row["aspect"]: row for row in get(seeded, "compare")["q3a"]["matrix"]}
     assert list(matrix) == list(ASPECTS)
-    camera = {cell["model_id"]: cell for cell in matrix["CAMERA"]["cells"]}
+    camera = {cell["model_id"]: cell for cell in matrix["camera"]["cells"]}
     assert camera["x1"]["praise_pct"] == pytest.approx(100 * 40 / 60)
     assert camera["x1"]["praise_ci95"] == [55.0, 75.0]
     assert camera["r1"]["praise_pct"] == pytest.approx(90.0) and camera["r2"]["low_data"] is True
-    assert matrix["PRICE"]["cells"][0]["praise_pct"] is None
+    assert matrix["gia"]["cells"][0]["praise_pct"] is None
 
 
 def test_q3b_flips_mentions_written_from_the_rival_side_and_ignores_outside_models(seeded):
-    camera = next(row for row in get(seeded, "compare")["q3b"] if row["aspect"] == "CAMERA")
+    camera = next(row for row in get(seeded, "compare")["q3b"] if row["aspect"] == "camera")
     assert (camera["n_x_win"], camera["n_x_loss"], camera["n_tie"]) == (1, 1, 1)
     assert camera["win_pct"] == pytest.approx(50.0) and camera["low_data"] is True
     assert camera["win_ci95"] == [10.0, 90.0] and camera["count_differs_from_analysis"] is False
@@ -365,7 +369,7 @@ def test_q3b_flips_mentions_written_from_the_rival_side_and_ignores_outside_mode
     document = analysis_document()
     document["result"]["q3b"][0]["n_x_win"] = 7
     seeded.analysis_results.replace_one({}, document)
-    mismatched = next(row for row in get(seeded, "compare")["q3b"] if row["aspect"] == "CAMERA")
+    mismatched = next(row for row in get(seeded, "compare")["q3b"] if row["aspect"] == "camera")
     assert mismatched["test"] is None and mismatched["count_differs_from_analysis"] is True
 
 
@@ -373,11 +377,11 @@ def test_q4_reports_change_in_criticism_from_predecessor_to_target(seeded):
     q4 = get(seeded, "compare")["q4"]
     rows = {row["aspect"]: row for row in q4["aspects"]}
     assert q4["predecessor"] == "p1"
-    assert rows["CAMERA"]["predecessor"]["criticism_pct"] == pytest.approx(50.0)
-    assert rows["CAMERA"]["current"]["criticism_pct"] == pytest.approx(100 * 20 / 60)
-    assert rows["CAMERA"]["criticism_change"] == pytest.approx(100 * 20 / 60 - 50.0)
-    assert rows["CAMERA"]["test"]["conclusion"] == "Chưa đủ bằng chứng"
-    assert rows["PRICE"]["criticism_change"] is None
+    assert rows["camera"]["predecessor"]["criticism_pct"] == pytest.approx(50.0)
+    assert rows["camera"]["current"]["criticism_pct"] == pytest.approx(100 * 20 / 60)
+    assert rows["camera"]["criticism_change"] == pytest.approx(100 * 20 / 60 - 50.0)
+    assert rows["camera"]["test"]["conclusion"] == "Chưa đủ bằng chứng"
+    assert rows["gia"]["criticism_change"] is None
 
 
 def test_q4_is_empty_when_no_predecessor_is_known(seeded):
@@ -397,7 +401,7 @@ def test_system_reports_real_counts_and_does_not_invent_streaming_metrics(seeded
     assert system["collections"]["comments"] == 3 and system["collections"]["aggregates"] == len(AGGREGATES)
     assert system["comments"]["spam"] == 2 and system["comments"]["not_vietnamese"] == 1
     assert system["comments"]["usable"] == 1
-    assert system["comments"]["spam_reasons"] == {"contains_url": 1, "non_vietnamese_language": 1}
+    assert system["comments"]["spam_reasons"] == {"lien_ket": 1}
     assert system["streaming"]["deployed"] is False
     assert not any(key in system["streaming"] for key in ("throughput", "consumer_lag", "latency"))
     assert system["api"]["n_requests_measured"] == 1 and system["api"]["latency_ms_p50"] >= 0
@@ -472,7 +476,7 @@ def test_loading_aggregates_twice_does_not_double_count_and_drops_stale_rows(db,
     load_db.load_aggregates(db, path)
     assert db.aggregates.count_documents({}) == 3
     assert sum(doc["n_pos"] for doc in db.aggregates.find()) == 45
-    # Lần chạy mô hình sau không còn dòng BATTERY: dòng cũ phải biến mất, phiên bản khác giữ nguyên.
+    # Lần chạy mô hình sau không còn dòng pin_sac: dòng cũ phải biến mất, phiên bản khác giữ nguyên.
     db.aggregates.insert_one(dict(AGGREGATES[-1]))
     load_db.load_aggregates(db, write_jsonl(path, rows[:2]))
     assert db.aggregates.count_documents({"model_version": VERSION}) == 2
@@ -529,77 +533,6 @@ def test_loaded_files_can_be_served_end_to_end(db, tmp_path):
     assert data["q1"]["overall"][0]["net"] == pytest.approx(12.5)
 
 
-# ---------------------------------------------------------------- số liệu minh họa
-
-@pytest.mark.parametrize("text, expected", [
-    ("pin trâu dùng thích", "pos"), ("máy lag quá", "neg"), ("không lag chút nào", "pos"),
-    ("camera không đẹp", "neg"), ("giá bao nhiêu vậy", "neu"),
-])
-def test_demo_sentiment_handles_negation(text, expected):
-    assert demo_data.sentiment_of(text) == expected
-
-
-def demo_comment(comment_id, text, published_at="2023-02-10T03:15:00Z", model="s23u", **extra):
-    return {"comment_id": comment_id, "video_id": "vid", "parent_id": None, "model": model, "source": "youtube",
-            "author_hash": "b" * 64, "published_at": published_at, "is_spam": False, "is_vietnamese": True,
-            "clauses": [{"clause_id": 1, "text": text}], **extra}
-
-
-CATALOG = [{"model_id": "s23u", "title": "Samsung Galaxy S23 Ultra", "launch_date": "2023-02-02",
-            "aliases": ["S23 Ultra"]},
-           {"model_id": "ip14prm", "title": "iPhone 14 Pro Max", "launch_date": "2022-09-16",
-            "aliases": ["14 pro max"]}]
-
-
-def test_demo_mentions_follow_the_contract_and_are_labelled_as_rule_output():
-    comments = [
-        demo_comment("c1", "mình đang dùng pin tụt nhanh quá"),
-        demo_comment("c2", "camera đẹp hơn iphone 14 pro max"),
-        demo_comment("c3", "pin ổn", model="s23u|ip14prm"),
-        demo_comment("c4", "pin tệ", is_spam=True),
-        demo_comment("c5", "hello"),
-    ]
-    mentions = list(demo_data.build_mentions(comments, CATALOG))
-    validator = Draft7Validator(json.loads(
-        (REPO_ROOT / "contracts" / "aspect-mention.schema.json").read_text(encoding="utf-8")))
-    for item in mentions:
-        assert not list(validator.iter_errors(item)), item
-        assert item["label_source"] == "rule" and item["model_version"] == demo_data.MODEL_VERSION
-    by_id = {m["mention_id"]: m for m in mentions}
-    assert set(by_id) == {"c1#0#BATTERY", "c2#0#CAMERA", "c2#0#DESIGN", "c3#0#BATTERY"}
-    drain = by_id["c1#0#BATTERY"]
-    assert (drain["sentiment"], drain["is_owner"], drain["defect_type"]) == ("neg", True, "BATTERY_DRAIN")
-    assert drain["days_since_launch"] == 8
-    duel = by_id["c2#0#CAMERA"]
-    assert (duel["compare_with"], duel["compare_winner"]) == ("ip14prm", "target")
-    multi = by_id["c3#0#BATTERY"]
-    assert multi["target_model"] is None and multi["days_since_launch"] is None
-
-
-def test_days_since_launch_uses_the_vietnam_calendar_day():
-    from datetime import date
-    launch = date(2023, 2, 2)
-    assert demo_data.days_since_launch("2023-02-01T17:30:00Z", launch) == 0     # 00:30 ngày 2/2 giờ VN
-    assert demo_data.days_since_launch("2023-02-01T16:59:00Z", launch) == -1    # 23:59 ngày 1/2 giờ VN
-
-
-def test_demo_aggregates_keep_only_the_first_four_weeks_and_store_counts():
-    def row(mention_id, sentiment, days, creator=False, target="s23u"):
-        return {"target_model": target, "aspect": "BATTERY", "sentiment": sentiment, "days_since_launch": days,
-                "author_is_creator": creator, "video_id": "vid", "source": "youtube",
-                "model_version": demo_data.MODEL_VERSION, "mention_id": mention_id}
-    rows = demo_data.build_aggregates([
-        row("a", "pos", 0), row("b", "neg", 6), row("c", "neu", 7), row("d", "pos", 27),
-        row("e", "pos", 28), row("f", "pos", -1), row("g", "pos", 3, creator=True),
-        {**row("h", "pos", None, target=None)},
-    ], "2026-11-17T00:00:00+00:00")
-    weeks = {r["week_since_launch"]: (r["n_pos"], r["n_neg"], r["n_neu"]) for r in rows}
-    assert weeks == {1: (1, 1, 0), 2: (0, 0, 1), 4: (1, 0, 0)}
-    assert all(r["agg_id"] == load_db.aggregate_id(r) and r["n_total"] == sum(weeks[r["week_since_launch"]])
-               for r in rows)
-    assert not any("pct" in key for r in rows for key in r)
-
-
 # ---------------------------------------------------------------- sau lượt review độc lập
 
 SCHEMA = REPO_ROOT / "contracts" / "aspect-mention.schema.json"
@@ -627,8 +560,8 @@ def test_loading_a_file_for_some_models_keeps_other_models_of_the_same_version(d
     strip = lambda rows: [{k: v for k, v in row.items() if k != "agg_id"} for row in rows]
     everything = [row for row in AGGREGATES if row["model_version"] == VERSION]
     load_db.load_aggregates(db, write_jsonl(tmp_path / "all.jsonl", strip(everything)))
-    # File sau chỉ có máy X và không còn dòng BATTERY của X.
-    only_x = [row for row in everything if row["target_model"] == "x1" and row["aspect"] == "CAMERA"]
+    # File sau chỉ có máy X và không còn dòng pin_sac của X.
+    only_x = [row for row in everything if row["target_model"] == "x1" and row["aspect"] == "camera"]
     message = load_db.load_aggregates(db, write_jsonl(tmp_path / "x.jsonl", strip(only_x)))
     assert "xóa 1 dòng cũ" in message
     assert db.aggregates.count_documents({"target_model": "x1"}) == len(only_x)
@@ -706,7 +639,7 @@ def test_mention_without_label_source_is_counted_as_unknown_and_flagged(seeded):
 
 
 def test_incomplete_aggregate_rows_do_not_break_the_api(seeded):
-    seeded.aggregates.insert_one({"agg_id": "thieu", "target_model": "x1", "aspect": "CAMERA",
+    seeded.aggregates.insert_one({"agg_id": "thieu", "target_model": "x1", "aspect": "camera",
                                   "week_since_launch": 9, "video_id": "v1", "source": "youtube",
                                   "model_version": VERSION, "n_pos": 3})
     data = get(seeded, "launch")

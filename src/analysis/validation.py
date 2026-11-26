@@ -21,8 +21,10 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "contracts" / "aspect-mention.schema.json"
-MENTION_SCHEMA_VERSION = 2
-VALIDATOR_VERSION = "cv12-validation-v3-contract2"
+from src.labeling.final_labels import NEGATIVE
+
+MENTION_SCHEMA_VERSION = 3
+VALIDATOR_VERSION = "cv12-validation-v4-contract3"
 FORMATS = FormatChecker()
 
 
@@ -225,7 +227,7 @@ def load_schema_validator(path: Path = SCHEMA_PATH) -> Draft7Validator:
     Draft7Validator.check_schema(schema)
     version_rule = schema.get("properties", {}).get("schema_version") if isinstance(schema, dict) else None
     if not isinstance(version_rule, dict) or version_rule.get("const") != MENTION_SCHEMA_VERSION:
-        raise InputError("CV12 requires the current aspect-mention contract v2")
+        raise InputError("CV12 requires the current aspect-mention contract v3")
     return Draft7Validator(schema, format_checker=FORMATS)
 
 
@@ -476,8 +478,6 @@ def validate_record(
         elif other not in catalog:
             issues.append(Issue("UNKNOWN_COMPARISON_MODEL", "compare_with is absent from the model catalog", "$.compare_with"))
     issues.extend(validate_reference(record, comments, config))
-    if record.get("defect_type") is not None and record["sentiment"] != "neg":
-        issues.append(Issue("DEFECT_WITHOUT_NEGATIVE_SENTIMENT", "A defect label requires negative sentiment", "$.defect_type"))
     if target is None and record.get("days_since_launch") is not None:
         issues.append(Issue("DAYS_WITHOUT_TARGET", "An unresolved target must not have days_since_launch", "$.days_since_launch"))
     if issues:
@@ -533,7 +533,7 @@ def validate_record(
         "x_comparison_outcome": outcome,
         "eligible_q4": target in (config.target_model, config.predecessor_model),
         "eligible_q5_denominator": target == config.target_model,
-        "eligible_q5_numerator": target == config.target_model and record["sentiment"] == "neg" and record.get("is_owner") is True and record.get("defect_type") is not None,
+        "eligible_q5_numerator": target == config.target_model and record["sentiment"] == NEGATIVE and record.get("is_owner") is True,
     }
     return ValidationResult(line_number, record, "accepted", issues, analysis)
 

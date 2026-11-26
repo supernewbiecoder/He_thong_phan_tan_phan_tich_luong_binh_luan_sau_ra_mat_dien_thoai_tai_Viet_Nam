@@ -1,0 +1,7 @@
+# Mục đích: Thư viện cho src/labeling (lấy mẫu, phiếu Excel, ước lượng) và src/models/spam; cập nhật lần cuối: 2026-11-26.
+numpy>=1.26,<3
+scipy>=1.11,<2
+openpyxl>=3.1,<4
+PyYAML>=6,<7
+scikit-learn>=1.4,<1.8
+joblib>=1.3,<2

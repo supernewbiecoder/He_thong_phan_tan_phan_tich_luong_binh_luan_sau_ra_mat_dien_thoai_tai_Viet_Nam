@@ -66,7 +66,7 @@
     "parent_id": null
   },
   "base_mention": {
-    "mention_id": "fixture_base#0#BATTERY",
+    "mention_id": "fixture_base#0#pin_sac",
     "comment_id": "fixture_base",
     "clause_idx": 0,
     "clause_text": "Mình dùng pin tốt",
@@ -74,10 +74,13 @@
     "video_id": "fixture_video",
     "video_model": "s23u",
     "target_model": "s23u",
-    "aspect": "BATTERY",
-    "sentiment": "pos",
+    "aspect": "pin_sac",
+    "sentiment": "tich_cuc",
     "confidence": 0.92,
     "is_owner": true,
+    "purposes": null,
+    "model_mention": null,
+    "target_model_source": null,
     "defect_type": null,
     "compare_with": null,
     "compare_winner": null,
@@ -85,7 +88,7 @@
     "days_since_launch": 0,
     "label_source": "rule",
     "model_version": "rule-v0",
-    "schema_version": 2,
+    "schema_version": 3,
     "author_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "author_is_creator": false,
     "parent_id": null
@@ -253,7 +256,7 @@
     {
       "name": "wrong_mention_id",
       "patch": {
-        "mention_id": "wrong#0#BATTERY"
+        "mention_id": "wrong#0#pin_sac"
       },
       "expected_status": "rejected",
       "expected_codes": [
@@ -375,7 +378,8 @@
       "name": "self_comparison",
       "patch": {
         "compare_with": "s23u",
-        "compare_winner": "target"
+        "compare_winner": "target",
+        "sentiment": "so_sanh"
       },
       "expected_status": "rejected",
       "expected_codes": [
@@ -386,7 +390,8 @@
       "name": "direct_comparison",
       "patch": {
         "compare_with": "ip14prm",
-        "compare_winner": "target"
+        "compare_winner": "target",
+        "sentiment": "so_sanh"
       },
       "expected_status": "accepted",
       "expected_codes": [
@@ -399,8 +404,8 @@
     {
       "name": "owner_defect",
       "patch": {
-        "sentiment": "neg",
-        "defect_type": "BATTERY_DRAIN"
+        "sentiment": "tieu_cuc",
+        "defect_type": null
       },
       "expected_status": "accepted",
       "expected_codes": [
@@ -468,7 +473,7 @@
       },
       "patch": {
         "clause_text": "Camera iPhone 14 Pro Max tệ",
-        "aspect": "CAMERA"
+        "aspect": "camera"
       },
       "expected_status": "accepted",
       "expected_codes": [
@@ -538,7 +543,7 @@
       }
     },
     {
-      "name": "positive_with_defect",
+      "name": "defect_type_must_be_null_in_v3",
       "patch": {
         "defect_type": "BATTERY_DRAIN"
       },

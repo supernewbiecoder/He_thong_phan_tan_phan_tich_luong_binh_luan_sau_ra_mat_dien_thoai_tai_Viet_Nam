@@ -18,9 +18,11 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 |---|---|---|---|---|
 | 1. Thu thập | `docs/1-thu-thap/dac-ta.md` | `src/ingest/` | | `SCHEMA_VERSION` (`crawler/schema.py`) |
 | 2. Tiền xử lý | `docs/2-tien-xu-ly/dac-ta*.md` | `src/processing/` | `tests/test_processing*.py` | `PIPELINE_VERSION` (`src/processing/__init__.py`) |
-| 3. Gán nhãn | `docs/3-gan-nhan/dac-ta*.md` (bộ nhãn chốt ở `dac-ta-bo-nhan.md`), cách gán ở `huong-dan-gan-nhan-chinh-thuc.md` | `src/labeling/` | `tests/test_labeling.py` | ngày chốt ghi ở đầu `dac-ta-bo-nhan.md` |
+| 3. Gán nhãn | `docs/3-gan-nhan/dac-ta*.md` (bộ nhãn chốt ở `dac-ta-bo-nhan.md`, dạng code ở `src/labeling/final_labels.py`), cách gán ở `huong-dan-gan-nhan-chinh-thuc.md` | `src/labeling/` | `tests/test_labeling*.py` | ngày chốt ghi ở đầu `dac-ta-bo-nhan.md` |
 | 4. Suy luận, mô hình | `docs/4-mo-hinh/dac-ta*.md` | `src/models/` | `tests/test_models_*.py` | `MODEL_VERSION` (`src/models/run.py`) |
 | 5. Phân tích | `docs/0-chung/muc-tieu.md`, `docs/5-phan-tich/huong-dan.md` | `src/analysis/` | `tests/test_analysis_*.py` | `AGGREGATOR_VERSION`, `ANALYSIS_VERSION` |
+| 6. Lưu trữ | `docs/6-luu-tru/dac-ta.md` | `src/storage/` | `tests/test_serving_api.py` (phần nạp DB) | validator theo `schema_version` |
+| 7. Hiển thị | `docs/7-hien-thi/huong-dan.md` | `src/serving/` (API, dashboard) | `tests/test_serving_*.py` | |
 | Định dạng dữ liệu | `contracts/*.schema.json`, `docs/0-chung/thiet-ke-du-lieu.md` | | | `schema_version` |
 
 - **Đổi một luật là đổi cả bốn thứ trong cùng một commit hay PR:** đặc tả, code, test, hằng phiên bản. Thiếu một thứ là chưa xong.
@@ -32,7 +34,7 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 
 | Thứ | Vì sao |
 |---|---|
-| `contracts/aspect-mention.schema.json`, `docs/0-chung/thiet-ke-du-lieu.md` | Trưởng nhóm chốt giữ nguyên (20/11). Cần đổi thì đề xuất, không tự sửa |
+| `contracts/aspect-mention.schema.json`, `docs/0-chung/thiet-ke-du-lieu.md` | Contract v3 chốt 26/11 theo bộ nhãn chốt (Nguyễn Lê Quân làm, theo giao việc của trưởng nhóm). Cần đổi tiếp thì đề xuất, không tự sửa. Danh sách nhãn chỉ sửa ở `src/labeling/final_labels.py` cùng contract và test |
 | File raw `src/ingest/data/raw/*` | Dữ liệu gốc duy nhất. Mọi bước ghi ra file mới |
 | Báo cáo đã phát hành (`docs/*/bao-cao*.md`) của người khác | Là bản ghi lịch sử; muốn đính chính thì ghi chú, không sửa số |
 
@@ -73,7 +75,7 @@ Mỗi tầng có đặc tả, ánh xạ thẳng tới code và test:
 - Test: `python -m pytest tests -q`. Mọi luật mới có test dùng **câu tự soạn**, không dùng dữ liệu thật. Trước khi báo xong, chạy toàn bộ test và báo đúng kết quả.
 - Đặt tên theo [quy tắc](docs/README.md#2-quy-tắc-đặt-tên):
   - code tiếng Anh, `snake_case`, đặt theo việc file làm (không đặt `task9.py`);
-  - thư mục code theo tầng (`ingest`, `processing`, `models`, `analysis`, `storage`);
+  - thư mục code theo tầng (`ingest`, `processing`, `labeling`, `models`, `analysis`, `storage`, `serving`);
   - notebook `notebooks/<tầng>[_<bước>]_<việc>.ipynb`.
 - Đầu mỗi file code có docstring `Mục đích: …; cập nhật lần cuối: YYYY-MM-DD.` Không để README dài trong thư mục code.
 - Ghi file theo kiểu file tạm rồi đổi tên, để chạy lỗi giữa chừng không để lại file dở. Chạy lại phải ra cùng kết quả (ghi đè, không cộng dồn).

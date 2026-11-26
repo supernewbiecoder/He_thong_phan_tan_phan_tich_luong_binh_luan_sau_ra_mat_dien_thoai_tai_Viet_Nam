@@ -1,5 +1,6 @@
-"""Chỉ số đánh giá cho bài toán spam (lớp dương = spam).
+"""Mục đích: Chỉ số đo một bộ phân loại nhị phân (spam, tiếng Việt…) trên mẫu phân tầng có trọng số N_h/n_h: precision, recall, F1, khoảng tin cậy bootstrap phân tầng theo video, cận recall khi tầng không thấy ca dương, McNemar, kappa; dùng cho src/labeling/estimate.py và src/models/spam/ (docs/3-gan-nhan/dac-ta.md mục 3); cập nhật lần cuối: 2026-11-26.
 
+Chuyển từ src/processing/spam/evaluate.py (Công việc 11, 17/11), không đổi công thức.
 Mẫu gán nhãn được làm giàu spam nên precision/recall tính thẳng trên mẫu không
 phản ánh dữ liệu thật. Mỗi dòng mang trọng số N_h/n_h của tầng nó thuộc về; các
 chỉ số "quy về quần thể" là chỉ số tính với trọng số đó. Không dùng accuracy.

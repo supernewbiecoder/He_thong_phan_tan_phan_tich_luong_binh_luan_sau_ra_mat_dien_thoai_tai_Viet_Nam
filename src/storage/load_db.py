@@ -1,10 +1,11 @@
-"""Nạp đầu ra của pipeline vào MongoDB để API đọc.
+"""Mục đích: Nạp đầu ra của chuỗi theo lô (bình luận tầng 2, aspect_mentions contract v3, aggregates và kết quả Q1–Q5 của Công việc 12, danh mục máy) vào MongoDB cho API và dashboard đọc (docs/6-luu-tru/huong-dan.md); cập nhật lần cuối: 2026-11-26.
 
-Mỗi phần là tùy chọn; phần nào truyền đường dẫn thì nạp phần đó:
+Thường chạy qua bước `nap_db` của `python -m src.run --den nap_db`. Chạy riêng thì mỗi phần là tùy chọn; phần nào
+truyền đường dẫn thì nạp phần đó:
 
-  python -m src.serving.load_db \
+  python -m src.storage.load_db \
       --models config/pipeline.yaml \
-      --comments data/clean_data.jsonl \
+      --comments data/processed/comments.jsonl \
       --mentions data/aspect_mentions.jsonl \
       --aggregates data/aggregates/current/aggregates.jsonl \
       --analysis data/aggregates/current/business_questions.json
@@ -23,6 +24,7 @@ lại và báo, trừ khi chạy với --replace-other-versions.
 import argparse
 import hashlib
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -31,11 +33,12 @@ from typing import Dict, Iterable, Iterator, List, Optional
 import yaml
 from pymongo import MongoClient, UpdateOne
 
-from .api.settings import REPO_ROOT, Settings
-
+REPO_ROOT = Path(__file__).resolve().parents[2]
 BATCH = 2000
 AGGREGATE_KEY = ("target_model", "aspect", "week_since_launch", "video_id", "source", "model_version")
-PIPELINE_VERSION = "cleaner-v1.0"
+COUNT_FIELDS = ("n_pos", "n_neg", "n_neu", "n_cmp")   # tich_cuc, tieu_cuc, khong_danh_gia, so_sanh
+# Không đưa vào DB: tên người bình luận (AGENTS.md mục 3)
+COMMENT_FIELDS_DROPPED = ("author_name",)
 BRAND_PREFIXES = (
     ("iphone", "Apple"), ("apple", "Apple"), ("samsung", "Samsung"), ("galaxy", "Samsung"),
     ("xiaomi", "Xiaomi"), ("redmi", "Xiaomi"), ("poco", "Xiaomi"), ("mi ", "Xiaomi"),
@@ -174,14 +177,14 @@ def check_aggregate(row: dict, where: str) -> dict:
     for key in ("target_model", "aspect", "video_id", "source", "model_version"):
         if not isinstance(row[key], str) or not row[key]:
             raise ValueError(f"{where}: '{key}' phải là chuỗi không rỗng")
-    for key in ("n_pos", "n_neg", "n_neu"):
+    row = {"n_cmp": 0, **row}   # aggregates trước contract v3 không có n_cmp
+    for key in COUNT_FIELDS:
         if type(row.get(key)) is not int or row[key] < 0:
             raise ValueError(f"{where}: '{key}' phải là số nguyên không âm (aggregates lưu số đếm, không lưu %)")
     if any("pct" in key or "%" in key or "percent" in key for key in row):
         raise ValueError(f"{where}: aggregates không được chứa trường tỷ lệ")
-    row = dict(row)
     row.setdefault("agg_id", aggregate_id(row))
-    row["n_total"] = row["n_pos"] + row["n_neg"] + row["n_neu"]
+    row["n_total"] = sum(row[key] for key in COUNT_FIELDS)
     row.setdefault("updated_at", datetime.now(timezone.utc).isoformat())
     return row
 
@@ -192,13 +195,14 @@ def load_models(db, path: Path) -> str:
 
 
 def load_comments(db, path: Path) -> str:
-    processed_at = datetime.now(timezone.utc).isoformat()
-
+    """Bình luận đã qua tầng 2: giữ nguyên `pipeline_version`, `processed_at` của tầng 2, bỏ tên người viết."""
     def documents():
         for record in read_jsonl(path):
             if not record.get("comment_id"):
                 raise ValueError(f"{path}: có bình luận thiếu comment_id")
-            yield {**record, "pipeline_version": PIPELINE_VERSION, "processed_at": processed_at}
+            if not record.get("pipeline_version"):
+                raise ValueError(f"{path}: bình luận {record['comment_id']} chưa qua tầng 2 (thiếu pipeline_version)")
+            yield {k: v for k, v in record.items() if k not in COMMENT_FIELDS_DROPPED}
 
     return f"comments: {upsert(db.comments, documents(), 'comment_id'):,} bình luận từ {path.name}"
 
@@ -267,8 +271,7 @@ def load_analysis(db, path: Path) -> str:
 def ensure_indexes(db) -> None:
     """Index tối thiểu để upsert và truy vấn của API không quét toàn bộ collection.
 
-    Công việc 3 (src/storage/init_db.py) tạo bộ index đầy đủ; các lệnh dưới đây trùng khóa
-    với bộ đó và vô hại nếu index đã có.
+    src/storage/init_db.py tạo bộ index đầy đủ; các lệnh dưới đây trùng khóa với bộ đó và vô hại nếu index đã có.
     """
     def ensure(collection: str, keys: List[tuple], unique: bool = False) -> None:
         wanted = [name for name, _direction in keys]
@@ -283,16 +286,28 @@ def ensure_indexes(db) -> None:
     ensure("aspect_mentions", [("model_version", 1), ("target_model", 1), ("aspect", 1)])
 
 
+def load_all(db, *, models: Optional[Path] = None, comments: Optional[Path] = None, mentions: Optional[Path] = None,
+             aggregates: Optional[Path] = None, analysis: Optional[Path] = None,
+             schema: Path = REPO_ROOT / "contracts" / "aspect-mention.schema.json",
+             replace_other_versions: bool = False) -> List[str]:
+    """Nạp các phần có đường dẫn, theo thứ tự danh mục máy, bình luận, mention, aggregates, kết quả Q1–Q5.
+    Lỗi dữ liệu thì ném ValueError; phần đã nạp trước đó giữ nguyên (mỗi phần tự upsert, chạy lại được)."""
+    ensure_indexes(db)
+    steps = [(models, load_models), (comments, load_comments),
+             (mentions, lambda d, p: load_mentions(d, p, schema, replace_other_versions)),
+             (aggregates, load_aggregates), (analysis, load_analysis)]
+    return [loader(db, Path(path)) for path, loader in steps if path]
+
+
 def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8")
-    defaults = Settings.from_env()
     parser = argparse.ArgumentParser(description="Nạp đầu ra pipeline vào MongoDB cho dashboard")
-    parser.add_argument("--uri", default=defaults.mongo_uri)
-    parser.add_argument("--db", default=defaults.mongo_db)
+    parser.add_argument("--uri", default=os.getenv("MONGO_URI", "mongodb://localhost:27017"))
+    parser.add_argument("--db", default=os.getenv("MONGO_DB", "smartphone_analytics"))
     parser.add_argument("--models", type=Path, help="config/pipeline.yaml")
-    parser.add_argument("--comments", type=Path, help="clean_data.jsonl")
-    parser.add_argument("--mentions", type=Path, help="aspect_mentions.jsonl đúng contract v2")
+    parser.add_argument("--comments", type=Path, help="data/processed/comments.jsonl (đầu ra tầng 2)")
+    parser.add_argument("--mentions", type=Path, help="aspect_mentions.jsonl đúng contract v3")
     parser.add_argument("--aggregates", type=Path, help="aggregates.jsonl")
     parser.add_argument("--analysis", type=Path, help="business_questions.json của Công việc 12")
     parser.add_argument("--schema", type=Path,
@@ -301,26 +316,23 @@ def main() -> int:
                         help="cho phép --mentions thay hẳn mention của phiên bản nhãn khác đang có trong DB")
     args = parser.parse_args()
 
-    steps = [(args.models, load_models), (args.comments, load_comments),
-             (args.mentions, lambda db, path: load_mentions(db, path, args.schema,
-                                                            args.replace_other_versions)),
-             (args.aggregates, load_aggregates), (args.analysis, load_analysis)]
-    if not any(path for path, _ in steps):
+    paths = [args.models, args.comments, args.mentions, args.aggregates, args.analysis]
+    if not any(paths):
         parser.error("chưa chọn phần nào để nạp")
-    for path, _ in steps:
+    for path in paths:
         if path and not path.exists():
             parser.error(f"không thấy file {path}")
 
     db = MongoClient(args.uri, serverSelectionTimeoutMS=5000)[args.db]
     db.command("ping")
-    ensure_indexes(db)
-    for path, loader in steps:
-        if path:
-            try:
-                print(loader(db, path))
-            except ValueError as error:
-                print(f"LỖI: {error}", file=sys.stderr)
-                return 2
+    try:
+        for line in load_all(db, models=args.models, comments=args.comments, mentions=args.mentions,
+                             aggregates=args.aggregates, analysis=args.analysis, schema=args.schema,
+                             replace_other_versions=args.replace_other_versions):
+            print(line)
+    except ValueError as error:
+        print(f"LỖI: {error}", file=sys.stderr)
+        return 2
     return 0
 
 

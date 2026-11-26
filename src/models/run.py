@@ -1,11 +1,12 @@
-"""Mục đích: Bước suy luận theo bình luận (phương án A): đọc file tầng 2, ghi `aspect_mentions` đúng contract v2 và file bình luận Công việc 12 cần, kèm manifest (docs/4-mo-hinh/dac-ta-suy-luan.md); cập nhật lần cuối: 2026-11-20.
+"""Mục đích: Bước suy luận theo bình luận (phương án A): đọc file tầng 2, ghi `aspect_mentions` đúng contract v3 (bộ nhãn chốt) và file bình luận Công việc 12 cần, kèm manifest (docs/4-mo-hinh/dac-ta-suy-luan.md); cập nhật lần cuối: 2026-11-26.
 
 Chạy từ gốc repo, sau lệnh tầng 2:
     python -m src.models.run
     python -m src.models.run --limit 2000 --output data/thu/aspect_mentions.jsonl   # chạy thử
 
 Phiên bản hiện tại dùng luật mốc (`label_source = "rule"`, `model_version = MODEL_VERSION`): từ khóa khía cạnh,
-luật cảm xúc, luật nhận máy, luật đã dùng máy và loại lỗi. Có mô hình đã đánh giá trên nhãn người thì thay từng phần
+luật thái độ, luật nhận máy, luật máy được nhắc (chiều 6), luật đã dùng máy. Luật không suy
+mục đích (`purposes` = null) và loại lỗi (`defect_type` = null). Có mô hình đã đánh giá trên nhãn người thì thay từng phần
 trong `suy_luan_binh_luan` và đổi MODEL_VERSION; định dạng đầu ra giữ nguyên.
 """
 
@@ -22,12 +23,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .aspect import keywords as KC
-from .owner_defect import da_dung_may, loai_loi
+from src.labeling.label_set import HANG, MAY_CU_THE
+
+from .owner_defect import da_dung_may
 from .sentiment import rules as CX
 from .target_model import BoNhanMay, doc_danh_muc, so_ngay_tu_ra_mat, xac_dinh_may
 
-MODEL_VERSION = "rule-v1"
-SCHEMA_VERSION = 2
+MODEL_VERSION = "rule-v1.1"
+SCHEMA_VERSION = 3
 PHIEN_BAN_TANG_2 = "processing-2."   # cần file tầng 2 có cờ is_spam, is_vietnamese
 
 GOC_REPO = Path(__file__).resolve().parents[2]
@@ -38,9 +41,9 @@ DANH_MUC_MAC_DINH = GOC_REPO / "config" / "pipeline.yaml"
 # Thứ tự trường theo contracts/aspect-mention.schema.json
 CAC_TRUONG = (
     "mention_id", "comment_id", "parent_id", "clause_idx", "clause_text", "source", "video_id", "video_model",
-    "target_model", "author_hash", "author_is_creator", "aspect", "sentiment", "confidence", "is_owner", "defect_type",
-    "compare_with", "compare_winner", "published_at", "days_since_launch", "label_source", "model_version",
-    "schema_version",
+    "target_model", "author_hash", "author_is_creator", "aspect", "sentiment", "confidence", "is_owner", "purposes",
+    "model_mention", "target_model_source", "defect_type", "compare_with", "compare_winner", "published_at",
+    "days_since_launch", "label_source", "model_version", "schema_version",
 )
 # Trường của bình luận mà Công việc 12 đọc để kiểm mention (src/analysis/validation.py: index_comments, validate_reference)
 TRUONG_BINH_LUAN_CV12 = (
@@ -52,6 +55,15 @@ TRUONG_BINH_LUAN_CV12 = (
 def file_binh_luan_cv12(ra: Path) -> Path:
     """data/aspect_mentions.jsonl → data/aspect_mentions.comments.jsonl"""
     return ra.with_name(ra.stem + ".comments.jsonl")
+
+
+def may_duoc_nhac(text_clean: str, may_theo_md: list[list[str]]) -> str:
+    """Chiều 6 của cả bình luận: `goi_ten_may` khi có tên máy có số đời (trong danh mục, hay theo mẫu `MAY_CU_THE`),
+    `chi_hang` khi chỉ có tên hãng hay dòng, còn lại `khong_nhac` (docs/4-mo-hinh/dac-ta-suy-luan.md mục 5)."""
+    chu = text_clean.lower()
+    if any(may_theo_md) or MAY_CU_THE.search(chu):
+        return "goi_ten_may"
+    return "chi_hang" if HANG.search(chu) else "khong_nhac"
 
 
 def suy_luan_binh_luan(rec: dict, nhan_may: BoNhanMay, dem: Counter | None = None) -> list[dict]:
@@ -88,6 +100,7 @@ def suy_luan_binh_luan(rec: dict, nhan_may: BoNhanMay, dem: Counter | None = Non
             nguon_may.setdefault((may, kc), nguon)
 
     da_dung = da_dung_may(rec.get("text_norm") or "")
+    nhac = may_duoc_nhac(rec.get("text_clean") or "", may_theo_md)
     ra = []
     for (may, kc), theo_cx in nhom.items():
         giu = {cx: i for cx, i in theo_cx.items() if cx != CX.NEU} or theo_cx   # có khen/chê thì bỏ dòng trung tính
@@ -97,8 +110,7 @@ def suy_luan_binh_luan(rec: dict, nhan_may: BoNhanMay, dem: Counter | None = Non
             ra.append(dict(zip(CAC_TRUONG, (
                 f"{rec['comment_id']}#{i}#{kc}", rec["comment_id"], rec.get("parent_id"), i, md["text"],
                 rec.get("source"), rec.get("video_id"), rec.get("model"), may, rec.get("author_hash"),
-                rec.get("author_is_creator"), kc, cx, None, da_dung,
-                loai_loi(kc, md.get("text_norm") or "") if cx == CX.NEG else None,
+                rec.get("author_is_creator"), kc, cx, None, da_dung, None, nhac, nguon_may[(may, kc)], None,
                 None, None, rec.get("published_at"),
                 so_ngay_tu_ra_mat(rec["published_at"], launch) if may else None,
                 "rule", MODEL_VERSION, SCHEMA_VERSION,
@@ -176,7 +188,7 @@ def chay(vao: Path, ra: Path, danh_muc: Path = DANH_MUC_MAC_DINH, limit: int | N
         "ra_binh_luan": {"file": _tuong_doi(ra_bl), "so_binh_luan": so_bl_co_mention, "sha256": _sha256(ra_bl)},
         "so_binh_luan_bo_qua": {k.split(": ", 1)[1]: v for k, v in sorted(dem.items()) if k.startswith("bỏ qua")},
         "mention_theo_khia_canh": dict(sorted(theo_kc.items())),
-        "mention_theo_cam_xuc": dict(sorted(theo_cx.items())),
+        "mention_theo_thai_do": dict(sorted(theo_cx.items())),
         "may_duoc_nhac_lay_tu": {k.split(": ", 1)[1]: v for k, v in sorted(dem.items()) if k.startswith("máy được")},
         "mention_theo_may_top20": dict(theo_may.most_common(20)),
     }

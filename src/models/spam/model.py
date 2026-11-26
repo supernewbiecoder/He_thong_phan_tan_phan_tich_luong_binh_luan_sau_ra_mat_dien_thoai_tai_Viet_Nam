@@ -1,4 +1,6 @@
-"""Các mô hình ML ứng viên cho bài toán spam và phần tiền xử lý riêng của chúng."""
+"""Mục đích: Các mô hình ML ứng viên phát hiện spam (TF-IDF từ, ký tự, đặc trưng hình thức; Naive Bayes, Logistic Regression, SVM) để so với luật gắn cờ src/processing/flags.py (docs/4-mo-hinh/dac-ta-spam.md); cập nhật lần cuối: 2026-11-26.
+
+Chuyển từ src/processing/spam/model.py (Công việc 11, 17/11); link và số điện thoại nhận bằng regex của tầng 2."""
 import re
 import unicodedata
 from typing import Dict, List
@@ -12,7 +14,7 @@ from sklearn.pipeline import FeatureUnion, Pipeline
 from sklearn.preprocessing import MaxAbsScaler
 from sklearn.svm import LinearSVC
 
-from ..cleaner.config import PHONE_REGEX, URL_REGEX
+from src.processing.normalize import PHONE_RE as PHONE_REGEX, URL_RE as URL_REGEX
 
 _REPEAT = re.compile(r"(.)\1{3,}")
 _SPACES = re.compile(r"\s+")

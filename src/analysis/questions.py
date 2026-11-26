@@ -15,11 +15,12 @@ from typing import Iterable, Mapping
 
 import numpy as np
 
-from src.analysis.aggregation import ASPECTS, DEFECT_TYPES, AggregationResult
+from src.analysis.aggregation import REPORT_ASPECTS, AggregationResult
+from src.labeling.final_labels import NEGATIVE, POSITIVE
 from src.analysis.validation import MENTION_SCHEMA_VERSION, InputError, ValidationConfig
 
-ANALYSIS_VERSION = "cv12-questions-v3-contract2"
-ASPECT_ORDER = tuple(sorted(ASPECTS))
+ANALYSIS_VERSION = "cv12-questions-v4-contract3"
+ASPECT_ORDER = tuple(REPORT_ASPECTS)   # 11 aspects of the finalized label set, display order
 BUSINESS_QUESTIONS = {
     "Q1": "X được đón nhận tốt hay dở?",
     "Q2": "Ưu điểm và nhược điểm của X là gì?",
@@ -31,7 +32,9 @@ BUSINESS_QUESTIONS = {
 
 @dataclass(frozen=True)
 class InferenceSettings:
-    resamples: int = 1000
+    # 2000, not 1000: the smallest bootstrap p is 1/(B+1), and Holm multiplies it by the family size. Q3 has
+    # 55 tests with 11 aspects, so B=1000 gives 55/1001 > 0.05 and no Q3 finding could ever be significant.
+    resamples: int = 2000
     seed: int = 42
     alpha: float = 0.05
     min_count: int = 30
@@ -237,14 +240,14 @@ def _family(name, tests, settings):
             "method": "Holm", "alpha": settings.alpha}
 
 
-def _candidates(mentions, *, target, aspect=None, defect=None):
+def _candidates(mentions, *, target, aspect=None, owner_negative=False):
     rows = [row for row in mentions if row["target_model"] == target and
-            (aspect is None or row["aspect"] == aspect) and row["sentiment"] in {"pos", "neg"} and
-            (defect is None or (row.get("defect_type") == defect and row.get("is_owner") is True and row["sentiment"] == "neg"))]
+            (aspect is None or row["aspect"] == aspect) and row["sentiment"] in {POSITIVE, NEGATIVE} and
+            (not owner_negative or (row.get("is_owner") is True and row["sentiment"] == NEGATIVE))]
     rows.sort(key=lambda row: (row["label_source"] != "human", -(row.get("confidence") or 0), row["mention_id"]))
     # Include both praise and criticism when present; never claim these quotes
     # have been reviewed just because their model confidence is high.
-    ordered = [next((row for row in rows if row["sentiment"] == label), None) for label in ("pos", "neg")]
+    ordered = [next((row for row in rows if row["sentiment"] == label), None) for label in (POSITIVE, NEGATIVE)]
     ordered += rows
     selected, seen = [], set()
     for row in ordered:
@@ -345,10 +348,10 @@ def analyze_questions(
     defect_counts = _Counts(units, aggregates.tables["q5_defects"])
     denominators = _Counts(units, aggregates.tables["q5_denominators"])
     q5 = []
-    for defect in DEFECT_TYPES:
+    for defect in ASPECT_ORDER:   # Q5 per aspect: owner-reported negatives (defect types deferred, contract v3)
         weeks, arrays = [], []
         for week in range(1, 5):
-            num, _ = defect_counts.array(("n_defect",), ("n_denominator",), defect_type=defect, week_since_launch=week)
+            num, _ = defect_counts.array(("n_defect",), ("n_denominator",), aspect=defect, week_since_launch=week)
             den, _ = denominators.array(("n_total",), ("n_total",), week_since_launch=week)
             arrays.append((num, den))
             rate = cluster_inference(num, den, key=f"Q5/rate/{defect}/{week}", settings=settings)
@@ -359,10 +362,10 @@ def analyze_questions(
         total_defects = int(early[0].sum() + late[0].sum())
         reasons = ["insufficient_defect_mentions"] if total_defects < settings.min_defects else []
         trend = _contrast(late, early, f"Q5/trend/{defect}", settings, extra_reasons=reasons)
-        q5.append(_test_row(f"Q5/{defect}", trend, defect_type=defect, n_defect=total_defects, weekly=weeks,
+        q5.append(_test_row(f"Q5/{defect}", trend, aspect=defect, n_defect=total_defects, weekly=weeks,
                             early_pct=None if not early[1].sum() else float(100 * early[0].sum() / early[1].sum()),
                             late_pct=None if not late[1].sum() else float(100 * late[0].sum() / late[1].sum()),
-                            sample_candidates=_candidates(mentions, target=x, defect=defect)))
+                            sample_candidates=_candidates(mentions, target=x, aspect=defect, owner_negative=True)))
     families = {"Q1": _family("Q1", q1_tests, settings), "Q2": _family("Q2", q2, settings),
                 "Q3": _family("Q3", omnibus + pairwise + q3b, settings), "Q4": _family("Q4", q4, settings),
                 "Q5": _family("Q5", q5, settings)}

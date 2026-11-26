@@ -1,22 +1,30 @@
 {
-  "mention_id": "UgxA1b2C3#2#BATTERY",
+  "mention_id": "UgxA1b2C3#2#pin_sac",
   "comment_id": "UgxA1b2C3",
+  "parent_id": null,
   "clause_idx": 2,
   "clause_text": "pin thì tụt nhanh quá",
   "source": "youtube",
   "video_id": "aB3dE5fG7hI",
   "video_model": "s23u",
   "target_model": "s23u",
-  "aspect": "BATTERY",
-  "sentiment": "neg",
+  "author_hash": "069722f199073a1f8b0223df1aa448cd79e0695bd87f82fd737f9f892520bdcb",
+  "author_is_creator": false,
+  "aspect": "pin_sac",
+  "sentiment": "tieu_cuc",
   "confidence": 0.87,
   "is_owner": true,
-  "defect_type": "BATTERY_DRAIN",
+  "purposes": [
+    "bao_loi"
+  ],
+  "model_mention": "khong_nhac",
+  "target_model_source": "video",
+  "defect_type": null,
   "compare_with": null,
   "compare_winner": null,
   "published_at": "2023-02-10T03:15:00Z",
   "days_since_launch": 8,
   "label_source": "model",
   "model_version": "aspect-lr-v1",
-  "schema_version": 1
+  "schema_version": 3
 }

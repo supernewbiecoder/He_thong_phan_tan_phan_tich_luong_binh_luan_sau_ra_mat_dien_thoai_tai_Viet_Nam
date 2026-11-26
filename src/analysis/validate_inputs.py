@@ -91,7 +91,7 @@ def write_outputs(output: Path, results: list[ValidationResult], report: dict, m
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate CV12 mentions against contracts, comments, model catalog and scope.")
     parser.add_argument("--mentions", type=Path, help="Mention JSONL (default: data/aspect_mentions.jsonl)")
-    parser.add_argument("--comments", type=Path, help="Clean comments JSONL (default: data/clean_data.jsonl)")
+    parser.add_argument("--comments", type=Path, help="Comments JSONL written by inference (default: data/aspect_mentions.comments.jsonl)")
     parser.add_argument("--models", type=Path, help="pipeline.yaml or exported models JSON (default: config/pipeline.yaml)")
     parser.add_argument("--config", type=Path, default=ROOT / "config" / "analysis.yaml")
     parser.add_argument("--model-version", help="Select one inference version (default: expected_model_version in config)")
@@ -130,7 +130,7 @@ def run(args: argparse.Namespace) -> tuple[dict, Path]:
         records = [(i, record, None) for i, (record, _) in enumerate(pairs, 1)]
     else:
         mentions_path = args.mentions or ROOT / "data" / "aspect_mentions.jsonl"
-        comments_path = args.comments or ROOT / "data" / "clean_data.jsonl"
+        comments_path = args.comments or ROOT / "data" / "aspect_mentions.comments.jsonl"
         models_path = args.models or ROOT / "config" / "pipeline.yaml"
         input_paths.extend((mentions_path, comments_path, models_path))
         catalog = load_model_catalog(models_path)

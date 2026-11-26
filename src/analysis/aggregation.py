@@ -12,25 +12,24 @@ import hashlib
 import json
 from typing import Any, Iterable, Mapping
 
+from src.labeling.final_labels import ASPECTS as FINAL_ASPECTS, COMPARISON, DIM2_LABELS, NEGATIVE, NO_OPINION, POSITIVE
 from src.analysis.validation import (
     InputError, MENTION_SCHEMA_VERSION, ValidationConfig, load_schema_validator,
     parse_timestamp, validate_comparison, validate_schema, week_since_launch,
 )
 
-AGGREGATOR_VERSION = "cv12-aggregates-v4-contract2"
+AGGREGATOR_VERSION = "cv12-aggregates-v5-contract3"
 AGGREGATE_KEY = ("target_model", "aspect", "week_since_launch", "video_id", "source", "model_version")
 COUNT_TABLES = (
     "aggregates", "q1_counts", "q2_q3a_q4_counts", "q3b_counts",
     "q5_denominators", "q5_defects", "video_units",
 )
-DEFECT_TYPES = (
-    "BATTERY_DRAIN", "OVERHEAT", "LAG", "DISPLAY_DEFECT", "CAMERA_DEFECT",
-    "SOFTWARE_BUG", "CONNECTIVITY", "HARDWARE_DEFECT", "OTHER",
-)
-ASPECTS = frozenset((
-    "BATTERY", "DISPLAY", "PERFORMANCE", "CAMERA", "DESIGN", "SOFTWARE",
-    "HARDWARE_OTHER", "PRICE", "WARRANTY",
-))
+# Labels come from the finalized label set (src/labeling/final_labels.py, contract v3).
+ASPECTS = frozenset(DIM2_LABELS)            # every dimension-2 label a mention may carry
+REPORT_ASPECTS = FINAL_ASPECTS              # the 11 aspects reported one by one in Q2-Q5
+# Attitude -> count column. Column names are kept from contract v2 so downstream readers stay stable:
+# n_pos = tich_cuc, n_neg = tieu_cuc, n_neu = khong_danh_gia, n_cmp = so_sanh (comparisons live in Q3b).
+SENTIMENT_COLUMNS = {POSITIVE: "pos", NEGATIVE: "neg", NO_OPINION: "neu", COMPARISON: "cmp"}
 ELIGIBILITY_KEYS = (
     "eligible_q1", "eligible_q2", "eligible_q3a", "eligible_q3b", "eligible_q4",
     "eligible_q5_denominator", "eligible_q5_numerator",
@@ -82,7 +81,7 @@ def _checked_pairs(mentions, analysis_index, config):
             raise InputError(f"{mid}: mixed or unselected inference versions")
         if record["target_model"] not in config.scope:
             raise InputError(f"{mid}: target_model is outside the validated scope")
-        if record["aspect"] not in ASPECTS or record["sentiment"] not in {"pos", "neg", "neu"}:
+        if record["aspect"] not in ASPECTS or record["sentiment"] not in SENTIMENT_COLUMNS:
             raise InputError(f"{mid}: invalid aspect or sentiment")
         if record.get("label_source") not in {"rule", "llm", "model", "human"}:
             raise InputError(f"{mid}: invalid label_source")
@@ -103,8 +102,8 @@ def _checked_pairs(mentions, analysis_index, config):
             raise InputError(f"{mid}: creator opinions must not reach aggregates")
         if record.get("is_owner") is not None and type(record["is_owner"]) is not bool:
             raise InputError(f"{mid}: is_owner must be boolean or null")
-        if record.get("defect_type") is not None and (record["defect_type"] not in DEFECT_TYPES or record["sentiment"] != "neg"):
-            raise InputError(f"{mid}: invalid defect/sentiment combination")
+        if record.get("defect_type") is not None:
+            raise InputError(f"{mid}: defect_type must be null in contract v3")
         if record.get("compare_winner") not in {None, "target", "other", "tie"}:
             raise InputError(f"{mid}: invalid comparison winner")
         _, comparison_ok, outcome = validate_comparison(record, {code: {} for code in config.scope}, config)
@@ -114,7 +113,7 @@ def _checked_pairs(mentions, analysis_index, config):
             "eligible_q3b": comparison_ok,
             "eligible_q4": record["target_model"] in {config.target_model, config.predecessor_model},
             "eligible_q5_denominator": is_x,
-            "eligible_q5_numerator": is_x and record.get("is_owner") is True and record["sentiment"] == "neg" and record.get("defect_type") is not None,
+            "eligible_q5_numerator": is_x and record.get("is_owner") is True and record["sentiment"] == NEGATIVE,
         }
         if any(type(index.get(key)) is not bool or index[key] != value for key, value in expected.items()):
             raise InputError(f"{mid}: eligibility flags disagree with the validated mention")
@@ -124,16 +123,16 @@ def _checked_pairs(mentions, analysis_index, config):
 
 
 def _add_sentiment(groups, key, record):
-    groups[key]["n_" + record["sentiment"]] += 1
+    groups[key]["n_" + SENTIMENT_COLUMNS[record["sentiment"]]] += 1
 
 
 def _sentiment_rows(groups, dimensions):
     rows = []
     for key in sorted(groups):
         counts = groups[key]
-        pos, neg, neu = (counts["n_" + label] for label in ("pos", "neg", "neu"))
-        rows.append({**dict(zip(dimensions, key)), "n_pos": pos, "n_neg": neg,
-                     "n_neu": neu, "n_total": pos + neg + neu, "n_opinionated": pos + neg})
+        pos, neg, neu, cmp = (counts["n_" + label] for label in ("pos", "neg", "neu", "cmp"))
+        rows.append({**dict(zip(dimensions, key)), "n_pos": pos, "n_neg": neg, "n_neu": neu, "n_cmp": cmp,
+                     "n_total": pos + neg + neu + cmp, "n_opinionated": pos + neg})
     return rows
 
 
@@ -175,7 +174,7 @@ def build_aggregates(
             _add_sentiment(denominators, key, record)
             denominators[key]["n_owner_unknown"] += record.get("is_owner") is None
             if index["eligible_q5_numerator"]:
-                defects[(*key, record["defect_type"])] += 1
+                defects[(*key, aspect)] += 1
     rows = _sentiment_rows(aggregate, AGGREGATE_KEY)
     for row in rows:
         raw_key = json.dumps([row[key] for key in AGGREGATE_KEY], ensure_ascii=False, separators=(",", ":"))
@@ -195,9 +194,9 @@ def build_aggregates(
     for row in q5_denominators:
         key = tuple(row[name] for name in denominator_dimensions)
         row["n_owner_unknown"] = denominators[key]["n_owner_unknown"]
-        for defect in DEFECT_TYPES:
-            q5_defects.append({**dict(zip(denominator_dimensions, key)), "defect_type": defect,
-                               "n_defect": defects[(*key, defect)], "n_denominator": row["n_total"]})
+        for q5_aspect in REPORT_ASPECTS:   # n_defect: owner-reported negatives about this aspect
+            q5_defects.append({**dict(zip(denominator_dimensions, key)), "aspect": q5_aspect,
+                               "n_defect": defects[(*key, q5_aspect)], "n_denominator": row["n_total"]})
     video_units = [
         {"source": source, "video_id": video, "model_version": version,
          "target_models": sorted(video_models[(source, video, version)]),
@@ -219,7 +218,8 @@ def build_aggregates(
         "aspect_counts_equal_input": sum(row["n_total"] for row in tables["q2_q3a_q4_counts"]) == total,
         "q3b_counts_equal_eligible": sum(row["n_total"] for row in q3b) == eligibility["eligible_q3b"],
         "q5_denominator_equal_all_x": sum(row["n_total"] for row in q5_denominators) == models[config.target_model],
-        "q5_defects_equal_eligible": sum(row["n_defect"] for row in q5_defects) == eligibility["eligible_q5_numerator"],
+        "q5_defects_equal_eligible": sum(row["n_defect"] for row in q5_defects)
+            == sum(n for (*_, a), n in defects.items() if a in REPORT_ASPECTS),
         "q5_defects_within_denominator": all(0 <= row["n_defect"] <= row["n_denominator"] for row in q5_defects),
         "video_units_equal_input": sum(row["n_mentions"] for row in video_units) == total,
         "unique_aggregate_ids": len({row["agg_id"] for row in rows}) == len(rows),
@@ -244,7 +244,7 @@ def build_aggregates(
             "Sparse sentiment/comparison cells missing for a video mean zero counts, not missing bootstrap units.",
             "Q3b wins/losses refer to model_x; week_since_launch always refers to target_model.",
             "Q5 denominators include all X mentions, including neutral sentiment and unknown owners.",
-            "Q5 emits zero counts for every defect in every observed X video/week; do not sum repeated denominators across defect types.",
+            "Q5 counts owner-reported negatives (is_owner true, tieu_cuc) per aspect, since defect types are deferred in contract v3; zero counts are emitted for every aspect in every observed X video/week; do not sum repeated denominators across aspects.",
             "No rates, CI, Holm corrections, trend priorities or business conclusions are computed in this step.",
         ],
     })

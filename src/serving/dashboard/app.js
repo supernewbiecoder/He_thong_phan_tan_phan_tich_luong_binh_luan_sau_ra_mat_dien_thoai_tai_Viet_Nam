@@ -276,12 +276,12 @@ function renderLaunch(d) {
     : row.priority_candidate ? `<span class="chip">${esc(row.priority_candidate)} (gợi ý, nhãn chưa kiểm chứng)</span>`
     : row.n_defect < 20 ? '<span class="chip">theo dõi, chưa đủ dữ liệu</span>' : '<span class="chip">chưa kiểm định xu hướng</span>';
   const q5 = card("half", "Q5", "Lỗi do người đã dùng máy báo", status,
-    `${fmtInt(d.q5.n_owner_defect_mentions)} lượt nhắc lỗi trên ${fmtInt(d.q5.n_target_mentions)} mention về máy. Đây là tỷ lệ <b>lượt nhắc</b>, không phải tỷ lệ máy bị lỗi.`,
-    defects.length ? `<div class="table-wrap"><table><thead><tr><th>Loại lỗi</th><th class="num">Lượt nhắc</th>${weeks.map((w) => `<th class="num">T${w}</th>`).join("")}<th>Ưu tiên</th></tr></thead><tbody>
+    `${fmtInt(d.q5.n_owner_defect_mentions)} lời chê của người đã dùng máy trên ${fmtInt(d.q5.n_target_mentions)} mention về máy, chia theo khía cạnh (bộ loại lỗi chưa chốt). Đây là tỷ lệ <b>lượt nhắc</b>, không phải tỷ lệ máy bị lỗi.`,
+    defects.length ? `<div class="table-wrap"><table><thead><tr><th>Khía cạnh</th><th class="num">Lượt nhắc</th>${weeks.map((w) => `<th class="num">T${w}</th>`).join("")}<th>Ưu tiên</th></tr></thead><tbody>
       ${defects.map((row) => `<tr><td>${esc(row.name)}</td><td class="num">${fmtInt(row.n_defect)}</td>
         ${row.weekly.map((w) => `<td class="num" ${tip(`${row.name}, tuần ${w.week_since_launch}`, `${fmtInt(w.n_defect)} / ${fmtInt(w.n_denominator)} mention = ${fmtPct(w.defect_mention_pct, 2)}`)}>${fmtInt(w.n_defect)}</td>`).join("")}
         <td>${priorityOf(row)}</td></tr>`).join("")}</tbody></table></div>`
-      : empty("Không có mention nào vừa do người đã dùng máy viết vừa được gán loại lỗi."));
+      : empty("Không có lời chê nào do người đã dùng máy viết."));
 
   const alerts = card("half", "", "Cảnh báo", d.alerts.length ? status : null,
     "So tỷ lệ chê với đời trước tại cùng số ngày sau ra mắt. Đọc từ collection <code>alerts</code>.",
@@ -354,7 +354,8 @@ function renderCompare(d) {
 // ---------------------------------------------------------------- Tab 3 và 4
 
 const COLLECTION_NAME = { models: "Máy", videos: "Video", comments: "Bình luận", aspect_mentions: "Mention", aggregates: "Dòng aggregates", alerts: "Cảnh báo", gold_labels: "Nhãn vàng", analysis_results: "Kết quả phân tích" };
-const REASON_NAME = { non_vietnamese_language: "Không phải tiếng Việt", no_alphabetical_content: "Không có chữ cái", excessive_character_repetition: "Lặp ký tự", contains_url: "Có link", external_contact_invite: "Mời liên hệ (Zalo, inbox…)", commercial_or_gambling_spam: "Từ khóa thương mại, cờ bạc", contains_phone_number: "Có số điện thoại", repetitive_words: "Lặp từ", empty_text: "Rỗng" };
+// Mã lý do spam của luật gắn cờ src/processing/flags.py (docs/2-tien-xu-ly/dac-ta-gan-co.md)
+const REASON_NAME = { lien_ket: "Có link", so_dien_thoai: "Có số điện thoại", moi_lien_he: "Mời liên hệ (Zalo, inbox…)", co_bac_lua_dao: "Cờ bạc, lừa đảo" };
 
 function renderSystem(d) {
   const c = d.comments, total = c.total || 0, share = (n) => (total ? fmtPct((100 * n) / total, 2) : "–");
@@ -422,7 +423,7 @@ async function loadTab() {
     if (SCOPED.has(tab) && !state.version) {
       $("#status-banner").hidden = true;
       $("#scope-line").textContent = "Chưa có số liệu phân tích trong DB.";
-      panel.innerHTML = `<article class="card">${empty("Collection <code>aggregates</code> đang trống. Nạp dữ liệu bằng <code>python -m src.serving.load_db</code> (xem src/serving/README.md).")}</article>`;
+      panel.innerHTML = `<article class="card">${empty("Collection <code>aggregates</code> đang trống. Nạp dữ liệu bằng <code>python -m src.run --den nap_db</code> (xem docs/7-hien-thi/huong-dan.md).")}</article>`;
       return;
     }
     if (!state.data[key]) {

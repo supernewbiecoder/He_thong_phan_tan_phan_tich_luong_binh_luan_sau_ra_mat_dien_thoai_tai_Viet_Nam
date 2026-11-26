@@ -1,7 +1,7 @@
-"""Đọc MongoDB và dựng dữ liệu cho từng tab của dashboard.
+"""Mục đích: Đọc MongoDB và dựng dữ liệu cho từng tab của dashboard (docs/7-hien-thi/huong-dan.md); cập nhật lần cuối: 2026-11-26.
 
-Nguồn theo docs/data-model.md:
-  aggregates        số đếm khen/chê/trung tính  -> Q1, Q2, Q3a, Q4
+Nguồn theo docs/0-chung/thiet-ke-du-lieu.md (contract aspect-mention v3):
+  aggregates        số đếm khen/chê/không đánh giá/so sánh -> Q1, Q2, Q3a, Q4
   aspect_mentions   từng mention                -> bình luận mẫu, Q3b, Q5
   models, comments, videos, alerts
   analysis_results  kết quả Công việc 12 (khoảng tin cậy, kiểm định, kết luận)
@@ -17,7 +17,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Callable, Dict, Iterable, List, Mapping, Optional, Tuple
 
 from .metrics import add_counts, same_counts, summarize
-from .settings import ASPECTS, DEFECT_TYPES, UNVERIFIED_LABEL_SOURCES, Settings
+from src.labeling.final_labels import NEGATIVE, POSITIVE
+
+from .settings import ASPECTS, UNVERIFIED_LABEL_SOURCES, Settings
+
+ZERO = {"n_pos": 0, "n_neg": 0, "n_neu": 0, "n_cmp": 0}
+N_TOTAL = {"$add": ["$n_pos", "$n_neg", "$n_neu", {"$ifNull": ["$n_cmp", 0]}]}
 
 COLLECTIONS = ("models", "videos", "comments", "aspect_mentions", "aggregates", "alerts",
                "gold_labels", "analysis_results")
@@ -27,6 +32,7 @@ BLOCKER_TEXT = {
     "synthetic_or_unconfirmed_dataset": "Dữ liệu nhân tạo hoặc chưa được xác nhận",
     "label_accuracy_not_verified": "Chưa đánh giá độ chính xác của nhãn",
     "rule_baseline_labels": "Nhãn là baseline luật từ khóa",
+    "creator_status_unknown": "Có bình luận chưa biết người viết có phải chủ kênh không",
 }
 
 
@@ -86,7 +92,8 @@ class DashboardStore:
                 "in_catalog": model_id in models}
 
     def _summary(self, counts: Mapping[str, int]) -> Dict[str, object]:
-        return summarize(counts["n_pos"], counts["n_neg"], counts["n_neu"], self.settings.min_opinionated)
+        return summarize(counts["n_pos"], counts["n_neg"], counts["n_neu"], self.settings.min_opinionated,
+                         counts.get("n_cmp", 0))
 
     def _weeks(self) -> List[int]:
         return list(range(1, self.settings.window_weeks + 1))
@@ -101,7 +108,7 @@ class DashboardStore:
         totals: Dict[str, int] = collections.Counter()
         for row in self.db.aggregates.aggregate([{"$group": {
                 "_id": "$model_version",
-                "n": {"$sum": {"$add": ["$n_pos", "$n_neg", "$n_neu"]}}}}]):
+                "n": {"$sum": N_TOTAL}}}]):
             if row["_id"]:
                 totals[row["_id"]] = row["n"] or 0
         sources: Dict[str, Dict[str, int]] = collections.defaultdict(collections.Counter)
@@ -121,7 +128,7 @@ class DashboardStore:
         rows = self.db.aggregates.aggregate([
             {"$match": {"model_version": model_version}},
             {"$group": {"_id": "$target_model",
-                        "n": {"$sum": {"$add": ["$n_pos", "$n_neg", "$n_neu"]}}}}])
+                        "n": {"$sum": N_TOTAL}}}])
         result = [{"model_id": row["_id"], "title": models.get(row["_id"], {}).get("title") or row["_id"],
                    "n_total": row["n"]} for row in rows if row["_id"]]
         return sorted(result, key=lambda item: (-item["n_total"], item["model_id"]))
@@ -151,7 +158,7 @@ class DashboardStore:
         return {
             "defaults": defaults, "versions": self.versions(),
             "targets": self.targets(version) if version else [],
-            "aspects": ASPECTS, "defect_types": DEFECT_TYPES,
+            "aspects": ASPECTS,
             "window_weeks": self.settings.window_weeks,
             "min_opinionated": self.settings.min_opinionated,
         }
@@ -196,7 +203,7 @@ class DashboardStore:
         return list(self.db.aggregates.find(
             {"model_version": version, "target_model": {"$in": list(model_ids)}},
             {"_id": 0, "target_model": 1, "aspect": 1, "week_since_launch": 1, "video_id": 1,
-             "n_pos": 1, "n_neg": 1, "n_neu": 1}))
+             "n_pos": 1, "n_neg": 1, "n_neu": 1, "n_cmp": 1}))
 
     def _grouped(self, rows: List[dict], *keys: str) -> Dict[tuple, Dict[str, int]]:
         """Cộng số đếm theo khóa, chỉ lấy các tuần trong cửa sổ."""
@@ -219,7 +226,7 @@ class DashboardStore:
         if not analysis:
             return {"available": False, "usable": False, "checked_cells": 0, "mismatched_cells": 0}
         checked = mismatched = 0
-        zero = {"n_pos": 0, "n_neg": 0, "n_neu": 0}
+        zero = ZERO
         pairs = [(row, by_model.get((row.get("target_model"),), zero))
                  for row in (analysis.get("q1") or {}).get("overall") or []]
         pairs += [(row, by_week.get((row.get("target_model"), row.get("week_since_launch")), zero))
@@ -279,7 +286,7 @@ class DashboardStore:
     def launch(self, model: Optional[str] = None, model_version: Optional[str] = None) -> Dict[str, object]:
         scope, analysis, status, by_model, by_week, by_cell = self._context(model, model_version)
         target, version = scope["target"], scope["model_version"]
-        zero = {"n_pos": 0, "n_neg": 0, "n_neu": 0}
+        zero = ZERO
         q1 = (analysis or {}).get("q1") or {}
         overall_ci = {row["target_model"]: row for row in q1.get("overall") or []}
         weekly_ci = {(row["target_model"], row["week_since_launch"]): row for row in q1.get("weekly") or []}
@@ -321,30 +328,29 @@ class DashboardStore:
 
     def _samples(self, target: str, version: str, aspect: str, per_sentiment: int = 2) -> List[dict]:
         samples = []
-        for sentiment in ("neg", "pos"):
+        for sentiment in (NEGATIVE, POSITIVE):
             cursor = self.db.aspect_mentions.find(
                 self._mention_query(version, target_model=target, aspect=aspect, sentiment=sentiment),
                 {"_id": 0, "mention_id": 1, "clause_text": 1, "sentiment": 1, "confidence": 1,
                  "label_source": 1, "is_owner": 1},
             ).sort([("confidence", -1), ("mention_id", 1)]).limit(per_sentiment)
             for mention in cursor:
-                # EDA_requirement Q2: bình luận mẫu phải có người duyệt trước khi vào báo cáo.
+                # Bình luận mẫu phải có người duyệt trước khi vào báo cáo.
                 mention["requires_human_review"] = mention.get("label_source") != "human"
                 samples.append(mention)
         return samples
 
     def _defects(self, target: str, version: str, by_week, analysis_rows: List[dict]) -> Dict[str, object]:
-        zero = {"n_pos": 0, "n_neg": 0, "n_neu": 0}
-        denominators = {week: sum(by_week.get((target, week), zero).values()) for week in self._weeks()}
+        """Q5: lời chê do người đã dùng máy viết, theo khía cạnh (bộ loại lỗi chưa chốt, contract v3)."""
+        denominators = {week: sum(by_week.get((target, week), ZERO).values()) for week in self._weeks()}
         counts: Dict[Tuple[str, int], int] = collections.Counter()
         for mention in self.db.aspect_mentions.find(
-                self._mention_query(version, target_model=target, is_owner=True,
-                                    defect_type={"$ne": None}),
-                {"_id": 0, "defect_type": 1, "days_since_launch": 1}):
-            counts[(mention["defect_type"], mention["days_since_launch"] // 7 + 1)] += 1
-        tests = {row.get("defect_type"): row for row in analysis_rows}
+                self._mention_query(version, target_model=target, is_owner=True, sentiment=NEGATIVE),
+                {"_id": 0, "aspect": 1, "days_since_launch": 1}):
+            counts[(mention["aspect"], mention["days_since_launch"] // 7 + 1)] += 1
+        tests = {row.get("aspect"): row for row in analysis_rows}
         defects = []
-        for defect, name in DEFECT_TYPES.items():
+        for defect, name in ASPECTS.items():
             weekly = [{"week_since_launch": week, "n_defect": counts[(defect, week)],
                        "n_denominator": denominators[week],
                        "defect_mention_pct": (100.0 * counts[(defect, week)] / denominators[week]
@@ -355,7 +361,7 @@ class DashboardStore:
             # Chỉ dùng mức ưu tiên của Công việc 12 khi hai bên đếm ra cùng số lượt nhắc lỗi.
             agrees = row is not None and row.get("n_defect") == n_defect
             defects.append({
-                "defect_type": defect, "name": name, "n_defect": n_defect, "weekly": weekly,
+                "aspect": defect, "name": name, "n_defect": n_defect, "weekly": weekly,
                 "priority": row.get("priority") if agrees else None,
                 "priority_candidate": row.get("priority_candidate") if agrees else None,
                 "trend": row.get("trend") if agrees else None,
@@ -381,7 +387,7 @@ class DashboardStore:
     def compare(self, model: Optional[str] = None, model_version: Optional[str] = None) -> Dict[str, object]:
         scope, analysis, status, by_model, _by_week, by_cell = self._context(model, model_version)
         target, predecessor, version = scope["target"], scope["predecessor"], scope["model_version"]
-        zero = {"n_pos": 0, "n_neg": 0, "n_neu": 0}
+        zero = ZERO
         q3a = (analysis or {}).get("q3a") or {}
         cell_ci = {(row["aspect"], row["target_model"]): row for row in q3a.get("matrix") or []}
         omnibus = {row.get("aspect"): row for row in q3a.get("omnibus") or []}

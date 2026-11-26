@@ -1,6 +1,6 @@
 # Mục tiêu và câu hỏi của đề tài
 
-> Mục đích: Nói rõ đề tài làm để làm gì, phải giao ra cái gì, và từng câu hỏi cần trả lời: đo bằng gì, cần dữ liệu gì, ra kết quả gì, khi nào được kết luận; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Nói rõ đề tài làm để làm gì, phải giao ra cái gì, và từng câu hỏi cần trả lời: đo bằng gì, cần dữ liệu gì, ra kết quả gì, khi nào được kết luận; cập nhật lần cuối: 2026-11-26.
 
 **Trạng thái:** bản đề xuất, nhóm chưa chốt đề tài. Câu Q6 và bộ 4 máy đang chờ nhóm quyết. Tiến độ và các quyết định đang chờ: [kế hoạch](ke-hoach.md).
 
@@ -36,7 +36,7 @@ Kết quả phải giúp người làm sản phẩm và marketing của hãng tr
   Ví dụ: X = Galaxy S26 Ultra, P = Galaxy S25 Ultra, R1 = iPhone 17 Pro Max, R2 = Xiaomi 17 Ultra. Bộ chính thức chốt ở Công việc 2.
 - **Cửa sổ:** 4 tuần kể từ `launch_date` của từng máy. `launch_date` là ngày công bố đầu tiên (toàn cầu, hoặc Trung Quốc với máy ra mắt ở đó trước), không phải ngày bán ở Việt Nam.
 - **Nguồn:** YouTube. Nguồn khác là Công việc 15.
-- **9 khía cạnh:** Pin & sạc, Màn hình, Hiệu năng (gồm nóng máy), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi. Định nghĩa ở [data-model.md](thiet-ke-du-lieu.md#danh-mục-mã).
+- **11 khía cạnh** (bộ nhãn chốt 26/11): Pin & sạc, Màn hình, Hiệu năng (gồm nóng máy), Camera, Thiết kế, Độ bền, Phần mềm, Phần cứng khác (gồm loa, mic), Giá, Mua bán, Bảo hành & sửa chữa. Thêm hai nhãn ngoài khía cạnh: cả máy (`may_chung`), hãng và người dùng (`hang_nguoi_dung`). Mã và định nghĩa ở [thiết kế dữ liệu](thiet-ke-du-lieu.md#danh-mục-mã) và [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611).
 - **Đơn vị đếm:** bộ (bình luận, máy, khía cạnh): một bình luận nói về một khía cạnh của một máy. Chốt 20/11 (phương án A); trước đó đơn vị là mệnh đề.
   - "Cam đẹp nhưng pin yếu" là 2 đơn vị: Camera–khen, Pin–chê.
   - "Pin tốt, pin trâu, sạc nhanh" là **1** đơn vị Pin–khen, không phải 3: người viết nhiều dấu phẩy không được nhiều phiếu hơn.
@@ -52,10 +52,10 @@ Kết quả phải giúp người làm sản phẩm và marketing của hãng tr
 | # | Câu hỏi | Đầu ra chính |
 |---|---|---|
 | Q1 | X được đón nhận tốt hay dở? | Net cảm xúc theo tuần, 4 máy |
-| Q2 | X có ưu, nhược điểm gì? | % khen/chê theo 9 khía cạnh của X, kèm bình luận thật |
+| Q2 | X có ưu, nhược điểm gì? | % khen/chê theo 11 khía cạnh của X, kèm bình luận thật |
 | Q3 | So với đối thủ, X mạnh, yếu ở đâu? | Ma trận khía cạnh × máy; tỷ lệ thắng trong câu so sánh trực tiếp |
 | Q4 | Đời trước bị chê gì, đời này đã sửa chưa? | % chê từng khía cạnh, P → X |
-| Q5 | Lỗi gì cần sửa, sửa cái nào trước? | Bảng lỗi do người đã dùng báo, xếp ưu tiên |
+| Q5 | Lỗi gì cần sửa, sửa cái nào trước? | Bảng lời chê do người đã dùng báo, theo khía cạnh (chờ bộ loại lỗi), xếp ưu tiên |
 | Q6 | Có tài khoản ảo seeding, quậy phá không, và nó làm lệch kết quả bao nhiêu? (đề xuất) | Tỷ lệ bình luận nghi vấn; Q1–Q5 khi giữ và khi bỏ chúng |
 
 ### Q1. X được đón nhận tốt hay dở?
@@ -71,7 +71,7 @@ Kết quả phải giúp người làm sản phẩm và marketing của hãng tr
 
 | | |
 |---|---|
-| **Ý nghĩa** | Trong 9 khía cạnh của X, cái nào được khen nhiều (ưu), cái nào bị chê nhiều (nhược). Chỉ xét X |
+| **Ý nghĩa** | Trong 11 khía cạnh của X, cái nào được khen nhiều (ưu), cái nào bị chê nhiều (nhược). Chỉ xét X |
 | **Đo bằng** | % khen, % chê theo khía cạnh, với máy được nhắc là X |
 | **Đầu ra** | Thanh hai chiều (chê bên trái, khen bên phải), sắp theo Net; 2–3 bình luận mẫu mỗi khía cạnh, có người duyệt trước khi đưa vào báo cáo |
 | **Kết luận khi** | Nhược điểm là khía cạnh có % chê cao hơn mức chê chung của X một cách có ý nghĩa; ưu điểm thì ngược lại |
@@ -81,7 +81,7 @@ Kết quả phải giúp người làm sản phẩm và marketing của hãng tr
 | | |
 |---|---|
 | **Ý nghĩa** | X hơn hay kém từng đối thủ ở khía cạnh nào |
-| **Đo bằng** | (a) % khen của 9 khía cạnh × 4 máy. (b) Câu so sánh trực tiếp, vd "S26U chụp đêm hơn iPhone": % X thắng theo khía cạnh |
+| **Đo bằng** | (a) % khen của 11 khía cạnh × 4 máy. (b) Câu so sánh trực tiếp, vd "S26U chụp đêm hơn iPhone": % X thắng theo khía cạnh |
 | **Đầu ra** | Bảng tô màu khía cạnh × máy; thanh 100% "X thắng / đối thủ thắng" kèm số câu |
 | **Kết luận khi** | Ô tốt nhất chỉ in đậm khi hơn có ý nghĩa; không có ý nghĩa thì ghi "chưa phân định" |
 
@@ -100,8 +100,8 @@ Kết quả phải giúp người làm sản phẩm và marketing của hãng tr
 | | |
 |---|---|
 | **Ý nghĩa** | Lỗi kỹ thuật do **người đã dùng X** báo, xếp ưu tiên cho đội kỹ thuật |
-| **Đo bằng** | Mỗi loại lỗi: số lần nhắc, và tỷ lệ lỗi nửa đầu so với nửa sau cửa sổ |
-| **Đầu ra** | Bảng: loại lỗi · số lần nhắc · tăng/giảm · mức ưu tiên · bình luận mẫu |
+| **Đo bằng** | Mỗi khía cạnh: số lời chê do người đã dùng X viết (`is_owner = true`, `tieu_cuc`), và tỷ lệ nửa đầu so với nửa sau cửa sổ. Bộ loại lỗi chưa chốt ([kế hoạch tổng thể](ke-hoach-tong-the.md) bước 2.6); có bộ đó thì Q5 đổi lại theo loại lỗi |
+| **Đầu ra** | Bảng: khía cạnh · số lần nhắc · tăng/giảm · mức ưu tiên · bình luận mẫu |
 | **Luật ưu tiên** | P1: từ 20 lần nhắc và tăng có ý nghĩa. P2: từ 20 lần nhắc, xu hướng không có ý nghĩa. P3: dưới 20 lần ("theo dõi, chưa đủ dữ liệu"). Ngưỡng 20 chốt lại sau khi biết số thật |
 | **Rủi ro** | Cửa sổ tính từ ngày công bố toàn cầu, nên trong 4 tuần đầu có thể rất ít người ở Việt Nam đã dùng máy |
 

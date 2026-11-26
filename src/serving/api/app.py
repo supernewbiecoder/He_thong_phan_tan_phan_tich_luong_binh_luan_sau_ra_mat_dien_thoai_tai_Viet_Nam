@@ -1,4 +1,4 @@
-"""API chỉ đọc cho dashboard và máy chủ phục vụ trang dashboard.
+"""Mục đích: API chỉ đọc cho dashboard 4 tab và máy chủ phục vụ trang dashboard, đọc MongoDB đã nạp bằng `python -m src.run --den nap_db` (docs/7-hien-thi/huong-dan.md); cập nhật lần cuối: 2026-11-26.
 
 Chạy (từ thư mục gốc repo):
   python -m src.serving.api.app --port 8000
@@ -74,7 +74,7 @@ def create_app(db=None, settings: Optional[Settings] = None) -> FastAPI:
 
     @app.get("/api/launch")
     def launch(model: Optional[str] = Query(None, description="mã máy X, vd s23u"),
-               model_version: Optional[str] = Query(None, description="phiên bản nhãn, vd rule-v0")):
+               model_version: Optional[str] = Query(None, description="phiên bản nhãn, vd rule-v1.1")):
         return store.launch(model, model_version)
 
     @app.get("/api/compare")

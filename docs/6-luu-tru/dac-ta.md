@@ -3,7 +3,17 @@
 > **Dự án:** Hệ thống phân tán phân tích luồng bình luận sau ra mắt điện thoại tại Việt Nam  
 > **Người thực hiện:** Việt (Công việc STT 3: Thiết kế DB)  
 > **Hệ quản trị CSDL:** MongoDB (NoSQL Document Store)  
-> **Cập nhật lần cuối:** 28/10/2026  
+> **Cập nhật lần cuối:** 26/11/2026  
+
+> Mục đích: Thiết kế các collection MongoDB, quan hệ giữa chúng, index và chiến lược ghi chống trùng; cập nhật lần cuối: 2026-11-26.
+
+**Cập nhật 26/11 (Nguyễn Lê Quân, theo contract `aspect-mention` v3):** bản gốc ngày 28/10 của Việt viết theo 9 khía cạnh cũ và schema v1. Bản này đổi:
+- mã khía cạnh, thái độ theo [bộ nhãn chốt](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611) (trong code: `src/labeling/final_labels.py`); `defect_type` luôn `null`;
+- 8 collection: thêm `analysis_results` (kết quả Q1–Q5 của Công việc 12, dashboard đọc);
+- dữ liệu vào DB bằng `src/storage/load_db.py` (bước `nap_db` của `python -m src.run`), không còn `seed_db.py` (dữ liệu giả, gỡ 26/11);
+- `aggregates` có thêm `n_cmp` (số mention `so_sanh`); các trường `owner_defect_count`, `compare_*_count` không còn (Q3b, Q5 đếm từ `aspect_mentions`).
+
+Trường và kiểu chính xác lấy theo [thiết kế dữ liệu](../0-chung/thiet-ke-du-lieu.md) và `contracts/aspect-mention.schema.json`; khi file này lệch thì theo hai nguồn đó. Các phần về Kafka, Spark dưới đây là thiết kế cho giai đoạn streaming (để sau).
 
 ---
 
@@ -139,18 +149,21 @@ erDiagram
         string source "Nguồn crawl"
         string video_model "Máy của video (ngữ cảnh)"
         string target_model FK "Máy được nhắc (phục vụ Q1-Q5)"
-        enum aspect "1 trong 9 khía cạnh canonical"
-        enum sentiment "pos | neg | neu"
+        enum aspect "nhãn chiều 2: 11 khía cạnh + may_chung, hang_nguoi_dung, khac"
+        enum sentiment "tich_cuc | tieu_cuc | so_sanh | khong_danh_gia"
         float confidence "Độ tin cậy của nhãn"
         boolean is_owner "Người dùng đã mua/trải nghiệm máy (Q5)"
-        enum defect_type "Phân loại lỗi kỹ thuật (Q5)"
+        string_array purposes "Mục đích của bình luận (chiều 3), null = chưa suy luận"
+        enum model_mention "goi_ten_may | chi_hang | khong_nhac"
+        enum target_model_source "menh_de | ... | video | khong_ro | nguoi_gan"
+        null defect_type "Luôn null ở v3 (chờ bộ loại lỗi)"
         string compare_with FK "Mã máy đối thủ được so sánh (Q3)"
         enum compare_winner "target | other | tie"
         datetime published_at "Thời điểm đăng bình luận"
         int days_since_launch "Số ngày sau ra mắt tại VN"
         enum label_source "rule | llm | model | human"
         string model_version "Phiên bản mô hình gán nhãn"
-        int schema_version "Phiên bản schema (= 1)"
+        int schema_version "Phiên bản schema (= 3)"
     }
     
     AGGREGATES {
@@ -162,12 +175,10 @@ erDiagram
         string source "Nguồn thu thập"
         int n_pos "Số đếm khen (KHÔNG lưu %)"
         int n_neg "Số đếm chê (KHÔNG lưu %)"
-        int n_neu "Số đếm trung tính (KHÔNG lưu %)"
+        int n_neu "Số đếm không đánh giá (KHÔNG lưu %)"
+        int n_cmp "Số đếm so sánh (v3)"
         int n_total "Tổng số lượt nhắc"
-        int owner_defect_count "Số đếm lỗi từ người dùng thật"
-        int compare_count "Số lượt so sánh trực tiếp"
-        int compare_win_count "Số lượt thắng đối thủ"
-        int compare_lose_count "Số lượt thua đối thủ"
+        int n_opinionated "n_pos + n_neg"
         string label_source "Nguồn nhãn (rule/model)"
         string model_version "Phiên bản mô hình tổng hợp"
         datetime updated_at "Thời điểm tổng hợp"
@@ -201,7 +212,7 @@ erDiagram
         object_array aspects "Mảng các cặp [aspect, sentiment]"
         string target_model FK "Mã máy được gán"
         boolean is_owner "Xác nhận người dùng thật"
-        enum defect_type "Loại lỗi nếu có"
+        enum model_mention "goi_ten_may | chi_hang | khong_nhac"
         string compare_with FK "Máy được so sánh"
         enum compare_winner "target | other | tie"
         datetime labeled_at "Thời điểm gán nhãn"
@@ -212,7 +223,7 @@ erDiagram
 
 ### 3.2. Bảng Ma trận Quan hệ Liên Thực thể (Entity Relationship & Cardinality Matrix)
 
-Bảng dưới đây chuẩn hóa các liên kết tham chiếu (Logical Foreign Keys) và bản số giữa 7 collection trong MongoDB:
+Bảng dưới đây chuẩn hóa các liên kết tham chiếu (Logical Foreign Keys) và bản số giữa các collection trong MongoDB (`analysis_results` thêm 26/11, không có khóa ngoại: mỗi document là kết quả Q1–Q5 của một máy X và một phiên bản nhãn):
 
 | Collection Nguồn (Parent) | Collection Đích (Child) | Khóa Liên kết (Join Key) | Bản số (Cardinality) | Ý nghĩa Nghiệp vụ & Ràng buộc Toàn vẹn |
 |:---|:---|:---|:---:|:---|
@@ -225,7 +236,7 @@ Bảng dưới đây chuẩn hóa các liên kết tham chiếu (Logical Foreign
 | `videos` | `comments` | `videos.video_id` = `comments.video_id` | $1 : N$ | Một video chứa danh sách nhiều bình luận gốc và phản hồi (reply). |
 | `videos` | `aggregates` | `videos.video_id` = `aggregates.video_id` | $1 : N$ | Giữ `video_id` trong bản ghi tổng hợp để hỗ trợ kỹ thuật **Bootstrap Resampling** tính khoảng tin cậy. |
 | `comments` | `comments` | `comments.comment_id` = `comments.parent_id` | $1 : N$ | Quan hệ phân cấp giữa bình luận gốc và chuỗi phản hồi (Replies). |
-| `comments` | `aspect_mentions` | `comments.comment_id` = `aspect_mentions.comment_id` | $1 : N$ | Một bình luận được phân rã thành nhiều mệnh đề, mỗi mệnh đề có thể nhắc 1 khía cạnh khác nhau. |
+| `comments` | `aspect_mentions` | `comments.comment_id` = `aspect_mentions.comment_id` | $1 : N$ | Một bình luận tạo nhiều mention: mỗi (máy, nhãn chiều 2) tối đa một lời khen và một lời chê (phương án A). |
 | `comments` | `gold_labels` | `comments.comment_id` = `gold_labels.comment_id` | $1 : N$ | Bình luận được trích mẫu vào tập 3.000 mệnh đề gán nhãn chuẩn kiểm thử (Ground Truth). |
 | `aspect_mentions`| `aggregates` | `target_model` + `aspect` + `week` | $N : 1$ | Spark / Aggregation Pipeline định kỳ cộng dồn các `aspect_mentions` thành số đếm trong `aggregates`. |
 
@@ -239,7 +250,7 @@ Bảng dưới đây chuẩn hóa các liên kết tham chiếu (Logical Foreign
 | **Q2: Ưu / Nhược điểm theo Khía cạnh** | Điểm mạnh và điểm yếu nổi bật nhất của dòng máy X là gì? | `aggregates`, `aspect_mentions` | `target_model: "s23u"`, `aspect: {$ne: null}` | Tỷ lệ tích cực từng Aspect $= \frac{n_{pos}}{n_{pos} + n_{neg}}$. Trích xuất câu trích dẫn mẫu có `confidence` cao từ `aspect_mentions`. |
 | **Q3: Đối sánh 4 máy & So sánh Trực tiếp** | So với đối thủ cạnh tranh, máy X mạnh hay yếu ở khía cạnh nào? | `aggregates`, `aspect_mentions` | `target_model: "s23u"`, `compare_with: {$ne: null}` | Lập ma trận Aspect $\times$ Model từ `aggregates`. Tỷ lệ thắng đối đầu $= \frac{\text{compare\_win\_count}}{\text{compare\_count}}$ từ `aspect_mentions`. |
 | **Q4: Cải thiện Thế hệ (Đời trước $\to$ Đời này)** | Những điểm đời trước bị chê nhiều đã được cải thiện ở đời này chưa? | `models`, `aggregates` | `target_model` $\in$ `{s22u, s23u}` (dựa trên `models.predecessor_id`) | So sánh tỷ lệ tiêu cực $\frac{n_{neg}}{n_{total}}$ giữa 2 đời trên từng Aspect. Kiểm định 2 tỷ lệ độc lập (Z-test có hiệu chỉnh Bonferroni). |
-| **Q5: Ưu tiên Khắc phục Lỗi từ Người Dùng Thật** | Người đã mua máy phản ánh lỗi gì nhiều nhất và cần ưu tiên sửa lỗi nào? | `aspect_mentions` | `target_model: "s23u"`, `is_owner: true`, `defect_type: {$ne: null}` | Nhóm theo `defect_type`, đếm tần suất xuất hiện và phân bố theo thời gian. Tính khoảng tin cậy Wilson Score cho tỷ lệ lỗi. |
+| **Q5: Ưu tiên Khắc phục Lỗi từ Người Dùng Thật** | Người đã mua máy phản ánh lỗi gì nhiều nhất và cần ưu tiên sửa lỗi nào? | `aspect_mentions` | `target_model: "s23u"`, `is_owner: true`, `sentiment: "tieu_cuc"` | Nhóm theo `aspect` (bộ loại lỗi chưa chốt), đếm theo tuần. Khoảng tin cậy và kiểm định do Công việc 12 tính, lưu ở `analysis_results`. |
 
 ---
 
@@ -322,77 +333,74 @@ Khớp với `contracts/comment-event.schema.json`:
 
 ### 4.4. Collection `aspect_mentions` (Mệnh đề & Khía cạnh — Hạt nhân của ABSA)
 Mỗi document tương ứng với một mệnh đề hoặc một lượt nhắc khía cạnh cụ thể, giải quyết bài toán: một bình luận có thể vừa khen khía cạnh này, vừa chê khía cạnh khác.
-Khớp chuẩn 100% với `contracts/aspect-mention.schema.json` (schema_version = 1):
+Ví dụ theo `contracts/aspect-mention.schema.json` (schema_version = 3):
 ```json
 {
-  "mention_id": "UgxA1b2C3d4E5f6G7h4AaABAg#1#BATTERY",
+  "mention_id": "UgxA1b2C3d4E5f6G7h4AaABAg#1#pin_sac",
   "comment_id": "UgxA1b2C3d4E5f6G7h4AaABAg",
+  "parent_id": null,
   "video_id": "9SmOJHZTkC4",
   "clause_idx": 1,
   "clause_text": "Pin trâu hơn đời trước rõ rệt",
   "source": "youtube",
   "video_model": "s23u",
   "target_model": "s23u",
-  "aspect": "BATTERY",
-  "sentiment": "pos",
-  "confidence": 0.95,
+  "author_hash": "069722f199073a1f8b0223df1aa448cd79e0695bd87f82fd737f9f892520bdcb",
+  "author_is_creator": false,
+  "aspect": "pin_sac",
+  "sentiment": "so_sanh",
+  "confidence": null,
   "is_owner": true,
+  "purposes": null,
+  "model_mention": "goi_ten_may",
+  "target_model_source": "video",
   "defect_type": null,
   "compare_with": "s22u",
   "compare_winner": "target",
   "published_at": "2023-02-10T14:20:00Z",
   "days_since_launch": 8,
   "label_source": "rule",
-  "model_version": "v1.0.0",
-  "schema_version": 1
+  "model_version": "rule-v1.1",
+  "schema_version": 3
 }
 ```
 
-* **Danh mục 9 khía cạnh kỹ thuật chuẩn hóa (Canonical Aspects):**
-  1. `BATTERY`: Pin & sạc (dung lượng, thời lượng on-screen, sạc nhanh, sạc không dây).
-  2. `DISPLAY`: Màn hình & hiển thị (độ sáng ngoài trời, màu sắc, tần số quét 120Hz, độ phân giải, sọc màn).
-  3. `PERFORMANCE`: Hiệu năng (chip Snap/Dimensity/Apple Silicon, độ mượt, chơi game FPS, RAM, nhiệt độ / quá nhiệt).
-  4. `CAMERA`: Camera & quay video (chụp đêm, chi tiết ảnh, chống rung OIS, zoom xa, màu da).
-  5. `DESIGN`: Thiết kế & độ bền (ngoại hình, viền titan/nhôm, kính cường lực, độ nặng, cảm giác cầm nắm, kháng nước).
-  6. `SOFTWARE`: Phần mềm & tính năng (hệ điều hành One UI/iOS, độ ổn định cập nhật, lỗi vặt, tính năng AI).
-  7. `HARDWARE_OTHER`: Phần cứng khác (loa ngoài, motor rung, cảm biến vân tay/Face ID, sóng 5G/Wi-Fi, bút S-Pen).
-  8. `PRICE`: Giá bán & giá trị (mức giá niêm yết, độ đáng tiền, giữ giá, chương trình khuyến mãi/thu cũ).
-  9. `WARRANTY`: Bảo hành & dịch vụ hậu mãi (chính sách đổi trả, thời gian sửa chữa, bảo hành chính hãng vs xách tay).
+* **Nhãn chiều 2 (`aspect`):** 11 khía cạnh `pin_sac`, `man_hinh`, `hieu_nang` (gồm nóng máy), `camera`, `thiet_ke`, `do_ben`, `phan_mem`, `phan_cung_khac` (gồm loa, mic, phụ kiện), `gia`, `mua_ban`, `bao_hanh_sua_chua`; thêm `may_chung`, `hang_nguoi_dung`, `khac`. Định nghĩa ở [thiết kế dữ liệu](../0-chung/thiet-ke-du-lieu.md#danh-mục-mã).
 
 * **Index:**
   * `{"mention_id": 1}` (Unique).
   * `{"target_model": 1, "aspect": 1, "published_at": 1}` (Tối ưu query Q1, Q2, Q4).
   * `{"target_model": 1, "compare_with": 1}` (Tối ưu query đối đầu trực tiếp Q3).
-  * `{"target_model": 1, "is_owner": 1, "defect_type": 1}` (Tối ưu query ưu tiên lỗi từ người dùng thật Q5).
+  * `{"target_model": 1, "is_owner": 1, "sentiment": 1}` (Tối ưu query lời chê của người đã dùng máy, Q5).
 
 ---
 
 ### 4.5. Collection `aggregates` (Số liệu tổng hợp)
 
 > [!IMPORTANT]
-> **YÊU CẦU BẮT BUỘC:** `aggregates` **chỉ lưu SỐ ĐẾM (counts: n_pos, n_neg, n_neu)**, tuyệt đối **KHÔNG lưu phần trăm (%)**.  
+> **YÊU CẦU BẮT BUỘC:** `aggregates` **chỉ lưu SỐ ĐẾM (counts: n_pos, n_neg, n_neu, n_cmp)**, tuyệt đối **KHÔNG lưu phần trăm (%)**.  
 > **Lý do kỹ thuật:** Phần trăm không có tính chất cộng gộp (non-additive). Nếu lưu sẵn `75%` cho Tuần 1 (n=100) và `50%` cho Tuần 2 (n=10), ta không thể cộng trung bình `(75 + 50)/2 = 62.5%` vì thực tế `(75 + 5) / 110 = 72.7%`. Việc lưu số đếm cho phép dashboard hay API tùy ý `SUM()` trên mọi chiều (thời gian, model, aspect) một cách chính xác tuyệt đối, sau đó tính tỷ lệ % tại thời điểm truy vấn.
 
 ```json
 {
-  "agg_id": "s23u#BATTERY#1#9SmOJHZTkC4",
+  "agg_id": "agg_<sha256 của khóa (target_model, aspect, week_since_launch, video_id, source, model_version)>",
   "target_model": "s23u",
-  "aspect": "BATTERY",
+  "aspect": "pin_sac",
   "week_since_launch": 1,
   "video_id": "9SmOJHZTkC4",
   "source": "youtube",
-  "model_version": "v1.0.0",
+  "model_version": "rule-v1.1",
   "n_pos": 352,
   "n_neg": 108,
   "n_neu": 85,
-  "n_total": 545,
-  "owner_defect_count": 1,
-  "compare_count": 89,
-  "compare_win_count": 52,
-  "compare_lose_count": 37,
-  "updated_at": "2026-10-28T00:00:00Z"
+  "n_cmp": 12,
+  "n_total": 557,
+  "n_opinionated": 460,
+  "updated_at": "2026-11-26T00:00:00Z"
 }
 ```
+
+Số trong ví dụ là số minh họa định dạng. `n_pos`, `n_neg`, `n_neu`, `n_cmp` là số mention `tich_cuc`, `tieu_cuc`, `khong_danh_gia`, `so_sanh`.
 
 * **Công thức dẫn xuất tại tầng API/Dashboard:**
   * $\% \text{ Tích cực (Khen)} = \frac{n_{pos}}{n_{pos} + n_{neg}} \times 100$
@@ -406,16 +414,16 @@ Khớp chuẩn 100% với `contracts/aspect-mention.schema.json` (schema_version
 ### 4.6. Collection `alerts` (Lịch sử cảnh báo khủng hoảng)
 ```json
 {
-  "alert_id": "ALT_20230214_s23u_PERFORMANCE",
+  "alert_id": "ALT_20230214_s23u_hieu_nang",
   "target_model": "s23u",
-  "aspect": "PERFORMANCE",
+  "aspect": "hieu_nang",
   "metric": "neg_sentiment_spike",
   "value": 59.4,
   "baseline": 25.0,
   "threshold": 45.0,
   "severity": "warning",
   "status": "active",
-  "sample_mention_ids": ["UgxA1#1#PERFORMANCE", "UgxB2#2#PERFORMANCE"],
+  "sample_mention_ids": ["UgxA1#1#hieu_nang", "UgxB2#2#hieu_nang"],
   "window_start": "2023-02-14T08:00:00Z",
   "window_end": "2023-02-14T09:00:00Z",
   "created_at": "2023-02-14T09:05:00Z"
@@ -439,21 +447,28 @@ Lưu trữ tập 3.000 mệnh đề được chuyên viên gán nhãn độc l�
   "split": "test",
   "aspects": [
     {
-      "aspect": "BATTERY",
-      "sentiment": "pos"
+      "aspect": "pin_sac",
+      "sentiment": "so_sanh"
     }
   ],
   "target_model": "s23u",
   "is_owner": true,
-  "defect_type": null,
+  "model_mention": "goi_ten_may",
   "compare_with": "s22u",
   "compare_winner": "target",
-  "guideline_version": "v1.0",
+  "guideline_version": "huong-dan-gan-nhan-chinh-thuc 2026-11-26",
   "labeled_at": "2026-10-28T00:00:00Z"
 }
 ```
 
 * **Index:** `{"clause_id": 1}` (Unique), `{"split": 1, "target_model": 1}`.
+
+---
+
+### 4.8. Collection `analysis_results` (kết quả Q1–Q5, thêm 26/11)
+Mỗi document là toàn bộ `business_questions.json` của Công việc 12 cho một máy X và một phiên bản nhãn. Khóa `analysis_id = "<target_model>|<model_version>"`; `load_db.py` ghi kèm `loaded_at` và SHA-256 của file nguồn. Dashboard chỉ gắn khoảng tin cậy, kiểm định vào số liệu khi số đếm trong document khớp số đếm trong `aggregates`.
+
+* **Index:** `{"analysis_id": 1}` (Unique).
 
 ---
 
@@ -464,6 +479,6 @@ Lưu trữ tập 3.000 mệnh đề được chuyên viên gán nhãn độc l�
 2. **Metadata Nguồn gốc & Phiên bản:**
    * Mọi document gán nhãn đều có bắt buộc:
      * `label_source`: `"rule"`, `"llm"`, `"model"`, hoặc `"human"`.
-     * `model_version`: Định danh phiên bản mô hình (vd: `"v1.0.0"`, `"phobert_v1"`).
+     * `model_version`: Định danh phiên bản mô hình (vd: `"rule-v1.1"`, `"phobert_v1"`).
    * Giúp hệ thống dễ dàng so sánh hiệu năng giữa các phiên bản mô hình khác nhau trên cùng một tập dữ liệu.
 

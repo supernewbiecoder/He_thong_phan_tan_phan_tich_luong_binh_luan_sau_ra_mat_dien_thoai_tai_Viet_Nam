@@ -1,15 +1,18 @@
-"""Mục đích: Luật mốc chấm khen/chê/trung tính cho một đoạn chữ đã chuẩn hóa (`text_norm`), dùng ở bước suy luận theo bình luận (docs/4-mo-hinh/dac-ta-suy-luan.md mục 4); cập nhật lần cuối: 2026-11-20.
+"""Mục đích: Luật mốc chấm thái độ khen/chê/không đánh giá (`tich_cuc`/`tieu_cuc`/`khong_danh_gia` của bộ nhãn chốt) cho một đoạn chữ đã chuẩn hóa (`text_norm`), dùng ở bước suy luận theo bình luận (docs/4-mo-hinh/dac-ta-suy-luan.md mục 4); cập nhật lần cuối: 2026-11-26.
 
 Chỉ là mốc để so sánh và để chạy thông cả chuỗi khi chưa có mô hình. Chưa đo trên nhãn người: không dùng để kết luận.
+Luật không nhận thái độ `so_sanh` (cần biết bên hơn), nên không bao giờ trả nhãn đó.
 Cách chấm: đếm cụm từ khen, cụm từ chê (cụm dài khớp trước, "tụt nhanh" là chê dù "nhanh" là khen); cụm đứng sau
-từ phủ định trong 2 chữ thì đổi chiều ("không lag" là khen); câu hỏi là trung tính.
+từ phủ định trong 2 chữ thì đổi chiều ("không lag" là khen); câu hỏi là không đánh giá.
 """
 
 from __future__ import annotations
 
 import re
 
-POS, NEG, NEU = "pos", "neg", "neu"
+from src.labeling.final_labels import NEGATIVE, NO_OPINION, POSITIVE
+
+POS, NEG, NEU = POSITIVE, NEGATIVE, NO_OPINION
 
 KHEN = (
     "tốt", "ngon", "đẹp", "mượt", "trâu", "ổn", "ok", "ổn định", "xịn", "xịn xò", "đỉnh", "đỉnh cao", "tuyệt", "tuyệt vời",
@@ -50,7 +53,7 @@ def _diem(text_norm: str) -> int:
 
 
 def cam_xuc(text_norm: str) -> str:
-    """"pos", "neg" hoặc "neu" cho một đoạn `text_norm` (thường là một mệnh đề)."""
+    """POS (`tich_cuc`), NEG (`tieu_cuc`) hoặc NEU (`khong_danh_gia`) cho một đoạn `text_norm` (thường là một mệnh đề)."""
     if not text_norm or _CAU_HOI_RE.search(text_norm.strip().lower()):
         return NEU
     d = _diem(text_norm)

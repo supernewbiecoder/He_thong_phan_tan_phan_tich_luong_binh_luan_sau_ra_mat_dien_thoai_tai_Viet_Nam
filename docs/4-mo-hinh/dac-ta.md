@@ -6,17 +6,17 @@
 
 | Nhiệm vụ | Đầu vào | Đầu ra | Loại bài toán | Công việc |
 |---|---|---|---|---|
-| Khía cạnh | cả bình luận | 0..n mã khía cạnh | phân loại **đa nhãn** có giám sát | 8 |
-| Cảm xúc | (bình luận, khía cạnh) | `pos`/`neg`/`neu`; một bình luận có thể vừa khen vừa chê cùng khía cạnh | phân loại 3 lớp | 9 |
+| Khía cạnh | cả bình luận | 0..n nhãn chiều 2 (11 khía cạnh + `may_chung`, `hang_nguoi_dung`, `khac`) | phân loại **đa nhãn** có giám sát | 8 |
+| Thái độ | (bình luận, nhãn chiều 2) | `tich_cuc`/`tieu_cuc`/`so_sanh`/`khong_danh_gia`; một bình luận có thể vừa khen vừa chê cùng khía cạnh | phân loại nhiều lớp | 9 |
 | Máy được nhắc | từng nhận xét + các mệnh đề khác của bình luận + comment cha + máy của video | `target_model`, `compare_with`, `compare_winner` | luật alias → có thể nâng lên ML | 10 |
-| Spam | bình luận | `spam`/`not_spam` | phân loại nhị phân, lệch lớp | 11 |
-| Đã dùng máy, loại lỗi | bình luận | `is_owner`, `defect_type` | luật (`label_source = "rule"`), nâng cấp nếu còn thời gian | 10 |
+| Spam | bình luận | spam (mục đích `quang_cao`) / không | luật `flags.py` so với ML, nhị phân lệch lớp ([đặc tả](dac-ta-spam.md)) | 11 |
+| Đã dùng máy | bình luận | `is_owner` (`defect_type` chờ bộ loại lỗi) | luật (`label_source = "rule"`), nâng cấp nếu còn thời gian | 10 |
 
 **Đơn vị là cả bình luận (phương án A, chốt 20/11).** Đếm theo (bình luận, máy, khía cạnh). Mô hình đọc cả bình luận, nên ngữ cảnh trong cùng bình luận không bị mất. Cách ghi ra `aspect_mentions`, luật mốc `rule-v1` đang chạy và cách thay luật bằng mô hình: [dac-ta-suy-luan.md](dac-ta-suy-luan.md).
 
 Mã nhãn theo [data-model.md](../0-chung/thiet-ke-du-lieu.md#danh-mục-mã).
 
-**Phân cụm không phải mô hình khía cạnh.** Phân cụm không bảo đảm các cụm khớp với 9 khía cạnh định trước, và chỉ gán mỗi bình luận vào một cụm. Bản nháp EDA cho silhouette ~0,17–0,20 với mọi k, tức gần như không có cấu trúc cụm. Phân cụm chỉ dùng để khám phá chủ đề mới hoặc hỗ trợ gán nhãn.
+**Phân cụm không phải mô hình khía cạnh.** Phân cụm không bảo đảm các cụm khớp với các khía cạnh định trước, và chỉ gán mỗi bình luận vào một cụm. Bản nháp EDA cho silhouette ~0,17–0,20 với mọi k, tức gần như không có cấu trúc cụm. Phân cụm chỉ dùng để khám phá chủ đề mới hoặc hỗ trợ gán nhãn.
 
 **Baseline bắt buộc:** luật mốc `rule-v1` của bước suy luận ([dac-ta-suy-luan.md](dac-ta-suy-luan.md) mục 3–6), đề xuất làm mốc chung thay cho các bộ `rule-v0` (quyết định 4 của [kế hoạch](../0-chung/ke-hoach.md#3-quyết-định-đang-chờ-trưởng-nhóm)). Mọi mô hình phải báo cáo so với baseline này, trên cùng tập test người gán.
 
@@ -34,31 +34,32 @@ Mã nhãn theo [data-model.md](../0-chung/thiet-ke-du-lieu.md#danh-mục-mã).
 
 ### UIT-ViSFD
 
-Khoảng 11 nghìn đánh giá smartphone trên trang thương mại điện tử, nhãn dạng `{CAMERA#Positive};{BATTERY#Negative}` (kiểm tra lại số liệu trên bài báo/trang gốc). Ánh xạ về bộ khía cạnh của dự án:
+Khoảng 11 nghìn đánh giá smartphone trên trang thương mại điện tử, nhãn dạng `{CAMERA#Positive};{BATTERY#Negative}` (kiểm tra lại số liệu trên bài báo/trang gốc). Ánh xạ về [bộ nhãn chốt](../3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611) (26/11):
 
 | UIT-ViSFD | Dự án | Ghi chú |
 |---|---|---|
-| BATTERY | `BATTERY` | khớp |
-| CAMERA | `CAMERA` | khớp |
-| SCREEN | `DISPLAY` | khớp |
-| PERFORMANCE | `PERFORMANCE` | khớp |
-| DESIGN | `DESIGN` | khớp |
-| PRICE | `PRICE` | khớp |
-| STORAGE | `HARDWARE_OTHER` | gộp |
-| FEATURES | `HARDWARE_OTHER` / `SOFTWARE` | **mơ hồ**: đọc ~50 mẫu rồi chốt luật tách |
-| SER&ACC | `WARRANTY` | gần khớp; phần phụ kiện lệch |
-| GENERAL | — | bỏ, hoặc chỉ dùng cho cảm xúc chung |
-| — | `SOFTWARE` | dataset ngoài không đủ, **phải tự gán** |
+| BATTERY | `pin_sac` | khớp |
+| CAMERA | `camera` | khớp |
+| SCREEN | `man_hinh` | khớp |
+| PERFORMANCE | `hieu_nang` | khớp |
+| DESIGN | `thiet_ke` | gần khớp; bộ chốt tách độ bền ra `do_ben` |
+| PRICE | `gia` | khớp |
+| STORAGE | `phan_cung_khac` | gộp |
+| FEATURES | `phan_cung_khac` / `phan_mem` | **mơ hồ**: đọc ~50 mẫu rồi chốt luật tách |
+| SER&ACC | `bao_hanh_sua_chua` | gần khớp; phần phụ kiện thuộc `phan_cung_khac` |
+| GENERAL | `may_chung` | gần khớp: cả máy, không nêu phần nào |
+| OTHERS | — | bỏ (không có thái độ) |
+| — | `phan_mem`, `do_ben`, `mua_ban`, `hang_nguoi_dung` | dataset ngoài không có hay không đủ, **phải tự gán** |
 
 ### UIT-ViSD4SA
 
 UIT-ViSD4SA có nhãn span×sentiment ở đúng dạng cần cho ABSA. UIT-ViSFD chỉ gán aspect×sentiment cho toàn review, không có offsets; vì vậy **không đưa ViSFD vào tập span** và không tự suy diễn vị trí span. Script [`src/models/external_absa.py`](../../src/models/external_absa.py) chỉ xuất ViSD4SA theo đúng hai trường:
 
 ```json
-{"text": "Máy đẹp, pin trâu.", "labels": [[0, 7, "DESIGN#pos"], [9, 17, "BATTERY#pos"]]}
+{"text": "Máy đẹp, pin trâu.", "labels": [[0, 7, "thiet_ke#tich_cuc"], [9, 17, "pin_sac#tich_cuc"]]}
 ```
 
-`labels` dùng `[start, end, "ASPECT#sentiment"]`, offsets theo chỉ số ký tự Python, sentiment là `pos`/`neg`/`neu`. Các nhóm đã thống nhất `SER&ACC → WARRANTY`, `STORAGE → HARDWARE_OTHER`; `FEATURES` chưa ánh xạ và không được xuất trong nhãn huấn luyện cho tới khi duyệt mẫu. `GENERAL` cũng bị loại vì không thuộc taxonomy. Span có offset không hợp lệ bị bỏ khỏi nhãn đầu ra và đếm trong `report.json`; không tự sửa.
+`labels` dùng `[start, end, "nhan#thai_do"]`, offsets theo chỉ số ký tự Python, thái độ là `tich_cuc`/`tieu_cuc`/`khong_danh_gia`. Ánh xạ theo bảng trên (đổi sang bộ nhãn chốt ngày 26/11; trước đó là 9 khía cạnh cũ); `FEATURES` chưa ánh xạ và không được xuất trong nhãn huấn luyện cho tới khi duyệt mẫu. `OTHERS` bị loại. Span có offset không hợp lệ bị bỏ khỏi nhãn đầu ra và đếm trong `report.json`; không tự sửa.
 
 Script tạo thêm `features_review.html` với 50 mẫu (tối đa 25 mẫu từ mỗi bộ) để nhóm phân loại `FEATURES` là phần cứng, phần mềm, tùy ngữ cảnh hay khác/không rõ. UI chạy cục bộ trên trình duyệt, không gửi dữ liệu ra ngoài; nút xuất JSON cho phép tải kết quả hoặc sao chép từ ô hiển thị nếu trình duyệt chặn tải file, rồi nhóm tổng hợp để chốt quy tắc ánh xạ. Mẫu ViSFD trong UI chỉ phục vụ xem xét taxonomy, không phải dữ liệu span đã gán.
 
@@ -90,7 +91,7 @@ Giới hạn:
 ## 4. Gán nhãn
 
 - **Đơn vị gán là cả bình luận.** Người gán ghi danh sách (máy, khía cạnh, cảm xúc), mỗi bộ kèm mệnh đề làm bằng chứng. Guideline phải lên **v1** theo đơn vị này. Bản v0.3 gán theo mệnh đề, giữ nguyên từng byte vì báo cáo Công việc 9 ghi SHA của nó.
-- **Guideline trước, gán sau.** Guideline ([hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), định nghĩa nhãn ở [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md)) có: định nghĩa từng khía cạnh và ví dụ biên, ví dụ `pos`/`neg`/`neu`, cách xử lý phủ định ("không lag chút nào" = khen), mỉa mai, so sánh 2 máy, reply (đọc `parent_text`), bình luận không có khía cạnh.
+- **Guideline trước, gán sau.** Guideline ([hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), định nghĩa nhãn ở [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md)) có: định nghĩa từng khía cạnh và ví dụ biên, ví dụ khen/chê/so sánh/không đánh giá, cách xử lý phủ định ("không lag chút nào" = khen), mỉa mai, so sánh 2 máy, reply (đọc `parent_text`), bình luận không có khía cạnh.
 - **Hiệu chỉnh:** cả nhóm gán thử 50 bình luận giống nhau, so kết quả, sửa guideline, rồi mới gán thật. Ghi `guideline_version`.
 - **Chọn mẫu:** rải đều theo `video_id` và theo máy trong phạm vi; không lấy dồn vào vài video lớn.
 - **Tập test (~800 bình luận):** chỉ người gán; mỗi bình luận 2 người độc lập; tính **Cohen's kappa** cho khía cạnh và cảm xúc (mục tiêu ≥ 0,6). Bình luận lệch nhau do người thứ ba quyết định.
@@ -141,7 +142,7 @@ Mỗi mô hình lưu kèm:
 comments (đã tiền xử lý; bỏ spam, không phải tiếng Việt)
    └─ mỗi bình luận
         ├─ khía cạnh               → 0..n aspect
-        ├─ cảm xúc cho từng aspect → pos/neg/neu (có thể cả pos lẫn neg)
+        ├─ thái độ cho từng aspect → tich_cuc/tieu_cuc/so_sanh/khong_danh_gia (có thể cả khen lẫn chê)
         └─ máy được nhắc           → target_model, compare_with, compare_winner
              └─ gộp theo (máy, khía cạnh), ghi aspect_mentions kèm mệnh đề bằng chứng
                   └─ tính aggregates → Q1–Q5
