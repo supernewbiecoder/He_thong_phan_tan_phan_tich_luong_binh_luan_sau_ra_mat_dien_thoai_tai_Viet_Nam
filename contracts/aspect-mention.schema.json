@@ -2,7 +2,7 @@
   "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (mệnh đề × khía cạnh) trong aspect_mentions. v1 chốt ở Công việc 4 ngày 2026-10-28; v2 ngày 2026-11-08 sau khi đối chiếu Data_vip_pro_v4 (thêm author_hash, author_is_creator, parent_id; mọi trường bắt buộc có mặt; ràng buộc chéo). Đổi trường nào phải tăng schema_version và báo cả nhóm.",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AspectMention",
-  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mọi trường đều phải có mặt; không biết thì ghi null (không bỏ trường). Mô tả đầy đủ tại docs/data-model.md.",
+  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mọi trường đều phải có mặt; không biết thì ghi null (không bỏ trường). Mô tả đầy đủ tại docs/0-chung/thiet-ke-du-lieu.md.",
   "type": "object",
   "properties": {
     "mention_id": {

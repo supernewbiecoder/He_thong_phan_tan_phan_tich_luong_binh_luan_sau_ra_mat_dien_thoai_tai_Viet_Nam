@@ -1,13 +1,22 @@
-# Large dataset files (GitHub hard limit is 100MB)
+# Mục đích: File không đưa lên git: dữ liệu, file model, môi trường Python, file bí mật, file tự sinh; cập nhật lần cuối: 2026-11-19.
+
+# Dữ liệu (GitHub giới hạn 100 MB/file; dữ liệu chia sẻ ngoài git, xem docs/0-chung/cai-dat.md)
 data/
+state.db
 *.jsonl
 *.csv
+*.xlsx
 *.parquet
 *.zip
 *.tar.gz
 
+# File model đã huấn luyện: sinh lại bằng code, không đưa lên git
+*.pkl
+*.joblib
+
 # Python & Jupyter
 __pycache__/
+.pytest_cache/
 *.py[cod]
 *$py.class
 *.so
@@ -33,4 +42,3 @@ Thumbs.db
 # Local runtime logs and credentials
 *.log
 .env
-

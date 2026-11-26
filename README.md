@@ -1,12 +1,12 @@
 # Phân tích bình luận sau ra mắt điện thoại tại Việt Nam
 
-> Mục đích: Bức tranh toàn cảnh của dự án: bài toán, trạng thái hiện tại, kế hoạch và bản đồ tài liệu; cập nhật lần cuối: 2026-10-28.
+> Mục đích: Bức tranh toàn cảnh của dự án: bài toán, trạng thái hiện tại, luồng dữ liệu, chỗ tìm tài liệu và cấu trúc thư mục; cập nhật lần cuối: 2026-11-26.
 
-Đồ án môn Khoa học dữ liệu, nhóm 11 người. Đọc file này trước, sau đó đọc [Kế hoạch & phân công](docs/roadmap.md).
+Đồ án môn Khoa học dữ liệu, nhóm 11 người. Đọc file này trước, sau đó đọc [Kế hoạch dự án](docs/0-chung/ke-hoach.md).
 
 ## 1. Bài toán
 
-Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muốn biết người dùng đánh giá X thế nào so với đời trước và các đối thủ. Dự án thu thập bình luận tiếng Việt trên YouTube (video review, unbox, so sánh), tách thành mệnh đề, gán nhãn **khía cạnh – cảm xúc – máy được nhắc**, rồi trả lời 5 câu hỏi nghiệp vụ:
+Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muốn biết người dùng đánh giá X thế nào so với đời trước và các đối thủ. Dự án thu thập bình luận tiếng Việt trên YouTube (video review, unbox, so sánh), gán cho mỗi bình luận các nhãn **khía cạnh – cảm xúc – máy được nhắc**, rồi trả lời 5 câu hỏi nghiệp vụ:
 
 | # | Câu hỏi | Chi tiết |
 |---|---|---|
@@ -16,32 +16,21 @@ Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muố
 | Q4 | Đời trước bị chê gì, đời này đã sửa chưa? | Tỷ lệ chê từng khía cạnh, đời trước → X |
 | Q5 | Lỗi gì cần sửa, ưu tiên cái nào? | Lỗi do người đã dùng máy báo, số lần nhắc và xu hướng |
 
-Đặc tả đầy đủ (công thức, kiểm định, điều kiện kết luận): [docs/EDA_requirement.md](docs/EDA_requirement.md).
+Mục đích, mục tiêu và chi tiết từng câu hỏi (đo bằng gì, khi nào được kết luận, câu Q6 về tài khoản ảo đang đề xuất): [docs/0-chung/muc-tieu.md](docs/0-chung/muc-tieu.md).
 
 ### Phạm vi
 
-- **Nguồn:** YouTube (chính). Nguồn bổ sung đang khảo sát, xem [Công việc 15](docs/roadmap.md#công-việc-15-bổ-sung-nguồn-dữ-liệu-ngoài-youtube).
-- **Bốn máy so sánh:** X, đời trước của X (P), hai đối thủ cùng phân khúc ra mắt cùng thời điểm (R1, R2). Danh sách chốt ở Công việc 2.
+- **Nguồn:** YouTube (chính). Nguồn bổ sung đang khảo sát, xem [Công việc 15](docs/0-chung/ke-hoach.md#công-việc-15-bổ-sung-nguồn-dữ-liệu-ngoài-youtube).
+- **Máy:** không chọn bộ 4 máy (trưởng nhóm quyết 26/11). Dòng máy nào có trong dữ liệu thì phân tích. Cách đặt lại Q1–Q5: [kế hoạch tổng thể mục 5](docs/0-chung/ke-hoach-tong-the.md#5-q1q6-khi-không-có-bộ-4-máy-đề-xuất) (đề xuất).
 - **Cửa sổ:** 4 tuần đầu kể từ `launch_date` của từng máy (khớp với dữ liệu đã crawl, `window_weeks: 4` trong [config/pipeline.yaml](config/pipeline.yaml)).
-- **9 khía cạnh (đã chốt ở Công việc 4, mã trong [docs/data-model.md](docs/data-model.md#danh-mục-mã)):** Pin & sạc, Màn hình, Hiệu năng (gồm nhiệt độ), Camera, Thiết kế & độ bền, Phần mềm, Phần cứng khác, Giá, Bảo hành & hậu mãi.
+- **Bộ nhãn (chốt 26/11):** 6 chiều, 41 nhãn, trong đó 11 khía cạnh: pin và sạc, màn hình, hiệu năng (gồm nóng máy), camera, thiết kế, độ bền, phần mềm, phần cứng khác (gồm âm thanh), giá, mua bán, bảo hành và sửa chữa ([đặc tả bộ nhãn mục 8](docs/3-gan-nhan/dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)). Contract và [thiết kế dữ liệu](docs/0-chung/thiet-ke-du-lieu.md) còn theo 9 khía cạnh cũ, sửa ở bước 0.4 của [kế hoạch tổng thể](docs/0-chung/ke-hoach-tong-the.md).
 - **Ngoài phạm vi:** hình ảnh/âm thanh/nội dung video; bình luận không phải tiếng Việt; tên thật của người bình luận (chỉ lưu `author_hash`).
 
 ## 2. Trạng thái hiện tại
 
-| Thành phần | Trạng thái | Ghi chú |
-|---|---|---|
-| Crawler YouTube | ✅ Xong | [src/ingest](src/ingest/README.md): quota, resume, chống trùng, replay |
-| Dữ liệu raw | ✅ Có | ~226 nghìn bình luận, 51 model, 2014–2026. Không nằm trong git (xem mục 5) |
-| Tiền xử lý (lọc spam, tách mệnh đề) | ⚠️ Có kết quả, **thiếu code trong repo** | Công việc 6 |
-| EDA | ⚠️ **Bản nháp** | Để hình dung đầu ra. Nhãn khía cạnh/cảm xúc là luật từ khóa, **số liệu chỉ để minh họa** |
-| Dashboard + API | ✅ Đọc từ MongoDB qua API | [src/serving](src/serving/README.md) (Công việc 13). Tự ghi "số liệu minh họa" khi nhãn chưa qua mô hình đã đánh giá |
-| Lọc spam | ⚠️ Có kết quả, **nhãn chờ người duyệt** | [Báo cáo Công việc 11](docs/reports/cv11-spam.md): bộ luật hiện tại so với mô hình ML |
-| Nhãn (gold labels) | ❌ Chưa có | Công việc 1, 5 |
-| Mô hình ML | ❌ Chưa có | Công việc 7–11 |
-| Cơ sở dữ liệu | ❌ Mới có thiết kế | [docs/data-model.md](docs/data-model.md), Công việc 3 |
-| Trả lời Q1–Q5 bằng mô hình | ❌ Chưa | Công việc 12 |
-| Streaming (Kafka/Spark) | ⏸ Tùy chọn | Chỉ làm nếu còn thời gian, xem [docs/pipeline.md](docs/pipeline.md) |
-| Tests | ❌ Chưa có | [tests/README.md](tests/README.md) |
+Tiến độ từng công việc, việc cần làm tiếp và các quyết định đang chờ nằm ở **[Kế hoạch dự án](docs/0-chung/ke-hoach.md)**. Đây là nơi duy nhất ghi tiến độ, nên README không giữ bảng trạng thái riêng.
+
+Hiện chạy **theo lô, mỗi ngày một lần**: lệnh `python -m src.run` chạy tiền xử lý → suy luận → aggregates, Q1–Q5. Streaming (Kafka/Spark) để sau ([docs/0-chung/luong-xu-ly.md](docs/0-chung/luong-xu-ly.md)).
 
 ## 3. Luồng dữ liệu
 
@@ -49,11 +38,11 @@ Một hãng điện thoại vừa ra mắt **máy X** tại Việt Nam và muố
 flowchart LR
     YT[YouTube API] --> C[Crawler<br>src/ingest]
     C --> RAW[(raw comments<br>JSONL)]
-    RAW --> PRE[Tiền xử lý<br>spam · tiếng Việt · tách mệnh đề]
+    RAW --> PRE[Tiền xử lý<br>src/processing<br>làm sạch · chuẩn hóa · tách mệnh đề<br>gắn cờ spam · tiếng Việt]
     PRE --> CM[(comments)]
-    EXT[Dataset có nhãn<br>UIT-ViSFD…] --> TRAIN
+    EXT[Dataset có nhãn<br>UIT-ViSD4SA] --> TRAIN
     GOLD[(gold_labels<br>gán tay)] --> TRAIN[Huấn luyện<br>+ đánh giá]
-    TRAIN --> M[Mô hình<br>khía cạnh · cảm xúc · máy được nhắc]
+    TRAIN --> M[Suy luận theo cả bình luận<br>src/models/run.py<br>khía cạnh · cảm xúc · máy được nhắc]
     CM --> M
     M --> AM[(aspect_mentions)]
     AM --> AG[(aggregates)]
@@ -62,38 +51,44 @@ flowchart LR
     Q --> D[Dashboard + báo cáo]
 ```
 
-Đơn vị phân tích là **mệnh đề × khía cạnh** (`aspect_mentions`), không phải cả bình luận. Máy được tính là **máy được nhắc trong mệnh đề** (`target_model`), không phải máy của video.
+Đơn vị phân tích là **cả bình luận**, đếm theo (bình luận, máy, khía cạnh) (chốt 20/11, [muc-tieu.md mục 4](docs/0-chung/muc-tieu.md#4-phạm-vi)). Máy được tính là **máy được nhắc** (`target_model`, xét cả bình luận), không phải máy của video. Mệnh đề chỉ dùng để chỉ câu làm bằng chứng.
 
-## 4. Bản đồ tài liệu
+## 4. Tài liệu
+
+Mục lục đầy đủ, xếp theo tầng xử lý, kèm quy tắc đặt tên: **[docs/README.md](docs/README.md)**. Hay dùng nhất:
 
 | Tài liệu | Đọc khi |
 |---|---|
-| [docs/roadmap.md](docs/roadmap.md) | Muốn biết mình làm gì, phụ thuộc ai, hạn khi nào |
-| [docs/EDA_requirement.md](docs/EDA_requirement.md) | Làm phân tích Q1–Q5, dashboard, báo cáo |
-| [docs/data-model.md](docs/data-model.md) | Làm DB, ghi/đọc dữ liệu giữa các nhóm |
-| [contracts/](contracts/) | Kiểm tra định dạng bản ghi (JSON Schema) |
-| [docs/ml-training.md](docs/ml-training.md) | Gán nhãn, huấn luyện, đánh giá mô hình |
-| [docs/pipeline.md](docs/pipeline.md) | Hiểu các bước xử lý và phần streaming tùy chọn |
-| [src/ingest/README.md](src/ingest/README.md) | Chạy crawler, replay |
-| [Bao_cao_21_10.md](Bao_cao_21_10.md) | Cần bản báo cáo tổng hợp để nộp/trình bày (bản 21/10, cập nhật 28/10) |
-| [docs/architecture.mmd](docs/architecture.mmd) | Sửa sơ đồ kiến trúc (render lại `architecture.svg` theo lệnh ghi trong file) |
+| [docs/0-chung/ke-hoach.md](docs/0-chung/ke-hoach.md) | Muốn biết dự án đang ở đâu, làm gì tiếp, mình nhận việc gì, phụ thuộc ai |
+| [docs/0-chung/cai-dat.md](docs/0-chung/cai-dat.md) | Dựng môi trường, đặt dữ liệu |
+| [docs/0-chung/ban-do-code.md](docs/0-chung/ban-do-code.md) | Không biết một file code để làm gì, hay muốn sửa một thứ mà không biết sửa ở đâu |
+| [AGENTS.md](AGENTS.md) | Dùng trợ lý AI (Claude, ChatGPT, Copilot…) để làm việc trong repo: luật AI phải theo |
+| [docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md](docs/3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md) | Tham gia gán nhãn (định nghĩa nhãn ở [đặc tả bộ nhãn](docs/3-gan-nhan/dac-ta-bo-nhan.md)) |
+| [docs/0-chung/ke-hoach-tong-the.md](docs/0-chung/ke-hoach-tong-the.md) | Muốn biết lộ trình từ giờ tới báo cáo cuối (đề xuất 26/11) |
 
 ## 5. Bắt đầu
 
 1. Clone repo, tạo branch riêng: `git checkout -b <tên>/<công-việc>`.
-2. Dữ liệu không nằm trong git. Tải `clean_data.jsonl` từ thư mục chung của nhóm (**link: ___**), đặt vào `data/clean_data.jsonl` ở gốc repo. Kiểm tra số dòng và checksum khớp với bảng phiên bản dữ liệu trong thư mục chung.
-3. Đọc công việc của mình trong [docs/roadmap.md](docs/roadmap.md) và các tài liệu nó trỏ tới.
+2. Dữ liệu không nằm trong git. Xin trưởng nhóm bộ dữ liệu crawl bản v4 (**link: ___**) và đặt đúng chỗ crawler ghi ra: `src/ingest/data/raw/comments.jsonl` (bắt buộc), `src/ingest/data/raw/videos.jsonl` và `src/ingest/data/state.db` (để tra video). Kiểm số dòng và checksum theo [docs/1-thu-thap/dac-ta.md mục 7](docs/1-thu-thap/dac-ta.md#7-phiên-bản-dữ-liệu).
+3. Đọc [kế hoạch](docs/0-chung/ke-hoach.md): tìm dòng công việc của mình ở mục 4.1, yêu cầu chi tiết ở mục 6, rồi các tài liệu nó trỏ tới.
 4. Làm xong thì mở PR vào `main`, không push thẳng.
 
 ## 6. Cấu trúc thư mục
 
+Giải thích từng file: [docs/0-chung/ban-do-code.md](docs/0-chung/ban-do-code.md).
+
 ```text
-config/            cấu hình crawler: danh mục máy, kênh, quota
-contracts/         JSON Schema: comment-event, aspect-mention
-docs/              đặc tả, kế hoạch, thiết kế dữ liệu, ML, pipeline
-runbooks/          kịch bản sự cố cho phần streaming (tùy chọn)
-src/ingest/        crawler YouTube + replay
-src/processing/    tiền xử lý, mô hình, notebook EDA
-src/serving/       API và dashboard đọc từ MongoDB
-tests/             kiểm thử
+config/          pipeline.yaml (crawler, danh mục máy), analysis.yaml (bộ máy cho Q1–Q5)
+contracts/       JSON Schema: comment-event (v3), aspect-mention (v2)
+docs/            tài liệu, mỗi tầng một thư mục (0-chung, 1-thu-thap … 6-luu-tru); mục lục ở docs/README.md
+src/ingest/      tầng 1: crawler YouTube; dữ liệu ở src/ingest/data/ (ngoài git)
+src/run.py       lệnh chạy cả chuỗi theo lô: tiền xử lý → suy luận → aggregates, Q1–Q5
+src/processing/  tầng 2: làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ, lệnh chạy ra data/processed/
+src/labeling/    tầng 3: lấy mẫu, phiếu gán, so hai người gán (kappa), phân bố nhãn có khoảng tin cậy
+src/models/      tầng 4: bước suy luận (run.py), luật mốc khía cạnh (aspect/keywords.py), cảm xúc (sentiment/rules.py), máy được nhắc, dataset ngoài
+src/analysis/    tầng 5: aggregates, Q1–Q5
+src/storage/     tầng 6: MongoDB
+notebooks/       mỗi bước một notebook: 1_raw_audit, 2_1_clean, 2_2_normalize, 2_3_clauses, 3_aspect_keywords, 3_label_distribution
+tests/           test tầng 2, 3, 4, 5
+data/            dữ liệu đã xử lý, nhãn, đầu ra (ngoài git)
 ```

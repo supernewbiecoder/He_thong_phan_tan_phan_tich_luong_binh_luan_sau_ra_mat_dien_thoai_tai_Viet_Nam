@@ -1,0 +1,588 @@
+{
+  "description": "Contract v2; Dữ liệu nhân tạo kiểm thử CV12 theo đầu ra rule-v0 của CV8–10; không phải nhãn thật hoặc kết quả đánh giá mô hình.",
+  "models": [
+    {
+      "model_id": "s23u",
+      "launch_date": "2023-02-02",
+      "predecessor_id": "s22u",
+      "title": "Samsung Galaxy S23 Ultra",
+      "aliases": [
+        "Galaxy S23 Ultra",
+        "s23 ultra"
+      ]
+    },
+    {
+      "model_id": "s22u",
+      "launch_date": "2022-02-25",
+      "title": "Samsung Galaxy S22 Ultra",
+      "aliases": [
+        "Galaxy S22 Ultra",
+        "s22 ultra"
+      ]
+    },
+    {
+      "model_id": "ip14prm",
+      "launch_date": "2022-09-16",
+      "title": "iPhone 14 Pro Max",
+      "aliases": [
+        "iPhone 14 Pro Max",
+        "ip14 prm",
+        "14 pro max"
+      ]
+    },
+    {
+      "model_id": "xiaomi13u",
+      "launch_date": "2023-04-18",
+      "title": "Xiaomi 13 Ultra",
+      "aliases": [
+        "Xiaomi 13 Ultra"
+      ]
+    },
+    {
+      "model_id": "mi11",
+      "launch_date": "2020-12-28"
+    }
+  ],
+  "base_comment": {
+    "comment_id": "fixture_base",
+    "video_id": "fixture_video",
+    "model": "s23u",
+    "source": "youtube",
+    "text": "Mình dùng pin tốt",
+    "text_norm": "mình dùng pin tốt",
+    "published_at": "2023-02-01T17:30:00Z",
+    "is_spam": false,
+    "is_vietnamese": true,
+    "clause_count": 1,
+    "clauses": [
+      {
+        "clause_id": 1,
+        "text": "Mình dùng pin tốt",
+        "text_norm": "mình dùng pin tốt"
+      }
+    ],
+    "author_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "author_is_creator": false,
+    "parent_id": null
+  },
+  "base_mention": {
+    "mention_id": "fixture_base#0#BATTERY",
+    "comment_id": "fixture_base",
+    "clause_idx": 0,
+    "clause_text": "Mình dùng pin tốt",
+    "source": "youtube",
+    "video_id": "fixture_video",
+    "video_model": "s23u",
+    "target_model": "s23u",
+    "aspect": "BATTERY",
+    "sentiment": "pos",
+    "confidence": 0.92,
+    "is_owner": true,
+    "defect_type": null,
+    "compare_with": null,
+    "compare_winner": null,
+    "published_at": "2023-02-01T17:30:00Z",
+    "days_since_launch": 0,
+    "label_source": "rule",
+    "model_version": "rule-v0",
+    "schema_version": 2,
+    "author_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "author_is_creator": false,
+    "parent_id": null
+  },
+  "cases": [
+    {
+      "name": "valid",
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ],
+      "expected_week": 1
+    },
+    {
+      "name": "missing_sentiment",
+      "remove_fields": [
+        "sentiment"
+      ],
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "invalid_sentiment",
+      "patch": {
+        "sentiment": "positive"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "invalid_aspect",
+      "patch": {
+        "aspect": "THERMAL"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "invalid_confidence",
+      "patch": {
+        "confidence": 1.1
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "invalid_timestamp",
+      "patch": {
+        "published_at": "not-a-date"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "extra_property",
+      "patch": {
+        "week_since_launch": 1
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "not_an_object",
+      "raw_record": [],
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "null_target",
+      "patch": {
+        "target_model": null,
+        "days_since_launch": null
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "UNKNOWN_TARGET"
+      ]
+    },
+    {
+      "name": "unknown_model",
+      "patch": {
+        "target_model": "unknown_phone"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "UNKNOWN_MODEL"
+      ]
+    },
+    {
+      "name": "outside_scope",
+      "patch": {
+        "target_model": "mi11"
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "OUT_OF_SCOPE_MODEL"
+      ]
+    },
+    {
+      "name": "other_version",
+      "patch": {
+        "model_version": "another-v2"
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "MODEL_VERSION_NOT_SELECTED"
+      ]
+    },
+    {
+      "name": "missing_comment",
+      "patch": {
+        "comment_id": "absent_comment"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "COMMENT_NOT_FOUND"
+      ]
+    },
+    {
+      "name": "wrong_video",
+      "patch": {
+        "video_id": "another_video"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "REFERENCE_MISMATCH"
+      ]
+    },
+    {
+      "name": "missing_clause",
+      "patch": {
+        "clause_idx": 1
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "CLAUSE_NOT_FOUND"
+      ]
+    },
+    {
+      "name": "wrong_clause_text",
+      "patch": {
+        "clause_text": "Nội dung khác"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "CLAUSE_TEXT_MISMATCH"
+      ]
+    },
+    {
+      "name": "wrong_mention_id",
+      "patch": {
+        "mention_id": "wrong#0#BATTERY"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "MENTION_ID_MISMATCH"
+      ]
+    },
+    {
+      "name": "spam",
+      "comment_patch": {
+        "is_spam": true
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "COMMENT_SPAM"
+      ]
+    },
+    {
+      "name": "foreign_language",
+      "comment_patch": {
+        "is_vietnamese": false
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "NON_VIETNAMESE"
+      ]
+    },
+    {
+      "name": "wrong_launch_day",
+      "patch": {
+        "days_since_launch": 8
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "DAYS_SINCE_LAUNCH_MISMATCH"
+      ]
+    },
+    {
+      "name": "missing_launch_day",
+      "remove_fields": [
+        "days_since_launch"
+      ],
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "day_7",
+      "patch": {
+        "published_at": "2023-02-08T17:00:00Z",
+        "days_since_launch": 7
+      },
+      "comment_patch": {
+        "published_at": "2023-02-08T17:00:00Z"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ],
+      "expected_week": 2
+    },
+    {
+      "name": "day_27",
+      "patch": {
+        "published_at": "2023-02-28T17:00:00Z",
+        "days_since_launch": 27
+      },
+      "comment_patch": {
+        "published_at": "2023-02-28T17:00:00Z"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ],
+      "expected_week": 4
+    },
+    {
+      "name": "day_28",
+      "patch": {
+        "published_at": "2023-03-01T17:00:00Z",
+        "days_since_launch": 28
+      },
+      "comment_patch": {
+        "published_at": "2023-03-01T17:00:00Z"
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "OUTSIDE_WINDOW"
+      ]
+    },
+    {
+      "name": "unknown_owner",
+      "patch": {
+        "is_owner": null
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "OWNER_UNKNOWN",
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ]
+    },
+    {
+      "name": "comparison_incomplete",
+      "patch": {
+        "compare_winner": "target"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "self_comparison",
+      "patch": {
+        "compare_with": "s23u",
+        "compare_winner": "target"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SELF_COMPARISON"
+      ]
+    },
+    {
+      "name": "direct_comparison",
+      "patch": {
+        "compare_with": "ip14prm",
+        "compare_winner": "target"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT",
+        "BASELINE_COMPARISON_UNVERIFIED"
+      ]
+    },
+    {
+      "name": "owner_defect",
+      "patch": {
+        "sentiment": "neg",
+        "defect_type": "BATTERY_DRAIN"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ]
+    },
+    {
+      "name": "human_label",
+      "patch": {
+        "label_source": "human",
+        "confidence": null
+      },
+      "expected_status": "accepted",
+      "expected_codes": []
+    },
+    {
+      "name": "low_confidence",
+      "patch": {
+        "confidence": 0.2
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "LOW_CONFIDENCE",
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ]
+    },
+    {
+      "name": "baseline_negation",
+      "comment_patch": {
+        "text": "Pin không tốt",
+        "clauses": [
+          {
+            "clause_id": 1,
+            "text": "Pin không tốt",
+            "text_norm": "pin không tốt"
+          }
+        ]
+      },
+      "patch": {
+        "clause_text": "Pin không tốt"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT",
+        "NEGATION_REVIEW_REQUIRED"
+      ]
+    },
+    {
+      "name": "baseline_target_alias_conflict",
+      "comment_patch": {
+        "text": "Camera iPhone 14 Pro Max tệ",
+        "clauses": [
+          {
+            "clause_id": 1,
+            "text": "Camera iPhone 14 Pro Max tệ",
+            "text_norm": "camera iphone 14 pro max tệ"
+          }
+        ]
+      },
+      "patch": {
+        "clause_text": "Camera iPhone 14 Pro Max tệ",
+        "aspect": "CAMERA"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "TARGET_ALIAS_CONFLICT"
+      ]
+    },
+    {
+      "name": "baseline_multiple_phone_aliases",
+      "comment_patch": {
+        "text": "Pin s23u và ip14prm đều tốt",
+        "clauses": [
+          {
+            "clause_id": 1,
+            "text": "Pin s23u và ip14prm đều tốt",
+            "text_norm": "pin s23u và ip14prm đều tốt"
+          }
+        ]
+      },
+      "patch": {
+        "clause_text": "Pin s23u và ip14prm đều tốt"
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "MULTIPLE_TARGET_ALIASES"
+      ]
+    },
+    {
+      "name": "baseline_owner_false",
+      "patch": {
+        "is_owner": false
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT",
+        "BASELINE_OWNER_UNVERIFIED"
+      ]
+    },
+    {
+      "name": "baseline_without_confidence",
+      "patch": {
+        "confidence": null
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "CONFIDENCE_UNKNOWN",
+        "RULE_BASELINE_LABEL",
+        "BASELINE_TARGET_CONTEXT"
+      ]
+    },
+    {
+      "name": "creator_reply",
+      "comment_patch": {
+        "author_is_creator": true
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "AUTHOR_IS_CREATOR"
+      ],
+      "patch": {
+        "author_is_creator": true
+      }
+    },
+    {
+      "name": "positive_with_defect",
+      "patch": {
+        "defect_type": "BATTERY_DRAIN"
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "days_without_target",
+      "patch": {
+        "target_model": null
+      },
+      "expected_status": "rejected",
+      "expected_codes": [
+        "SCHEMA_ERROR"
+      ]
+    },
+    {
+      "name": "null_launch_day",
+      "patch": {
+        "days_since_launch": null
+      },
+      "expected_status": "accepted",
+      "expected_codes": [
+        "RULE_BASELINE_LABEL",
+        "HEURISTIC_CONFIDENCE",
+        "BASELINE_TARGET_CONTEXT"
+      ],
+      "expected_week": 1
+    },
+    {
+      "name": "prelaunch_day",
+      "patch": {
+        "published_at": "2023-02-01T01:00:00Z",
+        "days_since_launch": -1
+      },
+      "comment_patch": {
+        "published_at": "2023-02-01T01:00:00Z"
+      },
+      "expected_status": "excluded",
+      "expected_codes": [
+        "OUTSIDE_WINDOW"
+      ]
+    }
+  ]
+}

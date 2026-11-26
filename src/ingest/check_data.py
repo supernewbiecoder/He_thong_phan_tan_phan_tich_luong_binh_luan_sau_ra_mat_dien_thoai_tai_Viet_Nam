@@ -1,14 +1,18 @@
-"""Kiểm tra chất lượng dữ liệu đã cào. Đặt file này ở thư mục gốc dự án (cạnh README.md), chạy:
-    python check_data.py"""
+"""
+Mục đích: Kiểm tra nhanh dữ liệu crawler vừa ghi trong src/ingest/data/raw: dòng hỏng, trùng, sai schema, ngoài cửa sổ,
+phân bố theo máy, nội dung lặp, video có bình luận; cập nhật lần cuối: 2026-11-11.
+
+Chạy từ src/ingest: python check_data.py
+"""
 import json
 import random
 from collections import Counter
 
-from src import config
-from src.config import raw_files
-from src.schema import COMMENT_FIELDS, VIDEO_FIELDS
-from src.models import window
-from src.timeutil import parse
+from crawler import config
+from crawler.config import raw_files
+from crawler.schema import COMMENT_FIELDS, VIDEO_FIELDS
+from crawler.models import window
+from crawler.timeutil import parse
 
 
 def read(kind):

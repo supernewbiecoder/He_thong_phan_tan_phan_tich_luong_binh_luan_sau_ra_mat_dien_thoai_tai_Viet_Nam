@@ -1,9 +1,9 @@
-# Mục đích: Cấu hình các tham số vận hành, lưu trữ, chất lượng và quyền riêng tư của pipeline; cập nhật lần cuối: 2026-10-21.
+# Mục đích: Cấu hình của crawler (src/ingest): danh mục máy, kênh, cửa sổ thời gian, hạn mức API. Đây là đúng config đã dùng để crawl bản dữ liệu v4; cập nhật lần cuối: 2026-11-11.
 timezone: Asia/Ho_Chi_Minh
 
 quota:
   daily_limit: 10000      # hạn mức mặc định của YouTube Data API v3
-  safety_ratio: 0.85      # chỉ dùng tối đa 85% để chừa dư địa
+  safety_ratio: 0.97      # chỉ dùng tối đa 97% hạn mức ngày
   search_daily_cap: 80    # search.list rất đắt (100 đơn vị/lần), chặn cứng số lần/ngày
 
 discover:
@@ -35,10 +35,14 @@ video_window_before_days: 7      # nhận cả video hands-on đăng trước ra
 #   title       (tùy chọn) tên hiển thị
 #   aliases     cách gọi trong tiêu đề video (không phân biệt hoa/thường, dấu). Nên đủ cụ thể.
 #   exclude     (tùy chọn) tiêu đề có cụm này thì KHÔNG tính cho mẫu đó
-#   launch_date ngày ra mắt tại VN, YYYY-MM-DD. Rival bỏ trống thì dùng ngày của mẫu chính.
+#   launch_date YYYY-MM-DD. Đối thủ dùng ngày CÔNG BỐ/RA MẮT chính thức đầu tiên (toàn cầu, hoặc Trung Quốc với máy
+#               ra mắt ở đó trước), vì video hands-on/so sánh tiếng Việt xuất hiện ngay từ ngày này.
+#               Mẫu chính giữ nguyên ngày bạn đã đặt.
 #   rivals      danh sách đối thủ; viết riêng tên (vd: - p9pro) để tham chiếu mẫu đã khai báo nơi khác
+#   Mỗi mẫu chính có 5 đối thủ (hãng khác, ra mắt gần nhất). Một mẫu khai báo ở nhiều nơi luôn giống hệt nhau.
 models:
-  # ==================== APPLE (IPHONE) ====================
+  # ==================== APPLE (IPHONE) (11 mẫu) ====================
+
   - name: ip18prm
     title: iPhone 18 Pro Max
     aliases: ["iPhone 18 Pro Max", "ip18 prm", "ip18 pro max"]
@@ -47,15 +51,23 @@ models:
       - name: s26u
         title: Samsung Galaxy S26 Ultra
         aliases: ["Galaxy S26 Ultra", "s26 ultra"]
-        launch_date: "2026-01-15"
-      - name: xiaomi16u
-        title: Xiaomi 16 Ultra
-        aliases: ["Xiaomi 16 Ultra", "xiaomi 16u"]
-        launch_date: "2026-03-01"
-      - name: vivoX100p
-        title: Vivo X100 Pro
-        aliases: ["Vivo X100 Pro"]
-        launch_date: "2024-01-01"
+        launch_date: "2026-02-25"
+      - name: xiaomi18promax
+        title: Xiaomi 18 Pro Max
+        aliases: ["Xiaomi 18 Pro Max", "Xiaomi 18 Pro"]
+        launch_date: "2026-09-23"
+      - name: vivox500pro
+        title: Vivo X500 Pro
+        aliases: ["Vivo X500 Pro", "X500 Pro"]
+        launch_date: "2026-09-21"
+      - name: pixel11pro
+        title: Google Pixel 11 Pro XL
+        aliases: ["Pixel 11 Pro"]
+        launch_date: "2026-08-12"
+      - name: findx9ultra
+        title: Oppo Find X9 Ultra
+        aliases: ["Find X9 Ultra"]
+        launch_date: "2026-04-21"
 
   - name: ip17prm
     title: iPhone 17 Pro Max
@@ -65,7 +77,7 @@ models:
       - name: s25u
         title: Samsung Galaxy S25 Ultra
         aliases: ["Galaxy S25 Ultra", "s25 ultra"]
-        launch_date: "2025-01-15"
+        launch_date: "2025-01-22"
       - name: xiaomi15u
         title: Xiaomi 15 Ultra
         aliases: ["Xiaomi 15 Ultra", "xiaomi 15u"]
@@ -74,16 +86,25 @@ models:
         title: Oppo Find X8 Pro
         aliases: ["Find X8 Pro"]
         launch_date: "2024-10-24"
+      - name: vivox300pro
+        title: Vivo X300 Pro
+        aliases: ["Vivo X300 Pro", "X300 Pro"]
+        launch_date: "2025-10-13"
+      - name: pixel10pro
+        title: Google Pixel 10 Pro XL
+        aliases: ["Pixel 10 Pro"]
+        exclude: ["pixel 10 pro fold"]
+        launch_date: "2025-08-20"
 
   - name: ip15prm
     title: iPhone 15 Pro Max
-    aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm", "15 pro max"]
+    aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
     launch_date: "2023-09-12"
     rivals:
       - name: s24u
         title: Samsung Galaxy S24 Ultra
-        aliases: ["samsung s24", "Samsung Galaxy S24 Ultra", "S24 Ultra"]
-        launch_date: "2024-01-10"
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
       - name: xiaomi14u
         title: Xiaomi 14 Ultra
         aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
@@ -92,6 +113,14 @@ models:
         title: Oppo Find X7 Ultra
         aliases: ["Find X7 Ultra", "oppo find x7u"]
         launch_date: "2024-01-08"
+      - name: vivoX100p
+        title: Vivo X100 Pro
+        aliases: ["Vivo X100 Pro"]
+        launch_date: "2023-11-13"
+      - name: pixel8pro
+        title: Google Pixel 8 Pro
+        aliases: ["Pixel 8 Pro"]
+        launch_date: "2023-10-04"
 
   - name: ip14prm
     title: iPhone 14 Pro Max
@@ -100,16 +129,24 @@ models:
     rivals:
       - name: s23u
         title: Samsung Galaxy S23 Ultra
-        aliases: ["Galaxy S23 Ultra", "s23 ultra"]
+        aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
         launch_date: "2023-02-02"
       - name: xiaomi13u
         title: Xiaomi 13 Ultra
-        aliases: ["Xiaomi 13 Ultra"]
+        aliases: ["Xiaomi 13 Ultra", "xiaomi 13u"]
         launch_date: "2023-04-18"
       - name: x90proplus
         title: Vivo X90 Pro Plus
         aliases: ["Vivo X90 Pro+"]
         launch_date: "2022-11-22"
+      - name: pixel7pro
+        title: Google Pixel 7 Pro
+        aliases: ["Pixel 7 Pro"]
+        launch_date: "2022-10-06"
+      - name: mate50pro
+        title: Huawei Mate 50 Pro
+        aliases: ["Mate 50 Pro"]
+        launch_date: "2022-09-06"
 
   - name: ip13prm
     title: iPhone 13 Pro Max
@@ -118,16 +155,24 @@ models:
     rivals:
       - name: s22u
         title: Samsung Galaxy S22 Ultra
-        aliases: ["Galaxy S22 Ultra", "s22 ultra"]
+        aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
         launch_date: "2022-02-25"
       - name: xiaomi12u
         title: Xiaomi 12S Ultra
-        aliases: ["Xiaomi 12S Ultra"]
+        aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
         launch_date: "2022-07-04"
       - name: findx5pro
         title: Oppo Find X5 Pro
         aliases: ["Find X5 Pro"]
         launch_date: "2022-02-24"
+      - name: pixel6pro
+        title: Google Pixel 6 Pro
+        aliases: ["Pixel 6 Pro"]
+        launch_date: "2021-10-19"
+      - name: zfold3
+        title: Samsung Galaxy Z Fold3
+        aliases: ["Z Fold3", "Z Fold 3"]
+        launch_date: "2021-08-11"
 
   - name: ip12prm
     title: iPhone 12 Pro Max
@@ -140,26 +185,42 @@ models:
         launch_date: "2021-01-29"
       - name: mi11ultra
         title: Xiaomi Mi 11 Ultra
-        aliases: ["Mi 11 Ultra"]
+        aliases: ["Mi 11 Ultra", "mi 11 ultra"]
         launch_date: "2021-03-29"
       - name: findx3pro
         title: Oppo Find X3 Pro
         aliases: ["Find X3 Pro"]
         launch_date: "2021-03-11"
+      - name: mi11
+        title: Xiaomi Mi 11
+        aliases: ["Mi 11"]
+        launch_date: "2020-12-28"
+      - name: note20u
+        title: Samsung Galaxy Note 20 Ultra
+        aliases: ["Galaxy Note 20 Ultra", "Note 20 Ultra", "note20u"]
+        launch_date: "2020-08-21"
 
   - name: ip11pro
     title: iPhone 11 Pro
     aliases: ["iPhone 11 Pro", "ip11 pro"]
     launch_date: "2019-09-20"
     rivals:
-      - name: notefive
-        title: Samsung Galaxy Note 20 Ultra
-        aliases: ["Note 20 Ultra", "note20u"]
-        launch_date: "2020-08-21"
-      - name: mi11
-        title: Xiaomi Mi 11
-        aliases: ["Mi 11"]
-        launch_date: "2020-12-28"
+      - name: note10plus
+        title: Samsung Galaxy Note 10+
+        aliases: ["Note 10+", "Note 10 Plus", "Note10+"]
+        launch_date: "2019-08-07"
+      - name: s10plus
+        title: Samsung Galaxy S10+
+        aliases: ["Galaxy S10+", "S10 Plus", "S10+"]
+        launch_date: "2019-02-20"
+      - name: mate30pro
+        title: Huawei Mate 30 Pro
+        aliases: ["Mate 30 Pro"]
+        launch_date: "2019-09-19"
+      - name: pixel4xl
+        title: Google Pixel 4 XL
+        aliases: ["Pixel 4 XL", "Pixel 4"]
+        launch_date: "2019-10-15"
       - name: p40pro
         title: Huawei P40 Pro
         aliases: ["Huawei P40 Pro"]
@@ -182,6 +243,14 @@ models:
         title: Xiaomi Mi 8
         aliases: ["Mi 8"]
         launch_date: "2018-05-31"
+      - name: pixel2xl
+        title: Google Pixel 2 XL
+        aliases: ["Pixel 2 XL", "Pixel 2"]
+        launch_date: "2017-10-04"
+      - name: mate10pro
+        title: Huawei Mate 10 Pro
+        aliases: ["Mate 10 Pro"]
+        launch_date: "2017-10-16"
 
   - name: ip8
     title: iPhone 8
@@ -200,6 +269,14 @@ models:
         title: Xiaomi Mi 6
         aliases: ["Mi 6"]
         launch_date: "2017-04-28"
+      - name: lgv30
+        title: LG V30
+        aliases: ["LG V30"]
+        launch_date: "2017-08-31"
+      - name: htcu11
+        title: HTC U11
+        aliases: ["HTC U11"]
+        launch_date: "2017-05-16"
 
   - name: ip7
     title: iPhone 7
@@ -210,14 +287,23 @@ models:
         title: Samsung Galaxy S7 Edge
         aliases: ["S7 Edge"]
         launch_date: "2016-03-11"
-      - name: note5
-        title: Samsung Galaxy Note 5
-        aliases: ["Note 5"]
-        launch_date: "2015-08-21"
+      - name: note7
+        title: Samsung Galaxy Note 7
+        aliases: ["Galaxy Note 7", "Note 7"]
+        exclude: ["redmi note 7", "note 7 pro"]
+        launch_date: "2016-08-02"
       - name: mi5
         title: Xiaomi Mi 5
         aliases: ["Mi 5"]
         launch_date: "2016-03-01"
+      - name: pixelxl
+        title: Google Pixel XL
+        aliases: ["Pixel XL"]
+        launch_date: "2016-10-04"
+      - name: note5
+        title: Samsung Galaxy Note 5
+        aliases: ["Note 5"]
+        launch_date: "2015-08-21"
 
   - name: ip6
     title: iPhone 6
@@ -236,17 +322,42 @@ models:
         title: Xiaomi Mi 4
         aliases: ["Mi 4"]
         launch_date: "2014-08-01"
+      - name: lgg3
+        title: LG G3
+        aliases: ["LG G3"]
+        launch_date: "2014-05-28"
+      - name: xperiaz3
+        title: Sony Xperia Z3
+        aliases: ["Xperia Z3"]
+        launch_date: "2014-09-03"
 
+  # ==================== SAMSUNG (10 mẫu) ====================
 
-  # ==================== SAMSUNG ====================
   - name: s24u
     title: Samsung Galaxy S24 Ultra
     aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
-    launch_date: "2024-01-10"
+    launch_date: "2024-01-17"
     rivals:
       - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
       - name: xiaomi14u
+        title: Xiaomi 14 Ultra
+        aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+        launch_date: "2024-02-22"
       - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+      - name: vivoX100p
+        title: Vivo X100 Pro
+        aliases: ["Vivo X100 Pro"]
+        launch_date: "2023-11-13"
+      - name: pixel8pro
+        title: Google Pixel 8 Pro
+        aliases: ["Pixel 8 Pro"]
+        launch_date: "2023-10-04"
 
   - name: s23u
     title: Samsung Galaxy S23 Ultra
@@ -254,8 +365,25 @@ models:
     launch_date: "2023-02-02"
     rivals:
       - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
       - name: xiaomi13u
+        title: Xiaomi 13 Ultra
+        aliases: ["Xiaomi 13 Ultra", "xiaomi 13u"]
+        launch_date: "2023-04-18"
       - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+      - name: pixel7pro
+        title: Google Pixel 7 Pro
+        aliases: ["Pixel 7 Pro"]
+        launch_date: "2022-10-06"
+      - name: findx6pro
+        title: Oppo Find X6 Pro
+        aliases: ["Find X6 Pro"]
+        launch_date: "2023-03-21"
 
   - name: s22u
     title: Samsung Galaxy S22 Ultra
@@ -263,17 +391,51 @@ models:
     launch_date: "2022-02-25"
     rivals:
       - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
       - name: xiaomi12u
+        title: Xiaomi 12S Ultra
+        aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
+        launch_date: "2022-07-04"
       - name: findx5pro
+        title: Oppo Find X5 Pro
+        aliases: ["Find X5 Pro"]
+        launch_date: "2022-02-24"
+      - name: pixel6pro
+        title: Google Pixel 6 Pro
+        aliases: ["Pixel 6 Pro"]
+        launch_date: "2021-10-19"
+      - name: oneplus10pro
+        title: OnePlus 10 Pro
+        aliases: ["OnePlus 10 Pro"]
+        launch_date: "2022-01-11"
 
   - name: note20u
     title: Samsung Galaxy Note 20 Ultra
-    aliases: ["Galaxy Note 20 Ultra", "Note 20 Ultra"]
+    aliases: ["Galaxy Note 20 Ultra", "Note 20 Ultra", "note20u"]
     launch_date: "2020-08-21"
     rivals:
-      - name: ip11pro
-      - name: mi11ultra
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
       - name: p40pro
+        title: Huawei P40 Pro
+        aliases: ["Huawei P40 Pro"]
+        launch_date: "2020-03-26"
+      - name: mi10ultra
+        title: Xiaomi Mi 10 Ultra
+        aliases: ["Mi 10 Ultra"]
+        launch_date: "2020-08-11"
+      - name: findx2pro
+        title: Oppo Find X2 Pro
+        aliases: ["Find X2 Pro"]
+        launch_date: "2020-03-06"
+      - name: mate40pro
+        title: Huawei Mate 40 Pro
+        aliases: ["Mate 40 Pro"]
+        launch_date: "2020-10-22"
 
   - name: a52
     title: Samsung Galaxy A52
@@ -292,17 +454,174 @@ models:
         title: Realme 8 Pro
         aliases: ["Realme 8 Pro"]
         launch_date: "2021-03-24"
+      - name: vivov21
+        title: Vivo V21
+        aliases: ["Vivo V21"]
+        launch_date: "2021-04-27"
+      - name: mi11lite
+        title: Xiaomi Mi 11 Lite
+        aliases: ["Mi 11 Lite"]
+        launch_date: "2021-03-29"
 
+  - name: s26u
+    title: Samsung Galaxy S26 Ultra
+    aliases: ["Galaxy S26 Ultra", "s26 ultra"]
+    launch_date: "2026-02-25"
+    rivals:
+      - name: ip17prm
+        title: iPhone 17 Pro Max
+        aliases: ["iPhone 17 Pro Max", "ip17 prm", "ip17 pro max"]
+        launch_date: "2025-09-15"
+      - name: xiaomi17u
+        title: Xiaomi 17 Ultra
+        aliases: ["Xiaomi 17 Ultra", "xiaomi 17u"]
+        launch_date: "2025-12-25"
+      - name: findx9ultra
+        title: Oppo Find X9 Ultra
+        aliases: ["Find X9 Ultra"]
+        launch_date: "2026-04-21"
+      - name: vivox300ultra
+        title: Vivo X300 Ultra
+        aliases: ["X300 Ultra"]
+        launch_date: "2026-03-30"
+      - name: pixel10pro
+        title: Google Pixel 10 Pro XL
+        aliases: ["Pixel 10 Pro"]
+        exclude: ["pixel 10 pro fold"]
+        launch_date: "2025-08-20"
 
-  # ==================== XIAOMI ====================
+  - name: s25u
+    title: Samsung Galaxy S25 Ultra
+    aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+    launch_date: "2025-01-22"
+    rivals:
+      - name: ip16prm
+        title: iPhone 16 Pro Max
+        aliases: ["iPhone 16 Pro Max", "ip16 prm", "ip16 pro max"]
+        launch_date: "2024-09-09"
+      - name: xiaomi15u
+        title: Xiaomi 15 Ultra
+        aliases: ["Xiaomi 15 Ultra", "xiaomi 15u"]
+        launch_date: "2025-02-25"
+      - name: oppofindX8p
+        title: Oppo Find X8 Pro
+        aliases: ["Find X8 Pro"]
+        launch_date: "2024-10-24"
+      - name: vivox200pro
+        title: Vivo X200 Pro
+        aliases: ["Vivo X200 Pro", "X200 Pro"]
+        launch_date: "2024-10-14"
+      - name: pixel9pro
+        title: Google Pixel 9 Pro XL
+        aliases: ["Pixel 9 Pro"]
+        exclude: ["pixel 9 pro fold"]
+        launch_date: "2024-08-13"
+
+  - name: zfold7
+    title: Samsung Galaxy Z Fold7
+    aliases: ["Z Fold7", "Z Fold 7"]
+    launch_date: "2025-07-09"
+    rivals:
+      - name: honormagicv5
+        title: Honor Magic V5
+        aliases: ["Magic V5"]
+        launch_date: "2025-07-02"
+      - name: vivoxfold5
+        title: Vivo X Fold5
+        aliases: ["X Fold5", "X Fold 5"]
+        launch_date: "2025-06-25"
+      - name: findn5
+        title: Oppo Find N5
+        aliases: ["Find N5"]
+        launch_date: "2025-02-20"
+      - name: pixel10profold
+        title: Google Pixel 10 Pro Fold
+        aliases: ["Pixel 10 Pro Fold"]
+        launch_date: "2025-08-20"
+      - name: matex6
+        title: Huawei Mate X6
+        aliases: ["Mate X6"]
+        launch_date: "2024-11-26"
+
+  - name: galaxya55
+    title: Samsung Galaxy A55
+    aliases: ["Galaxy A55"]
+    launch_date: "2024-03-11"
+    rivals:
+      - name: redminote13pro
+        title: Redmi Note 13 Pro
+        aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+        launch_date: "2023-09-21"
+      - name: reno11
+        title: Oppo Reno11
+        aliases: ["Reno 11", "Reno11"]
+        launch_date: "2023-11-23"
+      - name: realme12proplus
+        title: Realme 12 Pro+
+        aliases: ["Realme 12 Pro+", "Realme 12 Pro"]
+        launch_date: "2024-01-29"
+      - name: vivov30
+        title: Vivo V30
+        aliases: ["Vivo V30"]
+        launch_date: "2024-02-28"
+      - name: pixel8a
+        title: Google Pixel 8a
+        aliases: ["Pixel 8a"]
+        launch_date: "2024-05-07"
+
+  - name: s21u
+    title: Samsung Galaxy S21 Ultra
+    aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+    launch_date: "2021-01-29"
+    rivals:
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: mi11ultra
+        title: Xiaomi Mi 11 Ultra
+        aliases: ["Mi 11 Ultra", "mi 11 ultra"]
+        launch_date: "2021-03-29"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+      - name: x60proplus
+        title: Vivo X60 Pro+
+        aliases: ["Vivo X60 Pro+", "X60 Pro+"]
+        launch_date: "2021-01-21"
+      - name: mate40pro
+        title: Huawei Mate 40 Pro
+        aliases: ["Mate 40 Pro"]
+        launch_date: "2020-10-22"
+
+  # ==================== XIAOMI (10 mẫu) ====================
+
   - name: xiaomi14u
     title: Xiaomi 14 Ultra
     aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
     launch_date: "2024-02-22"
     rivals:
       - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
       - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
       - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+      - name: vivox100ultra
+        title: Vivo X100 Ultra
+        aliases: ["X100 Ultra"]
+        launch_date: "2024-05-13"
+      - name: pura70ultra
+        title: Huawei Pura 70 Ultra
+        aliases: ["Pura 70 Ultra"]
+        launch_date: "2024-04-18"
 
   - name: xiaomi13u
     title: Xiaomi 13 Ultra
@@ -310,8 +629,25 @@ models:
     launch_date: "2023-04-18"
     rivals:
       - name: s23u
+        title: Samsung Galaxy S23 Ultra
+        aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
+        launch_date: "2023-02-02"
       - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
       - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+      - name: findx6pro
+        title: Oppo Find X6 Pro
+        aliases: ["Find X6 Pro"]
+        launch_date: "2023-03-21"
+      - name: p60pro
+        title: Huawei P60 Pro
+        aliases: ["Huawei P60 Pro", "P60 Pro"]
+        launch_date: "2023-03-23"
 
   - name: xiaomi12u
     title: Xiaomi 12S Ultra
@@ -319,51 +655,1113 @@ models:
     launch_date: "2022-07-04"
     rivals:
       - name: s22u
+        title: Samsung Galaxy S22 Ultra
+        aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
+        launch_date: "2022-02-25"
       - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
       - name: findx5pro
+        title: Oppo Find X5 Pro
+        aliases: ["Find X5 Pro"]
+        launch_date: "2022-02-24"
+      - name: vivox80pro
+        title: Vivo X80 Pro
+        aliases: ["Vivo X80 Pro", "X80 Pro"]
+        launch_date: "2022-04-25"
+      - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
 
   - name: mi11ultra
     title: Xiaomi Mi 11 Ultra
     aliases: ["Mi 11 Ultra", "mi 11 ultra"]
     launch_date: "2021-03-29"
     rivals:
-      - name: note20u
-      - name: ip11pro
-      - name: p40pro
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+      - name: x60proplus
+        title: Vivo X60 Pro+
+        aliases: ["Vivo X60 Pro+", "X60 Pro+"]
+        launch_date: "2021-01-21"
+      - name: p50pro
+        title: Huawei P50 Pro
+        aliases: ["Huawei P50 Pro", "P50 Pro"]
+        launch_date: "2021-07-29"
 
   - name: redminote13pro
     title: Redmi Note 13 Pro
     aliases: ["Redmi Note 13 Pro", "rn13 pro"]
     launch_date: "2023-09-21"
     rivals:
-      - name: a52
-      - name: reno10
-        title: Oppo Reno10
-        aliases: ["Reno 10"]
-        launch_date: "2023-05-24"
       - name: galaxya54
         title: Samsung Galaxy A54
         aliases: ["Galaxy A54"]
         launch_date: "2023-03-15"
+      - name: galaxya34
+        title: Samsung Galaxy A34
+        aliases: ["Galaxy A34"]
+        launch_date: "2023-03-15"
+      - name: reno10
+        title: Oppo Reno10
+        aliases: ["Reno 10"]
+        launch_date: "2023-05-24"
+      - name: realme11pro
+        title: Realme 11 Pro
+        aliases: ["Realme 11 Pro"]
+        launch_date: "2023-05-10"
+      - name: honor90
+        title: Honor 90
+        aliases: ["Honor 90"]
+        launch_date: "2023-05-29"
+
+  - name: xiaomi18promax
+    title: Xiaomi 18 Pro Max
+    aliases: ["Xiaomi 18 Pro Max", "Xiaomi 18 Pro"]
+    launch_date: "2026-09-23"
+    rivals:
+      - name: ip18prm
+        title: iPhone 18 Pro Max
+        aliases: ["iPhone 18 Pro Max", "ip18 prm", "ip18 pro max"]
+        launch_date: "2026-09-15"
+      - name: s26u
+        title: Samsung Galaxy S26 Ultra
+        aliases: ["Galaxy S26 Ultra", "s26 ultra"]
+        launch_date: "2026-02-25"
+      - name: vivox500pro
+        title: Vivo X500 Pro
+        aliases: ["Vivo X500 Pro", "X500 Pro"]
+        launch_date: "2026-09-21"
+      - name: pixel11pro
+        title: Google Pixel 11 Pro XL
+        aliases: ["Pixel 11 Pro"]
+        launch_date: "2026-08-12"
+      - name: findx9ultra
+        title: Oppo Find X9 Ultra
+        aliases: ["Find X9 Ultra"]
+        launch_date: "2026-04-21"
+
+  - name: xiaomi15u
+    title: Xiaomi 15 Ultra
+    aliases: ["Xiaomi 15 Ultra", "xiaomi 15u"]
+    launch_date: "2025-02-25"
+    rivals:
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-22"
+      - name: ip16prm
+        title: iPhone 16 Pro Max
+        aliases: ["iPhone 16 Pro Max", "ip16 prm", "ip16 pro max"]
+        launch_date: "2024-09-09"
+      - name: findx8ultra
+        title: Oppo Find X8 Ultra
+        aliases: ["Find X8 Ultra"]
+        launch_date: "2025-04-10"
+      - name: vivox200ultra
+        title: Vivo X200 Ultra
+        aliases: ["X200 Ultra"]
+        launch_date: "2025-04-21"
+      - name: pura80ultra
+        title: Huawei Pura 80 Ultra
+        aliases: ["Pura 80 Ultra"]
+        launch_date: "2025-06-11"
+
+  - name: xiaomi14tpro
+    title: Xiaomi 14T Pro
+    aliases: ["Xiaomi 14T Pro", "Xiaomi 14T"]
+    launch_date: "2024-09-26"
+    rivals:
+      - name: ip16prm
+        title: iPhone 16 Pro Max
+        aliases: ["iPhone 16 Pro Max", "ip16 prm", "ip16 pro max"]
+        launch_date: "2024-09-09"
+      - name: galaxys24fe
+        title: Samsung Galaxy S24 FE
+        aliases: ["Galaxy S24 FE", "S24 FE"]
+        launch_date: "2024-09-26"
+      - name: oppofindX8p
+        title: Oppo Find X8 Pro
+        aliases: ["Find X8 Pro"]
+        launch_date: "2024-10-24"
+      - name: vivox200pro
+        title: Vivo X200 Pro
+        aliases: ["Vivo X200 Pro", "X200 Pro"]
+        launch_date: "2024-10-14"
+      - name: pixel9pro
+        title: Google Pixel 9 Pro XL
+        aliases: ["Pixel 9 Pro"]
+        exclude: ["pixel 9 pro fold"]
+        launch_date: "2024-08-13"
+
+  - name: redminote14pro
+    title: Redmi Note 14 Pro
+    aliases: ["Redmi Note 14 Pro", "rn14 pro"]
+    launch_date: "2024-09-26"
+    rivals:
+      - name: galaxya55
+        title: Samsung Galaxy A55
+        aliases: ["Galaxy A55"]
+        launch_date: "2024-03-11"
+      - name: reno12
+        title: Oppo Reno12
+        aliases: ["Reno 12", "Reno12"]
+        launch_date: "2024-05-23"
+      - name: honor200
+        title: Honor 200
+        aliases: ["Honor 200"]
+        launch_date: "2024-05-27"
+      - name: pixel8a
+        title: Google Pixel 8a
+        aliases: ["Pixel 8a"]
+        launch_date: "2024-05-07"
+      - name: realme13proplus
+        title: Realme 13 Pro+
+        aliases: ["Realme 13 Pro+", "Realme 13 Pro"]
+        launch_date: "2024-07-30"
+
+  - name: mi11
+    title: Xiaomi Mi 11
+    aliases: ["Mi 11"]
+    launch_date: "2020-12-28"
+    rivals:
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+      - name: x60proplus
+        title: Vivo X60 Pro+
+        aliases: ["Vivo X60 Pro+", "X60 Pro+"]
+        launch_date: "2021-01-21"
+      - name: mate40pro
+        title: Huawei Mate 40 Pro
+        aliases: ["Mate 40 Pro"]
+        launch_date: "2020-10-22"
+
+  # ==================== OPPO (8 mẫu) ====================
+
+  - name: findx9ultra
+    title: Oppo Find X9 Ultra
+    aliases: ["Find X9 Ultra"]
+    launch_date: "2026-04-21"
+    rivals:
+      - name: ip17prm
+        title: iPhone 17 Pro Max
+        aliases: ["iPhone 17 Pro Max", "ip17 prm", "ip17 pro max"]
+        launch_date: "2025-09-15"
+      - name: s26u
+        title: Samsung Galaxy S26 Ultra
+        aliases: ["Galaxy S26 Ultra", "s26 ultra"]
+        launch_date: "2026-02-25"
+      - name: xiaomi17u
+        title: Xiaomi 17 Ultra
+        aliases: ["Xiaomi 17 Ultra", "xiaomi 17u"]
+        launch_date: "2025-12-25"
+      - name: vivox300ultra
+        title: Vivo X300 Ultra
+        aliases: ["X300 Ultra"]
+        launch_date: "2026-03-30"
+      - name: pixel10pro
+        title: Google Pixel 10 Pro XL
+        aliases: ["Pixel 10 Pro"]
+        exclude: ["pixel 10 pro fold"]
+        launch_date: "2025-08-20"
+
+  - name: oppofindX8p
+    title: Oppo Find X8 Pro
+    aliases: ["Find X8 Pro"]
+    launch_date: "2024-10-24"
+    rivals:
+      - name: ip16prm
+        title: iPhone 16 Pro Max
+        aliases: ["iPhone 16 Pro Max", "ip16 prm", "ip16 pro max"]
+        launch_date: "2024-09-09"
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-22"
+      - name: xiaomi15pro
+        title: Xiaomi 15 Pro
+        aliases: ["Xiaomi 15 Pro"]
+        launch_date: "2024-10-29"
+      - name: vivox200pro
+        title: Vivo X200 Pro
+        aliases: ["Vivo X200 Pro", "X200 Pro"]
+        launch_date: "2024-10-14"
+      - name: mate70pro
+        title: Huawei Mate 70 Pro
+        aliases: ["Mate 70 Pro"]
+        launch_date: "2024-11-26"
+
+  - name: findx7u
+    title: Oppo Find X7 Ultra
+    aliases: ["Find X7 Ultra", "oppo find x7u"]
+    launch_date: "2024-01-08"
+    rivals:
+      - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
+      - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
+      - name: xiaomi14u
+        title: Xiaomi 14 Ultra
+        aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+        launch_date: "2024-02-22"
+      - name: vivoX100p
+        title: Vivo X100 Pro
+        aliases: ["Vivo X100 Pro"]
+        launch_date: "2023-11-13"
+      - name: mate60pro
+        title: Huawei Mate 60 Pro
+        aliases: ["Mate 60 Pro"]
+        launch_date: "2023-08-29"
+
+  - name: findx6pro
+    title: Oppo Find X6 Pro
+    aliases: ["Find X6 Pro"]
+    launch_date: "2023-03-21"
+    rivals:
+      - name: s23u
+        title: Samsung Galaxy S23 Ultra
+        aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
+        launch_date: "2023-02-02"
+      - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
+      - name: xiaomi13u
+        title: Xiaomi 13 Ultra
+        aliases: ["Xiaomi 13 Ultra", "xiaomi 13u"]
+        launch_date: "2023-04-18"
+      - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+      - name: p60pro
+        title: Huawei P60 Pro
+        aliases: ["Huawei P60 Pro", "P60 Pro"]
+        launch_date: "2023-03-23"
+
+  - name: findx5pro
+    title: Oppo Find X5 Pro
+    aliases: ["Find X5 Pro"]
+    launch_date: "2022-02-24"
+    rivals:
+      - name: s22u
+        title: Samsung Galaxy S22 Ultra
+        aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
+        launch_date: "2022-02-25"
+      - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
+      - name: xiaomi12u
+        title: Xiaomi 12S Ultra
+        aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
+        launch_date: "2022-07-04"
+      - name: vivox80pro
+        title: Vivo X80 Pro
+        aliases: ["Vivo X80 Pro", "X80 Pro"]
+        launch_date: "2022-04-25"
+      - name: pixel6pro
+        title: Google Pixel 6 Pro
+        aliases: ["Pixel 6 Pro"]
+        launch_date: "2021-10-19"
+
+  - name: findx3pro
+    title: Oppo Find X3 Pro
+    aliases: ["Find X3 Pro"]
+    launch_date: "2021-03-11"
+    rivals:
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: mi11ultra
+        title: Xiaomi Mi 11 Ultra
+        aliases: ["Mi 11 Ultra", "mi 11 ultra"]
+        launch_date: "2021-03-29"
+      - name: x60proplus
+        title: Vivo X60 Pro+
+        aliases: ["Vivo X60 Pro+", "X60 Pro+"]
+        launch_date: "2021-01-21"
+      - name: mate40pro
+        title: Huawei Mate 40 Pro
+        aliases: ["Mate 40 Pro"]
+        launch_date: "2020-10-22"
+
+  - name: reno12
+    title: Oppo Reno12
+    aliases: ["Reno 12", "Reno12"]
+    launch_date: "2024-05-23"
+    rivals:
+      - name: galaxya55
+        title: Samsung Galaxy A55
+        aliases: ["Galaxy A55"]
+        launch_date: "2024-03-11"
+      - name: redminote13pro
+        title: Redmi Note 13 Pro
+        aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+        launch_date: "2023-09-21"
+      - name: vivov30
+        title: Vivo V30
+        aliases: ["Vivo V30"]
+        launch_date: "2024-02-28"
+      - name: realme12proplus
+        title: Realme 12 Pro+
+        aliases: ["Realme 12 Pro+", "Realme 12 Pro"]
+        launch_date: "2024-01-29"
+      - name: honor200
+        title: Honor 200
+        aliases: ["Honor 200"]
+        launch_date: "2024-05-27"
+
+  - name: reno10
+    title: Oppo Reno10
+    aliases: ["Reno 10"]
+    launch_date: "2023-05-24"
+    rivals:
+      - name: galaxya54
+        title: Samsung Galaxy A54
+        aliases: ["Galaxy A54"]
+        launch_date: "2023-03-15"
+      - name: redminote13pro
+        title: Redmi Note 13 Pro
+        aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+        launch_date: "2023-09-21"
+      - name: realme11pro
+        title: Realme 11 Pro
+        aliases: ["Realme 11 Pro"]
+        launch_date: "2023-05-10"
+      - name: honor90
+        title: Honor 90
+        aliases: ["Honor 90"]
+        launch_date: "2023-05-29"
+      - name: pixel7a
+        title: Google Pixel 7a
+        aliases: ["Pixel 7a"]
+        launch_date: "2023-05-10"
+
+  # ==================== HUAWEI (8 mẫu) ====================
+
+  - name: mate60pro
+    title: Huawei Mate 60 Pro
+    aliases: ["Mate 60 Pro"]
+    launch_date: "2023-08-29"
+    rivals:
+      - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
+      - name: zfold5
+        title: Samsung Galaxy Z Fold5
+        aliases: ["Z Fold5", "Z Fold 5"]
+        launch_date: "2023-07-26"
+      - name: xiaomi14
+        title: Xiaomi 14
+        aliases: ["Xiaomi 14"]
+        exclude: ["xiaomi 14 ultra", "xiaomi 14t", "xiaomi 14 pro", "xiaomi 14 civi"]
+        launch_date: "2023-10-26"
+      - name: vivoX100p
+        title: Vivo X100 Pro
+        aliases: ["Vivo X100 Pro"]
+        launch_date: "2023-11-13"
+      - name: pixel8pro
+        title: Google Pixel 8 Pro
+        aliases: ["Pixel 8 Pro"]
+        launch_date: "2023-10-04"
+
+  - name: pura70ultra
+    title: Huawei Pura 70 Ultra
+    aliases: ["Pura 70 Ultra"]
+    launch_date: "2024-04-18"
+    rivals:
+      - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
+      - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
+      - name: xiaomi14u
+        title: Xiaomi 14 Ultra
+        aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+        launch_date: "2024-02-22"
+      - name: vivox100ultra
+        title: Vivo X100 Ultra
+        aliases: ["X100 Ultra"]
+        launch_date: "2024-05-13"
+      - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+
+  - name: p60pro
+    title: Huawei P60 Pro
+    aliases: ["Huawei P60 Pro", "P60 Pro"]
+    launch_date: "2023-03-23"
+    rivals:
+      - name: s23u
+        title: Samsung Galaxy S23 Ultra
+        aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
+        launch_date: "2023-02-02"
+      - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
+      - name: xiaomi13u
+        title: Xiaomi 13 Ultra
+        aliases: ["Xiaomi 13 Ultra", "xiaomi 13u"]
+        launch_date: "2023-04-18"
+      - name: findx6pro
+        title: Oppo Find X6 Pro
+        aliases: ["Find X6 Pro"]
+        launch_date: "2023-03-21"
+      - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+
+  - name: mate50pro
+    title: Huawei Mate 50 Pro
+    aliases: ["Mate 50 Pro"]
+    launch_date: "2022-09-06"
+    rivals:
+      - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
+      - name: zfold4
+        title: Samsung Galaxy Z Fold4
+        aliases: ["Z Fold4", "Z Fold 4"]
+        launch_date: "2022-08-10"
+      - name: xiaomi12u
+        title: Xiaomi 12S Ultra
+        aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
+        launch_date: "2022-07-04"
+      - name: pixel7pro
+        title: Google Pixel 7 Pro
+        aliases: ["Pixel 7 Pro"]
+        launch_date: "2022-10-06"
+      - name: x90proplus
+        title: Vivo X90 Pro Plus
+        aliases: ["Vivo X90 Pro+"]
+        launch_date: "2022-11-22"
+
+  - name: p50pro
+    title: Huawei P50 Pro
+    aliases: ["Huawei P50 Pro", "P50 Pro"]
+    launch_date: "2021-07-29"
+    rivals:
+      - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: mi11ultra
+        title: Xiaomi Mi 11 Ultra
+        aliases: ["Mi 11 Ultra", "mi 11 ultra"]
+        launch_date: "2021-03-29"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+      - name: x70proplus
+        title: Vivo X70 Pro+
+        aliases: ["Vivo X70 Pro+", "X70 Pro+"]
+        launch_date: "2021-09-09"
+
+  - name: mate40pro
+    title: Huawei Mate 40 Pro
+    aliases: ["Mate 40 Pro"]
+    launch_date: "2020-10-22"
+    rivals:
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: note20u
+        title: Samsung Galaxy Note 20 Ultra
+        aliases: ["Galaxy Note 20 Ultra", "Note 20 Ultra", "note20u"]
+        launch_date: "2020-08-21"
+      - name: mi10ultra
+        title: Xiaomi Mi 10 Ultra
+        aliases: ["Mi 10 Ultra"]
+        launch_date: "2020-08-11"
+      - name: findx2pro
+        title: Oppo Find X2 Pro
+        aliases: ["Find X2 Pro"]
+        launch_date: "2020-03-06"
+      - name: vivox50pro
+        title: Vivo X50 Pro
+        aliases: ["Vivo X50 Pro", "X50 Pro"]
+        launch_date: "2020-06-01"
+
+  - name: p40pro
+    title: Huawei P40 Pro
+    aliases: ["Huawei P40 Pro"]
+    launch_date: "2020-03-26"
+    rivals:
+      - name: s20ultra
+        title: Samsung Galaxy S20 Ultra
+        aliases: ["Galaxy S20 Ultra", "S20 Ultra"]
+        launch_date: "2020-02-11"
+      - name: ip11pro
+        title: iPhone 11 Pro
+        aliases: ["iPhone 11 Pro", "ip11 pro"]
+        launch_date: "2019-09-20"
+      - name: mi10pro
+        title: Xiaomi Mi 10 Pro
+        aliases: ["Mi 10 Pro"]
+        launch_date: "2020-02-13"
+      - name: findx2pro
+        title: Oppo Find X2 Pro
+        aliases: ["Find X2 Pro"]
+        launch_date: "2020-03-06"
+      - name: vivox50pro
+        title: Vivo X50 Pro
+        aliases: ["Vivo X50 Pro", "X50 Pro"]
+        launch_date: "2020-06-01"
+
+  - name: mate30pro
+    title: Huawei Mate 30 Pro
+    aliases: ["Mate 30 Pro"]
+    launch_date: "2019-09-19"
+    rivals:
+      - name: ip11pro
+        title: iPhone 11 Pro
+        aliases: ["iPhone 11 Pro", "ip11 pro"]
+        launch_date: "2019-09-20"
+      - name: note10plus
+        title: Samsung Galaxy Note 10+
+        aliases: ["Note 10+", "Note 10 Plus", "Note10+"]
+        launch_date: "2019-08-07"
+      - name: minote10
+        title: Xiaomi Mi Note 10
+        aliases: ["Mi Note 10"]
+        launch_date: "2019-11-06"
+      - name: pixel4xl
+        title: Google Pixel 4 XL
+        aliases: ["Pixel 4 XL", "Pixel 4"]
+        launch_date: "2019-10-15"
+      - name: reno10xzoom
+        title: Oppo Reno 10x Zoom
+        aliases: ["Reno 10x Zoom", "Reno 10x"]
+        launch_date: "2019-04-10"
+
+  # ==================== VIVO (8 mẫu) ====================
+
+  - name: vivox500pro
+    title: Vivo X500 Pro
+    aliases: ["Vivo X500 Pro", "X500 Pro"]
+    launch_date: "2026-09-21"
+    rivals:
+      - name: ip18prm
+        title: iPhone 18 Pro Max
+        aliases: ["iPhone 18 Pro Max", "ip18 prm", "ip18 pro max"]
+        launch_date: "2026-09-15"
+      - name: s26u
+        title: Samsung Galaxy S26 Ultra
+        aliases: ["Galaxy S26 Ultra", "s26 ultra"]
+        launch_date: "2026-02-25"
+      - name: xiaomi18promax
+        title: Xiaomi 18 Pro Max
+        aliases: ["Xiaomi 18 Pro Max", "Xiaomi 18 Pro"]
+        launch_date: "2026-09-23"
+      - name: pixel11pro
+        title: Google Pixel 11 Pro XL
+        aliases: ["Pixel 11 Pro"]
+        launch_date: "2026-08-12"
+      - name: findx9ultra
+        title: Oppo Find X9 Ultra
+        aliases: ["Find X9 Ultra"]
+        launch_date: "2026-04-21"
+
+  - name: vivox300pro
+    title: Vivo X300 Pro
+    aliases: ["Vivo X300 Pro", "X300 Pro"]
+    launch_date: "2025-10-13"
+    rivals:
+      - name: ip17prm
+        title: iPhone 17 Pro Max
+        aliases: ["iPhone 17 Pro Max", "ip17 prm", "ip17 pro max"]
+        launch_date: "2025-09-15"
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-22"
+      - name: xiaomi17promax
+        title: Xiaomi 17 Pro Max
+        aliases: ["Xiaomi 17 Pro Max", "Xiaomi 17 Pro"]
+        launch_date: "2025-09-25"
+      - name: findx9pro
+        title: Oppo Find X9 Pro
+        aliases: ["Find X9 Pro"]
+        launch_date: "2025-10-16"
+      - name: pixel10pro
+        title: Google Pixel 10 Pro XL
+        aliases: ["Pixel 10 Pro"]
+        exclude: ["pixel 10 pro fold"]
+        launch_date: "2025-08-20"
+
+  - name: vivox100ultra
+    title: Vivo X100 Ultra
+    aliases: ["X100 Ultra"]
+    launch_date: "2024-05-13"
+    rivals:
+      - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
+      - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
+      - name: xiaomi14u
+        title: Xiaomi 14 Ultra
+        aliases: ["Xiaomi 14 Ultra", "xiaomi 14u"]
+        launch_date: "2024-02-22"
+      - name: pura70ultra
+        title: Huawei Pura 70 Ultra
+        aliases: ["Pura 70 Ultra"]
+        launch_date: "2024-04-18"
+      - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+
+  - name: vivoX100p
+    title: Vivo X100 Pro
+    aliases: ["Vivo X100 Pro"]
+    launch_date: "2023-11-13"
+    rivals:
+      - name: ip15prm
+        title: iPhone 15 Pro Max
+        aliases: ["Iphone 15 Pro Max", "Iphone15 prm", "ip15 prm", "ip15 pro max", "Táo 15 pro max", "Táo 15 prm"]
+        launch_date: "2023-09-12"
+      - name: s24u
+        title: Samsung Galaxy S24 Ultra
+        aliases: ["Samsung Galaxy S24 Ultra", "S24 Ultra", "s24u"]
+        launch_date: "2024-01-17"
+      - name: xiaomi14
+        title: Xiaomi 14
+        aliases: ["Xiaomi 14"]
+        exclude: ["xiaomi 14 ultra", "xiaomi 14t", "xiaomi 14 pro", "xiaomi 14 civi"]
+        launch_date: "2023-10-26"
+      - name: findx7u
+        title: Oppo Find X7 Ultra
+        aliases: ["Find X7 Ultra", "oppo find x7u"]
+        launch_date: "2024-01-08"
+      - name: mate60pro
+        title: Huawei Mate 60 Pro
+        aliases: ["Mate 60 Pro"]
+        launch_date: "2023-08-29"
+
+  - name: x90proplus
+    title: Vivo X90 Pro Plus
+    aliases: ["Vivo X90 Pro+"]
+    launch_date: "2022-11-22"
+    rivals:
+      - name: ip14prm
+        title: iPhone 14 Pro Max
+        aliases: ["iPhone 14 Pro Max", "ip14 prm", "14 pro max"]
+        launch_date: "2022-09-16"
+      - name: s23u
+        title: Samsung Galaxy S23 Ultra
+        aliases: ["Samsung Galaxy S23 Ultra", "S23 Ultra", "s23u"]
+        launch_date: "2023-02-02"
+      - name: xiaomi13pro
+        title: Xiaomi 13 Pro
+        aliases: ["Xiaomi 13 Pro"]
+        launch_date: "2022-12-11"
+      - name: mate50pro
+        title: Huawei Mate 50 Pro
+        aliases: ["Mate 50 Pro"]
+        launch_date: "2022-09-06"
+      - name: pixel7pro
+        title: Google Pixel 7 Pro
+        aliases: ["Pixel 7 Pro"]
+        launch_date: "2022-10-06"
+
+  - name: vivox80pro
+    title: Vivo X80 Pro
+    aliases: ["Vivo X80 Pro", "X80 Pro"]
+    launch_date: "2022-04-25"
+    rivals:
+      - name: s22u
+        title: Samsung Galaxy S22 Ultra
+        aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
+        launch_date: "2022-02-25"
+      - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
+      - name: xiaomi12u
+        title: Xiaomi 12S Ultra
+        aliases: ["Xiaomi 12S Ultra", "xiaomi 12s ultra"]
+        launch_date: "2022-07-04"
+      - name: findx5pro
+        title: Oppo Find X5 Pro
+        aliases: ["Find X5 Pro"]
+        launch_date: "2022-02-24"
+      - name: pixel6pro
+        title: Google Pixel 6 Pro
+        aliases: ["Pixel 6 Pro"]
+        launch_date: "2021-10-19"
+
+  - name: x60proplus
+    title: Vivo X60 Pro+
+    aliases: ["Vivo X60 Pro+", "X60 Pro+"]
+    launch_date: "2021-01-21"
+    rivals:
+      - name: s21u
+        title: Samsung Galaxy S21 Ultra
+        aliases: ["Galaxy S21 Ultra", "s21 ultra"]
+        launch_date: "2021-01-29"
+      - name: ip12prm
+        title: iPhone 12 Pro Max
+        aliases: ["iPhone 12 Pro Max", "ip12 prm", "12 pro max"]
+        launch_date: "2020-11-13"
+      - name: mi11
+        title: Xiaomi Mi 11
+        aliases: ["Mi 11"]
+        launch_date: "2020-12-28"
+      - name: findx3pro
+        title: Oppo Find X3 Pro
+        aliases: ["Find X3 Pro"]
+        launch_date: "2021-03-11"
+      - name: mate40pro
+        title: Huawei Mate 40 Pro
+        aliases: ["Mate 40 Pro"]
+        launch_date: "2020-10-22"
+
+  - name: vivov21
+    title: Vivo V21
+    aliases: ["Vivo V21"]
+    launch_date: "2021-04-27"
+    rivals:
+      - name: a52
+        title: Samsung Galaxy A52
+        aliases: ["Galaxy A52", "A52"]
+        launch_date: "2021-03-17"
+      - name: redminote10pro
+        title: Redmi Note 10 Pro
+        aliases: ["Redmi Note 10 Pro"]
+        launch_date: "2021-03-24"
+      - name: reno5
+        title: Oppo Reno5
+        aliases: ["Reno 5"]
+        launch_date: "2020-12-30"
+      - name: realme8pro
+        title: Realme 8 Pro
+        aliases: ["Realme 8 Pro"]
+        launch_date: "2021-03-24"
+      - name: mi11lite
+        title: Xiaomi Mi 11 Lite
+        aliases: ["Mi 11 Lite"]
+        launch_date: "2021-03-29"
+
+  # ==================== REALME (8 mẫu) ====================
+
+  - name: realmegt8pro
+    title: Realme GT 8 Pro
+    aliases: ["Realme GT 8 Pro", "GT8 Pro"]
+    launch_date: "2025-10-21"
+    rivals:
+      - name: ip17prm
+        title: iPhone 17 Pro Max
+        aliases: ["iPhone 17 Pro Max", "ip17 prm", "ip17 pro max"]
+        launch_date: "2025-09-15"
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-22"
+      - name: xiaomi17promax
+        title: Xiaomi 17 Pro Max
+        aliases: ["Xiaomi 17 Pro Max", "Xiaomi 17 Pro"]
+        launch_date: "2025-09-25"
+      - name: vivox300pro
+        title: Vivo X300 Pro
+        aliases: ["Vivo X300 Pro", "X300 Pro"]
+        launch_date: "2025-10-13"
+      - name: findx9pro
+        title: Oppo Find X9 Pro
+        aliases: ["Find X9 Pro"]
+        launch_date: "2025-10-16"
+
+  - name: realme14proplus
+    title: Realme 14 Pro+
+    aliases: ["Realme 14 Pro+", "Realme 14 Pro Plus", "Realme 14 Pro"]
+    launch_date: "2025-01-16"
+    rivals:
+      - name: galaxya56
+        title: Samsung Galaxy A56
+        aliases: ["Galaxy A56"]
+        launch_date: "2025-03-02"
+      - name: redminote14pro
+        title: Redmi Note 14 Pro
+        aliases: ["Redmi Note 14 Pro", "rn14 pro"]
+        launch_date: "2024-09-26"
+      - name: reno13
+        title: Oppo Reno13
+        aliases: ["Reno 13", "Reno13"]
+        launch_date: "2024-11-25"
+      - name: pixel9a
+        title: Google Pixel 9a
+        aliases: ["Pixel 9a"]
+        launch_date: "2025-03-19"
+      - name: honor400
+        title: Honor 400
+        aliases: ["Honor 400"]
+        launch_date: "2025-05-22"
+
+  - name: realmegt7pro
+    title: Realme GT 7 Pro
+    aliases: ["Realme GT 7 Pro", "GT7 Pro"]
+    launch_date: "2024-11-04"
+    rivals:
+      - name: ip16prm
+        title: iPhone 16 Pro Max
+        aliases: ["iPhone 16 Pro Max", "ip16 prm", "ip16 pro max"]
+        launch_date: "2024-09-09"
+      - name: s25u
+        title: Samsung Galaxy S25 Ultra
+        aliases: ["Galaxy S25 Ultra", "s25 ultra"]
+        launch_date: "2025-01-22"
+      - name: xiaomi15pro
+        title: Xiaomi 15 Pro
+        aliases: ["Xiaomi 15 Pro"]
+        launch_date: "2024-10-29"
+      - name: oppofindX8p
+        title: Oppo Find X8 Pro
+        aliases: ["Find X8 Pro"]
+        launch_date: "2024-10-24"
+      - name: vivox200pro
+        title: Vivo X200 Pro
+        aliases: ["Vivo X200 Pro", "X200 Pro"]
+        launch_date: "2024-10-14"
+
+  - name: realme13proplus
+    title: Realme 13 Pro+
+    aliases: ["Realme 13 Pro+", "Realme 13 Pro"]
+    launch_date: "2024-07-30"
+    rivals:
+      - name: galaxya55
+        title: Samsung Galaxy A55
+        aliases: ["Galaxy A55"]
+        launch_date: "2024-03-11"
+      - name: redminote14pro
+        title: Redmi Note 14 Pro
+        aliases: ["Redmi Note 14 Pro", "rn14 pro"]
+        launch_date: "2024-09-26"
+      - name: reno12
+        title: Oppo Reno12
+        aliases: ["Reno 12", "Reno12"]
+        launch_date: "2024-05-23"
+      - name: honor200
+        title: Honor 200
+        aliases: ["Honor 200"]
+        launch_date: "2024-05-27"
+      - name: pixel8a
+        title: Google Pixel 8a
+        aliases: ["Pixel 8a"]
+        launch_date: "2024-05-07"
+
+  - name: realme12proplus
+    title: Realme 12 Pro+
+    aliases: ["Realme 12 Pro+", "Realme 12 Pro"]
+    launch_date: "2024-01-29"
+    rivals:
+      - name: galaxya55
+        title: Samsung Galaxy A55
+        aliases: ["Galaxy A55"]
+        launch_date: "2024-03-11"
+      - name: redminote13pro
+        title: Redmi Note 13 Pro
+        aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+        launch_date: "2023-09-21"
+      - name: reno11
+        title: Oppo Reno11
+        aliases: ["Reno 11", "Reno11"]
+        launch_date: "2023-11-23"
+      - name: vivov30
+        title: Vivo V30
+        aliases: ["Vivo V30"]
+        launch_date: "2024-02-28"
+      - name: pixel8a
+        title: Google Pixel 8a
+        aliases: ["Pixel 8a"]
+        launch_date: "2024-05-07"
+
+  - name: realme11pro
+    title: Realme 11 Pro
+    aliases: ["Realme 11 Pro"]
+    launch_date: "2023-05-10"
+    rivals:
+      - name: galaxya54
+        title: Samsung Galaxy A54
+        aliases: ["Galaxy A54"]
+        launch_date: "2023-03-15"
+      - name: redminote13pro
+        title: Redmi Note 13 Pro
+        aliases: ["Redmi Note 13 Pro", "rn13 pro"]
+        launch_date: "2023-09-21"
+      - name: reno10
+        title: Oppo Reno10
+        aliases: ["Reno 10"]
+        launch_date: "2023-05-24"
+      - name: honor90
+        title: Honor 90
+        aliases: ["Honor 90"]
+        launch_date: "2023-05-29"
+      - name: pixel7a
+        title: Google Pixel 7a
+        aliases: ["Pixel 7a"]
+        launch_date: "2023-05-10"
+
+  - name: realmegt2pro
+    title: Realme GT 2 Pro
+    aliases: ["Realme GT 2 Pro", "GT2 Pro"]
+    launch_date: "2022-01-04"
+    rivals:
+      - name: s22u
+        title: Samsung Galaxy S22 Ultra
+        aliases: ["Samsung Galaxy S22 Ultra", "S22 Ultra", "s22u"]
+        launch_date: "2022-02-25"
+      - name: ip13prm
+        title: iPhone 13 Pro Max
+        aliases: ["iPhone 13 Pro Max", "ip13 prm", "13 pro max"]
+        launch_date: "2021-09-24"
+      - name: xiaomi12pro
+        title: Xiaomi 12 Pro
+        aliases: ["Xiaomi 12 Pro"]
+        launch_date: "2021-12-28"
+      - name: findx5pro
+        title: Oppo Find X5 Pro
+        aliases: ["Find X5 Pro"]
+        launch_date: "2022-02-24"
+      - name: oneplus10pro
+        title: OnePlus 10 Pro
+        aliases: ["OnePlus 10 Pro"]
+        launch_date: "2022-01-11"
+
+  - name: realme8pro
+    title: Realme 8 Pro
+    aliases: ["Realme 8 Pro"]
+    launch_date: "2021-03-24"
+    rivals:
+      - name: a52
+        title: Samsung Galaxy A52
+        aliases: ["Galaxy A52", "A52"]
+        launch_date: "2021-03-17"
+      - name: redminote10pro
+        title: Redmi Note 10 Pro
+        aliases: ["Redmi Note 10 Pro"]
+        launch_date: "2021-03-24"
+      - name: reno5
+        title: Oppo Reno5
+        aliases: ["Reno 5"]
+        launch_date: "2020-12-30"
+      - name: vivov21
+        title: Vivo V21
+        aliases: ["Vivo V21"]
+        launch_date: "2021-04-27"
+      - name: mi11lite
+        title: Xiaomi Mi 11 Lite
+        aliases: ["Mi 11 Lite"]
+        launch_date: "2021-03-29"
+
+# Chia việc nhiều người (mỗi người 1 khóa API, 1 nhóm kênh, CÙNG danh sách models):
+#   mỗi máy đặt CRAWLER_WORKER=p1|p2 trong .env; kênh ghi `owner: p2` chỉ máy p2 cào, kênh không ghi owner thuộc default_owner.
+#   Hướng dẫn cho người thứ hai: docs/huong-dan-crawl-2-may.md
+workers:
+  default_owner: p1
 
 # Kênh công nghệ (10-20 kênh). channel_id điền UC... hoặc @handle; để trống thì chạy:
-#   python -m src.main resolve-names     (tốn ~100 đơn vị/kênh, ghi gợi ý ra config/channels.suggested.yaml)
+#   python -m crawler.main resolve-names     (tốn ~100 đơn vị/kênh, ghi gợi ý ra config/channels.suggested.yaml)
 # Tên dưới đây là ỨNG VIÊN lấy từ các bài tổng hợp, chưa kiểm tra bằng API. tags tạm, sửa tùy ý.
 channels:
-  - {channel_id: "UCEeXA5Tu7n9X5_zkOgGsyww", name: "Vật Vờ Studio",    enabled: true, tags: ["review", "smartphone"]}
-  - {channel_id: "UCOygiQNXiiQ_rpRjHU5ri-A", name: "Duy Thẩm",         enabled: true, tags: ["review", "smartphone"]}
-  - {channel_id: "UCvJ8leyn7YWgqmbmw1R5ZVg", name: "Dương Dê",         enabled: true, tags: ["review", "smartphone"]}
-  - {channel_id: "UC0W4geJiYGuQeO5KhRBzXBQ", name: "Tân Một Cú",       enabled: true, tags: ["review", "smartphone"]}
-  - {channel_id: "UC7CplVVDYKBeraVcPuI3xUQ", name: "Tony Phùng",       enabled: true, tags: ["review", "smartphone"]}
-  - {channel_id: "UCyQobySFx_h9oFwsBV0KGdg", name: "Tinh tế",          enabled: true, tags: ["technology", "comparison"]}
-  - {channel_id: "UCJm_GdFJzT8h1odq1oMu_7Q", name: "Hoàng Hà Mobile",  enabled: true, tags: ["retail", "smartphone"]}
-  - {channel_id: "UCkv1DN-G2KP3D5RFFrEOW1Q", name: "CellphoneS",       enabled: true, tags: ["retail", "smartphone"]}
-  - {channel_id: "UClAoXGpwSi4bgwBLuZKxsnQ", name: "Thế Giới Di Động", enabled: true, tags: ["retail", "smartphone"]}
-  - {channel_id: "UCReIrO3npnrMpRzB5xgE7fQ", name: "FPT Shop",         enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCEeXA5Tu7n9X5_zkOgGsyww", name: "Vật Vờ Studio",      enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCOygiQNXiiQ_rpRjHU5ri-A", name: "Duy Thẩm",           enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCvJ8leyn7YWgqmbmw1R5ZVg", name: "Dương Dê",           enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UC0W4geJiYGuQeO5KhRBzXBQ", name: "Tân Một Cú",         enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UC7CplVVDYKBeraVcPuI3xUQ", name: "Tony Phùng",         enabled: true, tags: ["review", "smartphone"]}
+  - {channel_id: "UCyQobySFx_h9oFwsBV0KGdg", name: "Tinh tế",            enabled: true, tags: ["technology", "comparison"]}
+  - {channel_id: "UCJm_GdFJzT8h1odq1oMu_7Q", name: "Hoàng Hà Mobile",    enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCkv1DN-G2KP3D5RFFrEOW1Q", name: "CellphoneS",         enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UClAoXGpwSi4bgwBLuZKxsnQ", name: "Thế Giới Di Động",   enabled: true, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCReIrO3npnrMpRzB5xgE7fQ", name: "FPT Shop",           enabled: true, tags: ["retail", "smartphone"]}
   - {channel_id: "UCQ0jSGgYMLmRMeTE6UaPPXg", name: "Duy Luân Dễ Thương", enabled: true, tags: ["review", "smartphone"]}
   - {channel_id: "UC9Pj0EUibBF295jWHRSDJqg", name: "Schannel",           enabled: true, tags: ["technology", "review"]}
   - {channel_id: "UCDri2yZO_tqdD70bK-D7iQg", name: "AnhEm TV",           enabled: true, tags: ["technology", "review"]}
   - {channel_id: "UCKOlBXzWA1PVOFd-MwC8AWQ", name: "Rương Công Nghệ",    enabled: true, tags: ["technology", "smartphone"]}
+  - {channel_id: "UC7MGCyKDw8iQX7Vs0-BH9uA", name: "relab",              enabled: true, tags: ["review", "smartphone", "long_term_use"]}
+  - {channel_id: "UCFTmKjjQZRTmiTzoRRGOlKg", name: "Đam Mê Công Nghệ",   enabled: true, tags: ["review", "smartphone", "buying_advice"]}
+  - {channel_id: "UCzysw4JlmrANVd-DB3GXbjQ", name: "KTheme.com",         enabled: true, tags: ["review", "smartphone", "deals"]}
+  - {channel_id: "UCdxRpD_T4-HzPsely-Fcezw", name: "GEARVN",             enabled: true, tags: ["retail", "technology", "gaming"]}
+  - {channel_id: "UCMRCjWYwR5p2Plp_0ehIG6g", name: "ThinkView",          enabled: true, tags: ["review", "laptop", "technology"]}
+  - {channel_id: "UCjxjHD44GP4EZWgLyV-NnWg", name: "Sforum",             enabled: true, tags: ["technology", "news", "smartphone"]}
+  - {channel_id: "UCQrbmxwY327NWWVzmmAZhfQ", name: "Điện Thoại Vui TV",  enabled: true, tags: ["repair", "smartphone", "retail"]}
+  - {channel_id: "UCfhPam0KH9XTTZt5wsQVRyw", name: "Hải Triều",          enabled: true, tags: ["review", "smartphone", "drop_test"]}
+  - {channel_id: "UCyqxvGyF5LO67HI6vdE5bfQ", name: "Vinh Xô",            enabled: true, tags: ["review", "smartphone", "technology"]}
+  - {channel_id: "UCK_h6BpIywZaeXP8KmqjOrg", name: "Hưng Khúc",          enabled: true, tags: ["review", "technology", "smartphone"]}
+  - {channel_id: "UC3T1mVM83MM8K-ht9XGs5lw", name: "Lâm Gia",            enabled: true, tags: ["retail", "unboxing", "smartphone"]}
+  - {channel_id: "UCcwHHpb9YSaO1hYD_VYOeKA", name: "Chuyền Mobile",      enabled: true, tags: ["retail", "smartphone", "tutorial"]}
+  - {channel_id: "UCcvFuAWD0FSHKWyj_ahQmIw", name: "Điện Thoại Trung",   enabled: true, tags: ["retail", "smartphone", "android"]}
+  - {channel_id: "UCSjRCDvawxdlETx1JZAO9RQ", name: "Mai Nguyên",         enabled: true, tags: ["retail", "smartphone", "technology"]}
+  - {channel_id: "UC0WZcsi1DrumFkRYm1NmUUw", name: "Chiêm Tài Mobile",   enabled: true, tags: ["retail", "smartphone", "xiaomi"]}
+  - {channel_id: "UC2f7HmXhqUaetQUtIIemHjQ", name: "Realme Việt Nam",    enabled: true, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCSGD1TbYm5ZEZtGKQlkZ69A", name: "Samsung Việt Nam",   enabled: true, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCBrqfzxpUlcuXMQdH17sdIg", name: "Xiaomi Việt Nam",    enabled: true, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCxEcq-ZUIMRCexZs5LhldXQ", name: "ASUS Việt Nam",      enabled: true, tags: ["brand", "smartphone", "technology", "official"]}
 
-
-  
+  # ---- 17 kênh bổ sung (2026-10-31). Chưa có channel_id thì discover BỎ QUA kênh đó cho tới khi điền.
+  # Lấy ID: python -m crawler.main resolve-names --limit 20   (~100 đơn vị/kênh), MỞ LINK KIỂM TRA rồi chép vào đây.
+  - {channel_id: "UCSKIOXJnHEzSqA3JlvxUFYA", name: "OPPO Việt Nam",       enabled: true, owner: p2, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCWz0GKpp6qOtV3N7e3T_bzA", name: "vivo Việt Nam",       enabled: true, owner: p2, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCm17M-aOcp8_xs13-moDkxQ", name: "HONOR Việt Nam",      enabled: true, owner: p2, tags: ["brand", "smartphone", "official"]}
+  - {channel_id: "UCiceu2CFKjtk8ECYyZWWF_w", name: "ShopDunk",            enabled: true, owner: p2, tags: ["retail", "apple", "smartphone"]}
+  - {channel_id: "UCoWdPNr8jSr7JM0OFlKvQHw", name: "TopZone",             enabled: true, owner: p2, tags: ["retail", "apple", "smartphone"]}
+  - {channel_id: "UCNNZS735ZP9lFpzRggHlBqQ", name: "Di Động Việt",        enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCeryHI4qZWY8V6qmeIRa1rQ", name: "Viettel Store",       enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCbCgSFR33DeMGa9aOCeCSLw", name: "XTmobile",            enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCIF6bWYsVHCDt386HwKejVw", name: "24hStore",            enabled: true, owner: p2, tags: ["retail", "apple", "smartphone"]}
+  - {channel_id: "UCtXnwZvvr1QiGqyRMsFnXkA", name: "Minh Tuấn Mobile",    enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCilo7PrAr98E2yhUlh5AmEA", name: "MobileCity",          enabled: true, owner: p2, tags: ["retail", "review", "smartphone"]}
+  - {channel_id: "UCFoD8gJdm_ID3Qw3-yU8iyw", name: "Clickbuy",            enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCskCF24Q1oTIY09xUwn2_uA", name: "Hchannel",            enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCAki4HQd6NFjYdPRyJPZjUQ", name: "Viettablet",          enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCvQi3hH7-U_-Lf2Q2sJA0nQ", name: "Thành Trung Mobile",  enabled: true, owner: p2, tags: ["retail", "smartphone"]}
+  - {channel_id: "UCOJ3sqWCc6koR9BScBZkBlA", name: "Phong Vũ",            enabled: true, owner: p2, tags: ["retail", "technology"]}
+  - {channel_id: "UCxGTEY65P1AvLCt-oSSrHfQ", name: "VnReview",            enabled: true, owner: p2, tags: ["news", "review", "technology"]}

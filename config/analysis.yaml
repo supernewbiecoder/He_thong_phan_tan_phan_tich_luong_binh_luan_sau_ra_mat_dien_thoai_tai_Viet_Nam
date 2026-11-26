@@ -1,0 +1,18 @@
+# Phạm vi hiện theo bản đặc tả Q1–Q5; cần xác nhận với nhóm trước báo cáo chính thức.
+target_model: s23u
+predecessor_model: s22u
+rival_models:
+  - ip14prm
+  - xiaomi13u
+
+timezone: Asia/Ho_Chi_Minh
+window_days: 28
+
+# Baseline đang có trong src/storage/seed_db.py trên nhánh database.
+# Demo cũng dùng tên phiên bản này nhưng luôn được đánh dấu data_kind=fixture.
+expected_model_version: rule-v0
+# Contract v2: clause_idx là vị trí mảng từ 0, độc lập với clause_id từ 1 của cleaner.
+clause_reference: position
+clause_text_field: text
+# Chỉ tạo cảnh báo, không loại mention có confidence thấp.
+warning_confidence_threshold: 0.5

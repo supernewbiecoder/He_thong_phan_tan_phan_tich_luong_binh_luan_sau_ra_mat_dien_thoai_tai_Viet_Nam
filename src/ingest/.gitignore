@@ -1,3 +1,4 @@
+# Mục đích: Không đưa lên git file bí mật (.env) và dữ liệu crawl (data/) của crawler; cập nhật lần cuối: 2026-11-11.
 .env
 data/
 __pycache__/

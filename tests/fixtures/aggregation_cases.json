@@ -1,0 +1,342 @@
+{
+  "description": "Contract v2; Dữ liệu nhân tạo để thực hành aggregates; 15 mention, 14 mệnh đề, 4 máy, 4 tuần và 4 đơn vị nguồn/video. Không dùng làm kết quả nghiệp vụ.",
+  "models": [
+    {
+      "model_id": "s23u",
+      "launch_date": "2023-02-02",
+      "predecessor_id": "s22u",
+      "title": "Samsung Galaxy S23 Ultra",
+      "aliases": [
+        "Galaxy S23 Ultra",
+        "s23 ultra"
+      ]
+    },
+    {
+      "model_id": "s22u",
+      "launch_date": "2022-02-25",
+      "title": "Samsung Galaxy S22 Ultra",
+      "aliases": [
+        "Galaxy S22 Ultra",
+        "s22 ultra"
+      ]
+    },
+    {
+      "model_id": "ip14prm",
+      "launch_date": "2022-09-16",
+      "title": "iPhone 14 Pro Max",
+      "aliases": [
+        "iPhone 14 Pro Max",
+        "ip14 prm",
+        "14 pro max"
+      ]
+    },
+    {
+      "model_id": "xiaomi13u",
+      "launch_date": "2023-04-18",
+      "title": "Xiaomi 13 Ultra",
+      "aliases": [
+        "Xiaomi 13 Ultra"
+      ]
+    },
+    {
+      "model_id": "mi11",
+      "launch_date": "2020-12-28"
+    }
+  ],
+  "base_comment": {
+    "comment_id": "fixture_base",
+    "video_id": "fixture_video",
+    "model": "s23u",
+    "source": "youtube",
+    "text": "Mình dùng pin và camera tốt",
+    "text_norm": "mình dùng pin và camera tốt",
+    "published_at": "2023-02-01T17:30:00Z",
+    "is_spam": false,
+    "is_vietnamese": true,
+    "clause_count": 1,
+    "clauses": [
+      {
+        "clause_id": 1,
+        "text": "Mình dùng pin và camera tốt",
+        "text_norm": "mình dùng pin và camera tốt"
+      }
+    ],
+    "author_is_creator": false,
+    "author_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "parent_id": null
+  },
+  "base_mention": {
+    "mention_id": "fixture_base#0#BATTERY",
+    "comment_id": "fixture_base",
+    "clause_idx": 0,
+    "clause_text": "Mình dùng pin và camera tốt",
+    "source": "youtube",
+    "video_id": "fixture_video",
+    "video_model": "s23u",
+    "target_model": "s23u",
+    "aspect": "BATTERY",
+    "sentiment": "pos",
+    "confidence": 0.92,
+    "is_owner": true,
+    "defect_type": null,
+    "compare_with": null,
+    "compare_winner": null,
+    "published_at": "2023-02-01T17:30:00Z",
+    "days_since_launch": 0,
+    "label_source": "rule",
+    "model_version": "rule-v0",
+    "schema_version": 2,
+    "author_hash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "author_is_creator": false,
+    "parent_id": null
+  },
+  "cases": [
+    {
+      "name": "x_pos",
+      "patch": {
+        "video_id": "video_a"
+      },
+      "comment_patch": {
+        "video_id": "video_a"
+      }
+    },
+    {
+      "name": "x_neg",
+      "patch": {
+        "video_id": "video_a",
+        "sentiment": "neg",
+        "defect_type": "BATTERY_DRAIN"
+      },
+      "comment_patch": {
+        "video_id": "video_a"
+      }
+    },
+    {
+      "name": "x_neu_unknown",
+      "patch": {
+        "video_id": "video_a",
+        "aspect": "CAMERA",
+        "sentiment": "neu",
+        "is_owner": null
+      },
+      "comment_patch": {
+        "video_id": "video_a"
+      }
+    },
+    {
+      "name": "x_multi_camera",
+      "patch": {
+        "comment_id": "fixture_x_pos",
+        "video_id": "video_a",
+        "aspect": "CAMERA"
+      },
+      "comment_patch": {
+        "comment_id": "fixture_x_pos",
+        "video_id": "video_a"
+      }
+    },
+    {
+      "name": "x_cmp_win",
+      "patch": {
+        "video_id": "video_a",
+        "aspect": "PERFORMANCE",
+        "is_owner": false,
+        "compare_with": "ip14prm",
+        "compare_winner": "target"
+      },
+      "comment_patch": {
+        "video_id": "video_a"
+      }
+    },
+    {
+      "name": "x_cmp_tie",
+      "patch": {
+        "video_id": "video_a",
+        "aspect": "PERFORMANCE",
+        "sentiment": "neu",
+        "is_owner": null,
+        "compare_with": "ip14prm",
+        "compare_winner": "tie",
+        "published_at": "2023-02-08T17:00:00Z",
+        "days_since_launch": 7
+      },
+      "comment_patch": {
+        "video_id": "video_a",
+        "published_at": "2023-02-08T17:00:00Z"
+      }
+    },
+    {
+      "name": "rival_cmp_x_win",
+      "patch": {
+        "video_id": "video_b",
+        "target_model": "ip14prm",
+        "aspect": "CAMERA",
+        "sentiment": "neg",
+        "compare_with": "s23u",
+        "compare_winner": "other",
+        "published_at": "2022-09-16T01:00:00Z",
+        "days_since_launch": 0
+      },
+      "comment_patch": {
+        "video_id": "video_b",
+        "published_at": "2022-09-16T01:00:00Z"
+      }
+    },
+    {
+      "name": "rival_cmp_x_loss",
+      "patch": {
+        "video_id": "video_b",
+        "target_model": "ip14prm",
+        "aspect": "CAMERA",
+        "compare_with": "s23u",
+        "compare_winner": "target",
+        "published_at": "2022-09-16T01:00:00Z",
+        "days_since_launch": 0
+      },
+      "comment_patch": {
+        "video_id": "video_b",
+        "published_at": "2022-09-16T01:00:00Z"
+      }
+    },
+    {
+      "name": "x_cmp_loss",
+      "patch": {
+        "video_id": "video_b",
+        "aspect": "CAMERA",
+        "sentiment": "neg",
+        "compare_with": "ip14prm",
+        "compare_winner": "other",
+        "defect_type": "CAMERA_DEFECT",
+        "published_at": "2023-02-15T17:00:00Z",
+        "days_since_launch": 14
+      },
+      "comment_patch": {
+        "video_id": "video_b",
+        "published_at": "2023-02-15T17:00:00Z"
+      }
+    },
+    {
+      "name": "predecessor_neg",
+      "patch": {
+        "video_id": "video_c",
+        "target_model": "s22u",
+        "aspect": "CAMERA",
+        "sentiment": "neg",
+        "is_owner": false,
+        "published_at": "2022-02-25T01:00:00Z",
+        "days_since_launch": 0
+      },
+      "comment_patch": {
+        "video_id": "video_c",
+        "published_at": "2022-02-25T01:00:00Z"
+      }
+    },
+    {
+      "name": "rival2_neu",
+      "patch": {
+        "video_id": "video_c",
+        "target_model": "xiaomi13u",
+        "aspect": "CAMERA",
+        "sentiment": "neu",
+        "is_owner": null,
+        "published_at": "2023-04-18T01:00:00Z",
+        "days_since_launch": 0
+      },
+      "comment_patch": {
+        "video_id": "video_c",
+        "published_at": "2023-04-18T01:00:00Z"
+      }
+    },
+    {
+      "name": "x_late_defect",
+      "patch": {
+        "video_id": "video_c",
+        "aspect": "SOFTWARE",
+        "sentiment": "neg",
+        "defect_type": "SOFTWARE_BUG",
+        "published_at": "2023-02-22T17:00:00Z",
+        "days_since_launch": 21
+      },
+      "comment_patch": {
+        "video_id": "video_c",
+        "published_at": "2023-02-22T17:00:00Z"
+      }
+    },
+    {
+      "name": "x_neu_other_source",
+      "patch": {
+        "video_id": "video_a",
+        "source": "tinhte",
+        "sentiment": "neu",
+        "is_owner": null,
+        "published_at": "2023-02-08T17:00:00Z",
+        "days_since_launch": 7
+      },
+      "comment_patch": {
+        "video_id": "video_a",
+        "source": "tinhte",
+        "published_at": "2023-02-08T17:00:00Z"
+      }
+    },
+    {
+      "name": "x_week2_pos",
+      "patch": {
+        "video_id": "video_b",
+        "is_owner": false,
+        "published_at": "2023-02-08T17:00:00Z",
+        "days_since_launch": 7
+      },
+      "comment_patch": {
+        "video_id": "video_b",
+        "published_at": "2023-02-08T17:00:00Z"
+      }
+    },
+    {
+      "name": "x_early_defect",
+      "patch": {
+        "video_id": "video_b",
+        "aspect": "PERFORMANCE",
+        "sentiment": "neg",
+        "defect_type": "OVERHEAT",
+        "published_at": "2023-02-08T17:00:00Z",
+        "days_since_launch": 7
+      },
+      "comment_patch": {
+        "video_id": "video_b",
+        "published_at": "2023-02-08T17:00:00Z"
+      }
+    }
+  ],
+  "expected": {
+    "input_mentions": 15,
+    "unique_comments": 14,
+    "video_bootstrap_units": 4,
+    "aggregate_rows": 12,
+    "q1_rows": 9,
+    "q5_denominator_rows": 6,
+    "q5_defect_rows": 54,
+    "counts_by_model": {
+      "s23u": 11,
+      "ip14prm": 2,
+      "s22u": 1,
+      "xiaomi13u": 1
+    },
+    "counts_by_sentiment": {
+      "pos": 5,
+      "neg": 6,
+      "neu": 4
+    },
+    "q3b": {
+      "n_x_win": 2,
+      "n_x_loss": 2,
+      "n_tie": 1,
+      "n_decisive": 4,
+      "n_total": 5
+    },
+    "q5": {
+      "n_denominator": 11,
+      "n_defect": 4,
+      "n_owner_unknown": 3
+    }
+  }
+}

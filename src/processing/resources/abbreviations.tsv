@@ -1,0 +1,86 @@
+# Mục đích: Từ điển viết tắt, teencode cho bước N6 (docs/2-tien-xu-ly/dac-ta-chuan-hoa.md mục 6); cập nhật lần cuối: 2026-11-19.
+# Định dạng: viết tắt <TAB> đầy đủ <TAB> ghi chú. Viết tắt là MỘT chữ, viết thường, đúng như sau bước N1–N5.
+# Bản đầu do trưởng nhóm soạn tay, chỉ gồm mục ít nhập nhằng. Thêm hay bỏ mục nào thì xem bảng tần suất ở
+# notebooks/2_2_normalize.ipynb mục 6.3 và 6.5 trước, rồi tăng PIPELINE_VERSION trong src/processing/__init__.py.
+#
+# CỐ Ý CHƯA ĐƯA VÀO (nhập nhằng trong bình luận điện thoại, chờ nhóm quyết):
+#   vs  : "với" hay "versus" (s26u vs ip17prm)
+#   bh  : "bây giờ" hay "bảo hành"
+#   bn  : "bạn" hay "bao nhiêu"
+#   dk  : "điều kiện" hay "đăng ký"
+#   kb  : "không biết" hay "kết bạn"
+#   ty  : "thank you" hay "tỷ" (tiền)
+#   h   : "giờ" (bây h) hay giờ đồng hồ (2h)
+#   wa  : "qua" hay "quá"
+#   a, e, c, b, m, t : đại từ (anh, em, chị, bạn, mình/mày, tao/tôi) hay tên dòng máy (Galaxy A, S…)
+#   vl, vcl, vkl : từ cảm thán tăng mức độ, giữ nguyên vì mang cảm xúc
+#   ss, ip, táo, mh, cam : tên máy, thuật ngữ; thuộc bước nhận diện máy được nhắc (Công việc 10)
+#
+# --- phủ định
+ko	không
+k	không	không đổi khi đứng sau số (500k, 500 k)
+kh	không
+khg	không
+kg	không	không đổi khi đứng sau số (1 kg)
+hk	không
+hok	không
+hông	không
+khum	không
+kô	không
+# --- được, gì, rồi, vậy
+dc	được
+đc	được
+j	gì
+gj	gì
+r	rồi
+rùi	rồi
+ròi	rồi
+òi	rồi
+v	vậy	không đổi khi đứng sau số (sạc 9 v)
+z	vậy
+zậy	vậy
+dzậy	vậy
+# --- người
+mn	mọi người
+mng	mọi người
+ae	anh em
+mk	mình
+mik	mình
+mjk	mình
+# --- từ thường gặp
+cx	cũng
+cg	cũng
+nma	nhưng mà
+nhma	nhưng mà
+nhg	nhưng
+ms	mới	không đổi khi đứng sau số (50 ms)
+trc	trước
+ntn	như thế nào
+ns	nói
+sd	sử dụng
+sdung	sử dụng
+dt	điện thoại
+đt	điện thoại
+sp	sản phẩm
+bjo	bây giờ
+thik	thích
+thjk	thích
+iu	yêu
+wá	quá
+qá	quá
+ik	đi
+nhìu	nhiều
+lun	luôn
+ak	à
+uk	ừ
+uh	ừ
+oke	ok
+okie	ok
+oki	ok
+okela	ok
+tks	cảm ơn
+thks	cảm ơn
+thanks	cảm ơn
+thank	cảm ơn
+fb	facebook
+ytb	youtube
