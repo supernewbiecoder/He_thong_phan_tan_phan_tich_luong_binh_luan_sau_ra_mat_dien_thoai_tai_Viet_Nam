@@ -8,7 +8,7 @@ import sys
 
 import pytest
 
-from src.analysis.aggregation import AGGREGATE_KEY, COUNT_TABLES, DEFECT_TYPES, build_aggregates
+from src.analysis.aggregation import AGGREGATE_KEY, COUNT_TABLES, REPORT_ASPECTS, build_aggregates
 from src.analysis.build_aggregates import OUTPUT_NAMES, load_validated_bundle
 from src.analysis.validate_inputs import (
     build_parser as validation_parser, file_hash, fixture_case, run as run_validation,
@@ -80,9 +80,9 @@ def test_hand_counted_total_and_count_reconciliation(aggregated):
 
 def test_primary_key_and_multiaspect_counting(aggregated):
     rows = aggregated.tables["aggregates"]
-    battery = next(row for row in rows if row["target_model"] == "s23u" and row["aspect"] == "BATTERY" and row["week_since_launch"] == 1)
+    battery = next(row for row in rows if row["target_model"] == "s23u" and row["aspect"] == "pin_sac" and row["week_since_launch"] == 1)
     assert {name: battery[name] for name in ("n_pos", "n_neg", "n_neu", "n_total")} == {"n_pos": 1, "n_neg": 1, "n_neu": 0, "n_total": 2}
-    camera = next(row for row in rows if row["target_model"] == "s23u" and row["aspect"] == "CAMERA" and row["week_since_launch"] == 1)
+    camera = next(row for row in rows if row["target_model"] == "s23u" and row["aspect"] == "camera" and row["week_since_launch"] == 1)
     assert camera["n_pos"] == 1 and camera["n_neu"] == 1
     assert len({tuple(row[key] for key in AGGREGATE_KEY) for row in rows}) == len(rows)
     assert len({row["agg_id"] for row in rows}) == len(rows)
@@ -92,7 +92,7 @@ def test_neutral_mentions_stay_in_total_but_not_opinionated_counts(aggregated):
     neutral = next(row for row in aggregated.tables["q1_counts"] if row["target_model"] == "xiaomi13u")
     assert neutral["n_total"] == neutral["n_neu"] == 1
     assert neutral["n_opinionated"] == neutral["n_pos"] == neutral["n_neg"] == 0
-    assert sum(row["n_opinionated"] for row in aggregated.tables["q1_counts"]) == 11
+    assert sum(row["n_opinionated"] for row in aggregated.tables["q1_counts"]) == 7   # 3 khen + 4 chê; so sánh không vào
 
 
 def test_target_phone_and_weeks_are_not_taken_from_video_context(aggregated):
@@ -126,7 +126,7 @@ def test_q5_denominator_includes_neutral_unknown_owner_and_nondefects(aggregated
     denominators = aggregated.tables["q5_denominators"]
     assert len(denominators) == EXPECTED["q5_denominator_rows"]
     assert sum(row["n_total"] for row in denominators) == EXPECTED["q5"]["n_denominator"]
-    assert sum(row["n_neu"] for row in denominators) == 3
+    assert sum(row["n_neu"] for row in denominators) == 2
     assert sum(row["n_owner_unknown"] for row in denominators) == EXPECTED["q5"]["n_owner_unknown"]
     assert {row["target_model"] for row in denominators} == {"s23u"}
 
@@ -135,10 +135,10 @@ def test_q5_keeps_zero_defects_for_every_observed_x_video_week(aggregated):
     rows = aggregated.tables["q5_defects"]
     assert len(rows) == EXPECTED["q5_defect_rows"]
     assert sum(row["n_defect"] for row in rows) == EXPECTED["q5"]["n_defect"]
-    assert sum(row["n_defect"] == 0 for row in rows) == 50
+    assert sum(row["n_defect"] == 0 for row in rows) == 63   # 6 ô × 11 khía cạnh, trừ 3 ô có lời chê
     assert all(row["n_defect"] <= row["n_denominator"] for row in rows)
-    for defect in DEFECT_TYPES:
-        assert sum(row["n_denominator"] for row in rows if row["defect_type"] == defect) == 11
+    for aspect in REPORT_ASPECTS:
+        assert sum(row["n_denominator"] for row in rows if row["aspect"] == aspect) == 11
 
 
 def test_count_tables_contain_integers_and_no_rates_or_conclusions(aggregated):
@@ -209,7 +209,7 @@ def test_empty_input_is_not_a_successful_aggregate(validated):
 
 def test_self_comparison_cannot_bypass_validation_through_the_aggregate_api(validated):
     mentions, index, config = deepcopy(validated)
-    mentions[0].update(compare_with=mentions[0]["target_model"], compare_winner="target")
+    mentions[0].update(compare_with=mentions[0]["target_model"], compare_winner="target", sentiment="so_sanh")
     with pytest.raises(InputError, match="itself"):
         build_aggregates(mentions, index, config)
 
@@ -305,7 +305,7 @@ def test_one_command_demo_keeps_final_outputs_and_validation_provenance(tmp_path
     assert manifest["input_mode"] == "demo"
     assert manifest["validation"]["report"]["counts"]["accepted"] == 15
     assert manifest["validation"]["report"]["status"] == "passed"
-    assert manifest["mention_schema_version"] == manifest["validation"]["report"]["mention_schema_version"] == 2
+    assert manifest["mention_schema_version"] == manifest["validation"]["report"]["mention_schema_version"] == 3
     assert manifest["config"]["clause_reference"] == "position"
     assert manifest["validation"]["manifest"]["output_sha256"]["valid_mentions.jsonl"]
     assert all(Path(item["path"]).exists() and file_hash(Path(item["path"])) == item["sha256"] for item in manifest["inputs"])

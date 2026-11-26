@@ -1,20 +1,10 @@
 #!/usr/bin/env python3
-"""
-Database Initialization Script (init_db.py)
-Project: Sentiment Stream Analytics for Smartphone Launches
-Author: Viet (STT 3 - Thiet ke DB)
-Updated: 2026-10-28
+"""Mục đích: Tạo các collection MongoDB kèm validator và index theo thiết kế dữ liệu (docs/0-chung/thiet-ke-du-lieu.md, docs/6-luu-tru/dac-ta.md) và contract aspect-mention v3; cập nhật lần cuối: 2026-11-26.
 
-Purpose:
-  - Connect to MongoDB instance (or mongomock in offline/dev mode).
-  - Create 7 core collections with schema validation and indexing:
-      1. models
-      2. videos
-      3. comments
-      4. aspect_mentions (conforms to contracts/aspect-mention.schema.json)
-      5. aggregates (stores integer counts only: n_pos, n_neg, n_neu; NO % field)
-      6. alerts
-      7. gold_labels
+Tác giả bản đầu: Việt (Công việc 3, 28/10). Bản 26/11 đổi sang bộ nhãn chốt (src/labeling/final_labels.py) và thêm
+collection `analysis_results` (kết quả Q1–Q5 của Công việc 12, dashboard đọc). 8 collection:
+models, videos, comments, aspect_mentions, aggregates (chỉ lưu số đếm, không lưu %), alerts, gold_labels,
+analysis_results. Nạp dữ liệu thật: src/storage/load_db.py.
 """
 
 import argparse
@@ -33,6 +23,8 @@ import pymongo
 from pymongo import MongoClient
 from pymongo.errors import ConnectionFailure
 
+from src.labeling.final_labels import ATTITUDES, DIM2_LABELS, MODEL_MENTION, PURPOSES
+
 logging.basicConfig(
     level=logging.INFO,
     format="[%(asctime)s] %(levelname)s: %(message)s",
@@ -40,7 +32,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("init_db")
 
-# 7 Collection Names
+# 8 Collection Names
 COLLECTIONS = [
     "models",
     "videos",
@@ -49,34 +41,14 @@ COLLECTIONS = [
     "aggregates",
     "alerts",
     "gold_labels",
+    "analysis_results",
 ]
 
-# Standard Canonical Enums defined in contracts/aspect-mention.schema.json & docs/data-model.md
-CANONICAL_ASPECTS = [
-    "BATTERY",
-    "DISPLAY",
-    "PERFORMANCE",
-    "CAMERA",
-    "DESIGN",
-    "SOFTWARE",
-    "HARDWARE_OTHER",
-    "PRICE",
-    "WARRANTY",
-]
-
-SENTIMENTS = ["pos", "neg", "neu"]
+# Nhãn theo contract aspect-mention v3, lấy từ bộ nhãn chốt (không chép tay)
+CANONICAL_ASPECTS = list(DIM2_LABELS)
+SENTIMENTS = list(ATTITUDES)
 LABEL_SOURCES = ["rule", "llm", "model", "human"]
-DEFECT_TYPES = [
-    "BATTERY_DRAIN",
-    "OVERHEAT",
-    "LAG",
-    "DISPLAY_DEFECT",
-    "CAMERA_DEFECT",
-    "SOFTWARE_BUG",
-    "CONNECTIVITY",
-    "HARDWARE_DEFECT",
-    "OTHER",
-]
+MENTION_SCHEMA_VERSION = 3
 COMPARE_WINNERS = ["target", "other", "tie"]
 
 # JSON Schema Validators for MongoDB
@@ -166,14 +138,17 @@ SCHEMA_VALIDATORS: Dict[str, Dict[str, Any]] = {
                 "sentiment": {"bsonType": "string", "enum": SENTIMENTS},
                 "confidence": {"bsonType": ["double", "null"]},
                 "is_owner": {"bsonType": ["bool", "null"]},
-                "defect_type": {"bsonType": ["string", "null"]},
+                "purposes": {"bsonType": ["array", "null"], "items": {"enum": list(PURPOSES)}},
+                "model_mention": {"enum": [None] + list(MODEL_MENTION)},
+                "target_model_source": {"bsonType": ["string", "null"]},
+                "defect_type": {"bsonType": "null"},
                 "compare_with": {"bsonType": ["string", "null"]},
                 "compare_winner": {"bsonType": ["string", "null"]},
                 "published_at": {"bsonType": "string"},
                 "days_since_launch": {"bsonType": ["int", "null"]},
                 "label_source": {"bsonType": "string", "enum": LABEL_SOURCES},
                 "model_version": {"bsonType": "string"},
-                "schema_version": {"bsonType": "int"},
+                "schema_version": {"enum": [MENTION_SCHEMA_VERSION]},
             },
         }
     },
@@ -203,11 +178,9 @@ SCHEMA_VALIDATORS: Dict[str, Dict[str, Any]] = {
                 "n_pos": {"bsonType": "int"},
                 "n_neg": {"bsonType": "int"},
                 "n_neu": {"bsonType": "int"},
+                "n_cmp": {"bsonType": "int"},
                 "n_total": {"bsonType": "int"},
-                "owner_defect_count": {"bsonType": "int"},
-                "compare_count": {"bsonType": "int"},
-                "compare_win_count": {"bsonType": "int"},
-                "compare_lose_count": {"bsonType": "int"},
+                "n_opinionated": {"bsonType": "int"},
                 "updated_at": {"bsonType": "string"},
             },
         }
@@ -237,6 +210,18 @@ SCHEMA_VALIDATORS: Dict[str, Dict[str, Any]] = {
                 "annotator": {"bsonType": "string"},
                 "label_source": {"bsonType": "string", "enum": ["human", "llm"]},
                 "split": {"bsonType": "string", "enum": ["train", "test"]},
+            },
+        }
+    },
+    "analysis_results": {
+        "$jsonSchema": {
+            "bsonType": "object",
+            "required": ["analysis_id", "target_model", "model_version", "result"],
+            "properties": {
+                "analysis_id": {"bsonType": "string"},
+                "target_model": {"bsonType": "string"},
+                "model_version": {"bsonType": "string"},
+                "result": {"bsonType": "object"},
             },
         }
     },
@@ -296,7 +281,7 @@ def init_database(client, db_name: str = "smartphone_analytics", drop: bool = Fa
 
     # Build Indexes
     create_indexes(db)
-    logger.info("All 7 collections initialized successfully with proper indexes.")
+    logger.info("All 8 collections initialized successfully with proper indexes.")
     return db
 
 
@@ -304,7 +289,7 @@ def create_indexes(db):
     """
     Sets up primary unique indexes and query-optimizing compound indexes.
     """
-    logger.info("Creating indexes across all 7 collections...")
+    logger.info("Creating indexes across all 8 collections...")
 
     # 1. models
     db.models.create_index([("model_id", pymongo.ASCENDING)], unique=True, name="idx_models_pk")
@@ -385,6 +370,9 @@ def create_indexes(db):
         [("split", pymongo.ASCENDING), ("aspects.aspect", pymongo.ASCENDING)],
         name="idx_gold_split_aspect",
     )
+
+    # 8. analysis_results (Q1–Q5 của Công việc 12, mỗi máy X × phiên bản nhãn một document)
+    db.analysis_results.create_index([("analysis_id", pymongo.ASCENDING)], unique=True, name="idx_analysis_results_pk")
 
 
 def main():

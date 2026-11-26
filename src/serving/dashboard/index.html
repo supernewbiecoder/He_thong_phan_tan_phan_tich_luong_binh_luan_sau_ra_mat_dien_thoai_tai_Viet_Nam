@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- Mục đích: Dashboard 4 tab đọc số liệu từ API (/api/*), không còn nhúng số liệu tĩnh; cập nhật lần cuối: 2026-11-17. -->
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bình luận sau ra mắt điện thoại</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="page-head">
+    <div class="head-row">
+      <div>
+        <h1>Bình luận sau ra mắt điện thoại</h1>
+        <p class="sub" id="scope-line">Đang tải…</p>
+      </div>
+      <form class="filters" id="filters" aria-label="Bộ lọc">
+        <label>Máy X
+          <select id="model-select" name="model"></select>
+        </label>
+        <label>Phiên bản nhãn
+          <select id="version-select" name="model_version"></select>
+        </label>
+      </form>
+    </div>
+    <div id="status-banner" class="banner" hidden></div>
+    <nav class="tabs" role="tablist" aria-label="Các tab">
+      <button role="tab" data-tab="launch" aria-selected="true">Theo dõi ra mắt</button>
+      <button role="tab" data-tab="compare" aria-selected="false">So sánh mẫu máy</button>
+      <button role="tab" data-tab="system" aria-selected="false">Sức khỏe hệ thống</button>
+      <button role="tab" data-tab="overview" aria-selected="false">Tổng quan dữ liệu</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-launch" class="tab-panel" role="tabpanel"></section>
+    <section id="tab-compare" class="tab-panel" role="tabpanel" hidden></section>
+    <section id="tab-system" class="tab-panel" role="tabpanel" hidden></section>
+    <section id="tab-overview" class="tab-panel" role="tabpanel" hidden></section>
+  </main>
+
+  <footer class="page-foot">
+    <span>Nguồn: MongoDB qua <a href="/api/docs">API</a>. Công thức: % khen = khen / (khen + chê); Net = % khen − % chê; ô có khen + chê &lt; <span id="min-n">30</span> ghi "ít dữ liệu".</span>
+    <span id="loaded-at"></span>
+  </footer>
+
+  <div id="tooltip" class="tooltip" role="status" hidden></div>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+"""Mục đích: Kiểm chuẩn hóa UIT-ViSD4SA về bộ nhãn chốt (src/models/external_absa.py); cập nhật lần cuối: 2026-11-26."""
+
 import unittest
 
 from src.models.external_absa import (
@@ -26,10 +28,10 @@ class NormalizeExternalAbsaTests(unittest.TestCase):
         self.assertEqual(
             row["labels"],
             [
-                [0, 7, "DESIGN#pos"],
-                [9, 17, "BATTERY#pos"],
-                [19, 27, "WARRANTY#pos"],
-                [28, 31, "HARDWARE_OTHER#neg"],
+                [0, 7, "thiet_ke#tich_cuc"],
+                [9, 17, "pin_sac#tich_cuc"],
+                [19, 27, "bao_hanh_sua_chua#tich_cuc"],
+                [28, 31, "phan_cung_khac#tieu_cuc"],
             ],
         )
         self.assertEqual(review[0]["span_text"], "Máy đẹp")
@@ -41,6 +43,10 @@ class NormalizeExternalAbsaTests(unittest.TestCase):
 
         self.assertEqual(row, {"text": "pin tốt", "labels": []})
         self.assertEqual(review[0]["_invalid_offset"]["end"], 99)
+
+    def test_general_maps_to_whole_phone_label(self):
+        row, _ = normalize_visd4sa_row({"text": "máy ngon", "labels": [[0, 8, "GENERAL#POSITIVE"]]})
+        self.assertEqual(row["labels"], [[0, 8, "may_chung#tich_cuc"]])
 
     def test_features_are_reviewable_but_not_silently_mapped(self):
         row, review = normalize_visd4sa_row(
@@ -55,7 +61,7 @@ class NormalizeExternalAbsaTests(unittest.TestCase):
             [
                 {
                     "source_dataset": "UIT-ViSD4SA",
-                    "source_sentiment": "pos",
+                    "source_sentiment": "tich_cuc",
                     "span_text": "</script>",
                     "text": "<script>alert(1)</script>",
                 }

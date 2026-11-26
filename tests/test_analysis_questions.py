@@ -8,7 +8,7 @@ import sys
 import numpy as np
 import pytest
 
-from src.analysis.aggregation import AggregationResult, DEFECT_TYPES
+from src.analysis.aggregation import REPORT_ASPECTS, AggregationResult
 from src.analysis.questions import InferenceSettings, analyze_questions, cluster_inference, holm_adjust
 from src.analysis.validation import ROOT, InputError, load_config
 
@@ -78,9 +78,9 @@ def test_null_centered_studentized_bootstrap_detects_large_effect_and_is_reprodu
     settings = InferenceSettings()
     result = cluster_inference(numerator, denominator, key="strong", settings=settings, null=0.5, test=True)
     assert result["status"] == "ok"
-    assert result["p_value"] == pytest.approx(1 / 1001)
+    assert result["p_value"] == pytest.approx(1 / (settings.resamples + 1))
     assert result["ci95"][0] > 20 and result["ci95"][1] < 30
-    assert result["valid_test_resamples"] == 1000
+    assert result["valid_test_resamples"] == settings.resamples
     assert result == cluster_inference(numerator, denominator, key="strong", settings=settings, null=0.5, test=True)
 
 
@@ -119,7 +119,7 @@ def test_many_invalid_bootstrap_draws_are_reported_not_silently_discarded():
     numerator[2:, 1], denominator[2:, 1] = [30, 70] * 10, 100
     result = cluster_inference(numerator, denominator, key="unstable", settings=InferenceSettings(min_videos=2), contrasts=[[1, -1]], test=True)
     assert result["status"] == "unstable_bootstrap"
-    assert result["valid_test_resamples"] < 950 and result["p_value"] is None
+    assert result["valid_test_resamples"] < 0.95 * InferenceSettings().resamples and result["p_value"] is None
 
 
 def test_joint_wald_bootstrap_rejects_different_group_rates():
@@ -164,22 +164,22 @@ def plentiful_counts():
         tables["video_units"].append(common)
         for week in range(1, 5):
             for m, model in enumerate(models):
-                for aspect in ("BATTERY", "CAMERA"):
-                    probability = [0.8, 0.25, 0.5, 0.6][m] if aspect == "BATTERY" else [0.45, 0.45, 0.5, 0.6][m]
+                for aspect in ("pin_sac", "camera"):
+                    probability = [0.8, 0.25, 0.5, 0.6][m] if aspect == "pin_sac" else [0.45, 0.45, 0.5, 0.6][m]
                     pos = int(rng.binomial(100, probability))
                     tables["aggregates"].append({**common, "target_model": model, "aspect": aspect,
                                                   "week_since_launch": week, "n_pos": pos, "n_neg": 100 - pos, "n_neu": 10})
             tables["q5_denominators"].append({**common, "target_model": config.target_model, "week_since_launch": week, "n_total": 220})
-            for defect in DEFECT_TYPES:
+            for defect in REPORT_ASPECTS:
                 n_defect = 0
-                if defect == "BATTERY_DRAIN":
+                if defect == "pin_sac":
                     n_defect = 2 + g % 3 if week <= 2 else 20 + g % 7
-                if defect == "OVERHEAT":
+                if defect == "hieu_nang":
                     n_defect = 20 + g % 5 if week <= 2 else 2 + g % 4
                 tables["q5_defects"].append({**common, "target_model": config.target_model, "week_since_launch": week,
-                                            "defect_type": defect, "n_defect": n_defect, "n_denominator": 220})
+                                            "aspect": defect, "n_defect": n_defect, "n_denominator": 220})
         win = int(rng.binomial(100, 0.8))
-        tables["q3b_counts"].append({**common, "target_model": config.target_model, "aspect": "BATTERY", "week_since_launch": 1,
+        tables["q3b_counts"].append({**common, "target_model": config.target_model, "aspect": "pin_sac", "week_since_launch": 1,
                                    "n_x_win": win, "n_x_loss": 100 - win, "n_tie": 10, "n_total": 110})
     result = AggregationResult(tables, {"counts_by_label_source": {"human": 100}, "creator_status_unknown_rows": 0})
     return result, config
@@ -191,10 +191,16 @@ def ample_analysis(plentiful_counts):
     return analyze_questions(aggregates, config, validation_report={"data_kind": "provided", "label_accuracy_verified": True})
 
 
+def test_default_resamples_can_reach_significance_after_holm_in_the_largest_family(ample_analysis):
+    """Smallest bootstrap p is 1/(B+1); Holm multiplies it by the family size (Q3: 55 tests)."""
+    largest = max(value["planned_tests"] for value in ample_analysis["test_families"].values())
+    assert largest / (InferenceSettings().resamples + 1) < 0.05
+
+
 def test_all_five_questions_have_fixed_multiplicity_families(ample_analysis):
-    assert {name: value["planned_tests"] for name, value in ample_analysis["test_families"].items()} == {"Q1": 4, "Q2": 9, "Q3": 45, "Q4": 9, "Q5": 9}
+    assert {name: value["planned_tests"] for name, value in ample_analysis["test_families"].items()} == {"Q1": 4, "Q2": 11, "Q3": 55, "Q4": 11, "Q5": 11}
     assert len(ample_analysis["q1"]["weekly"]) == 16
-    assert len(ample_analysis["q3a"]["matrix"]) == 36
+    assert len(ample_analysis["q3a"]["matrix"]) == 44   # 4 máy × 11 khía cạnh
 
 
 def test_five_answer_summaries_only_publish_supported_findings(ample_analysis):
@@ -215,8 +221,8 @@ def test_five_answer_summaries_only_publish_supported_findings(ample_analysis):
 
 
 def test_q2_tests_aspect_minus_jointly_estimated_overall_baseline(ample_analysis):
-    battery = next(row for row in ample_analysis["q2"] if row["aspect"] == "BATTERY")
-    camera = next(row for row in ample_analysis["q2"] if row["aspect"] == "CAMERA")
+    battery = next(row for row in ample_analysis["q2"] if row["aspect"] == "pin_sac")
+    camera = next(row for row in ample_analysis["q2"] if row["aspect"] == "camera")
     assert battery["estimate"] < 0 < camera["estimate"]
     assert battery["significant"] and camera["significant"]
     assert battery["conclusion"] == "Ưu điểm tương đối"
@@ -224,7 +230,7 @@ def test_q2_tests_aspect_minus_jointly_estimated_overall_baseline(ample_analysis
 
 
 def test_q3_uses_omnibus_gate_and_does_not_drop_ties_from_reporting(ample_analysis):
-    direct = next(row for row in ample_analysis["q3b"] if row["aspect"] == "BATTERY")
+    direct = next(row for row in ample_analysis["q3b"] if row["aspect"] == "pin_sac")
     assert direct["n_decisive"] == 6000 and direct["n_tie"] == 600
     assert direct["win_pct"] == pytest.approx(100 * direct["n_x_win"] / 6000)
     assert direct["significant"] and direct["conclusion"] == "X thắng nhiều hơn"
@@ -232,16 +238,16 @@ def test_q3_uses_omnibus_gate_and_does_not_drop_ties_from_reporting(ample_analys
 
 
 def test_q4_only_calls_improvement_when_adjusted_test_supports_it(ample_analysis):
-    battery = next(row for row in ample_analysis["q4"] if row["aspect"] == "BATTERY")
+    battery = next(row for row in ample_analysis["q4"] if row["aspect"] == "pin_sac")
     assert battery["estimate"] > 0 and battery["p_adjusted"] < 0.05
     assert battery["conclusion"] == "Đã cải thiện"
     assert all(row["conclusion"] != "Đã cải thiện" or row["significant"] for row in ample_analysis["q4"])
 
 
 def test_q5_trend_and_priorities_cover_significant_decreases(ample_analysis):
-    battery = next(row for row in ample_analysis["q5"] if row["defect_type"] == "BATTERY_DRAIN")
-    heat = next(row for row in ample_analysis["q5"] if row["defect_type"] == "OVERHEAT")
-    absent = next(row for row in ample_analysis["q5"] if row["defect_type"] == "LAG")
+    battery = next(row for row in ample_analysis["q5"] if row["aspect"] == "pin_sac")
+    heat = next(row for row in ample_analysis["q5"] if row["aspect"] == "hieu_nang")
+    absent = next(row for row in ample_analysis["q5"] if row["aspect"] == "camera")
     assert battery["priority"] == "P1" and battery["trend"] == "significant_increase"
     assert heat["priority"] == "P2" and heat["trend"] == "significant_decrease"
     assert absent["priority"] == "P3" and absent["p_value"] is None
@@ -267,20 +273,20 @@ def test_q5_does_not_assign_p2_when_the_second_half_is_missing(plentiful_counts)
     for name in ("aggregates", "q5_denominators", "q5_defects"):
         aggregates.tables[name] = [row for row in aggregates.tables[name] if row["week_since_launch"] <= 2]
     result = analyze_questions(aggregates, config, validation_report={"data_kind": "provided", "label_accuracy_verified": True})
-    battery = next(row for row in result["q5"] if row["defect_type"] == "BATTERY_DRAIN")
+    battery = next(row for row in result["q5"] if row["aspect"] == "pin_sac")
     assert battery["n_defect"] >= 20 and battery["late_pct"] is None
     assert battery["priority"] is None and battery["trend"] == "not_testable"
 
 
 def test_sample_candidates_are_balanced_and_always_require_human_review(plentiful_counts):
     aggregates, config = plentiful_counts
-    samples = [{"mention_id": f"sample{i}#0#BATTERY", "comment_id": f"sample{i}", "clause_idx": 0,
-                "clause_text": f"sample {i}", "target_model": config.target_model, "aspect": "BATTERY",
-                "sentiment": "neg" if i == 3 else "pos", "label_source": "rule", "confidence": 0.9}
+    samples = [{"mention_id": f"sample{i}#0#pin_sac", "comment_id": f"sample{i}", "clause_idx": 0,
+                "clause_text": f"sample {i}", "target_model": config.target_model, "aspect": "pin_sac",
+                "sentiment": "tieu_cuc" if i == 3 else "tich_cuc", "label_source": "rule", "confidence": 0.9}
                for i in range(4)]
     result = analyze_questions(aggregates, config, validation_report={"data_kind": "fixture"}, mentions=samples)
-    quotes = next(row for row in result["q2"] if row["aspect"] == "BATTERY")["sample_candidates"]
-    assert len(quotes) == 3 and {row["sentiment"] for row in quotes} == {"pos", "neg"}
+    quotes = next(row for row in result["q2"] if row["aspect"] == "pin_sac")["sample_candidates"]
+    assert len(quotes) == 3 and {row["sentiment"] for row in quotes} == {"tich_cuc", "tieu_cuc"}
     assert all(row["requires_human_review"] for row in quotes)
 
 

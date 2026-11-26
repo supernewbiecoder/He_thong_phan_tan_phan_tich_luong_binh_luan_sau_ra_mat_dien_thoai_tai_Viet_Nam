@@ -1,4 +1,4 @@
-"""Prepare span-level ABSA data and a small FEATURES review UI."""
+"""Mục đích: Chuẩn hóa dataset ngoài UIT-ViSD4SA (nhãn theo span) về bộ nhãn chốt (src/labeling/final_labels.py, docs/4-mo-hinh/dac-ta.md) và tạo trang duyệt nhãn FEATURES; cập nhật lần cuối: 2026-11-26."""
 
 from __future__ import annotations
 
@@ -13,18 +13,19 @@ from typing import Any
 
 
 SPLITS = ("train", "dev", "test")
-SENTIMENTS = {"POSITIVE": "pos", "NEGATIVE": "neg", "NEUTRAL": "neu"}
+SENTIMENTS = {"POSITIVE": "tich_cuc", "NEGATIVE": "tieu_cuc", "NEUTRAL": "khong_danh_gia"}
+# Nhãn UIT -> nhãn chiều 2 của bộ nhãn chốt
 ASPECTS = {
-    "BATTERY": ("BATTERY", "exact"),
-    "CAMERA": ("CAMERA", "exact"),
-    "SCREEN": ("DISPLAY", "exact"),
-    "PERFORMANCE": ("PERFORMANCE", "exact"),
-    "DESIGN": ("DESIGN", "exact"),
-    "PRICE": ("PRICE", "exact"),
-    "STORAGE": ("HARDWARE_OTHER", "approximate"),
-    "SER&ACC": ("WARRANTY", "approximate"),
+    "BATTERY": ("pin_sac", "exact"),
+    "CAMERA": ("camera", "exact"),
+    "SCREEN": ("man_hinh", "exact"),
+    "PERFORMANCE": ("hieu_nang", "exact"),
+    "DESIGN": ("thiet_ke", "approximate"),            # bộ chốt tách độ bền ra do_ben
+    "PRICE": ("gia", "exact"),
+    "STORAGE": ("phan_cung_khac", "approximate"),
+    "SER&ACC": ("bao_hanh_sua_chua", "approximate"),  # phụ kiện thuộc phan_cung_khac
+    "GENERAL": ("may_chung", "approximate"),          # cả máy, không nêu phần nào
     "FEATURES": (None, "needs_review"),
-    "GENERAL": (None, "unmapped"),
     "OTHERS": (None, "unmapped"),
 }
 VISFD_FILES = {"train": "Train.csv", "dev": "Dev.csv", "test": "Test.csv"}
@@ -152,8 +153,8 @@ Khi xong, xuất JSON kết quả và gửi lại để chốt quy tắc ánh x�
 const examples = {payload};
 const decisions = new Map();
 const choices = [
-  ["HARDWARE_OTHER", "Phần cứng khác"],
-  ["SOFTWARE", "Phần mềm"],
+  ["phan_cung_khac", "Phần cứng khác"],
+  ["phan_mem", "Phần mềm"],
   ["SPLIT", "Tùy ngữ cảnh / cần tách"],
   ["OTHER", "Khác / không rõ"],
 ];
@@ -258,10 +259,12 @@ def normalize_datasets(visfd_dir: Path, visd4sa_dir: Path, output_dir: Path) -> 
     report: dict[str, Any] = {
         "output_format": {"text": "string", "labels": "[start, end, aspect#sentiment]"},
         "mapping_status": {
-            "exact": ["BATTERY", "CAMERA", "SCREEN -> DISPLAY", "PERFORMANCE", "DESIGN", "PRICE"],
-            "accepted_approximate": ["SER&ACC -> WARRANTY", "STORAGE -> HARDWARE_OTHER"],
+            "exact": ["BATTERY -> pin_sac", "CAMERA -> camera", "SCREEN -> man_hinh", "PERFORMANCE -> hieu_nang",
+                      "PRICE -> gia"],
+            "accepted_approximate": ["DESIGN -> thiet_ke", "SER&ACC -> bao_hanh_sua_chua",
+                                     "STORAGE -> phan_cung_khac", "GENERAL -> may_chung"],
             "needs_review": ["FEATURES"],
-            "excluded_without_mapping": ["GENERAL"],
+            "excluded_without_mapping": [],
             "excluded_without_sentiment": ["OTHERS"],
         },
         "datasets": {"uit_visd4sa": {}},

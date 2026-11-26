@@ -9,6 +9,13 @@
 - Đã gỡ khỏi `main`: mô hình và báo cáo cũ của Công việc 8, 9 (còn ở nhánh `xhquan/cong-viec-8`, `kien/cong-viec-9`), guideline v0.3 và guideline v1 nháp.
 - Quá trình khám phá nhãn: [kế hoạch nhánh](ke-hoach-kham-pha-nhan.md), [báo cáo quá trình](bao-cao-qua-trinh.md).
 
+**Cập nhật 26/11, refactor theo bộ nhãn chốt (Nguyễn Lê Quân, nhánh `nlquan`, theo giao việc của trưởng nhóm):**
+- Contract `aspect-mention` lên **v3**, [thiết kế dữ liệu](thiet-ke-du-lieu.md) sửa theo: 11 khía cạnh + `may_chung`, `hang_nguoi_dung`, `khac`; thái độ `tich_cuc`/`tieu_cuc`/`so_sanh`/`khong_danh_gia`; thêm `purposes`, `model_mention`, `target_model_source`; `defect_type` luôn `null` (chờ bộ loại lỗi). Danh sách nhãn trong code chỉ ở `src/labeling/final_labels.py`. Bỏ mọi chỗ dùng 9 khía cạnh và 9 loại lỗi cũ.
+- Luật mốc lên `rule-v1.1`; CV12 sửa theo v3 (Q5 tính theo khía cạnh; bootstrap mặc định 2.000 lần); UIT-ViSD4SA ánh xạ về nhãn chốt.
+- DB: `init_db.py` theo v3, thêm `analysis_results`; gỡ `seed_db.py`; thêm `src/storage/load_db.py` và bước `nap_db` của `python -m src.run`.
+- CV13: API + dashboard 4 tab vào `main` (`src/serving/`, [hướng dẫn](../7-hien-thi/huong-dan.md)), đọc DB, ghi rõ "số liệu minh họa".
+- CV11: phiếu gán nhãn mẫu A và đợt hiệu chỉnh 50 theo bộ nhãn chốt (`src/labeling/sheet.py`), kiểm và gộp phiếu, ước lượng, so luật với ML. Chờ cả nhóm gán.
+
 **Cách đọc:**
 - Mỗi tuần đọc mục 1–3 (khoảng 5 phút).
 - Nhận việc thì tìm dòng công việc của mình ở mục 4, rồi đọc yêu cầu chi tiết ở mục 6.
@@ -46,7 +53,7 @@ Làm theo thứ tự giai đoạn; trong một giai đoạn, các việc không 
 | # | Việc | CV | Ai | Đầu ra | Xong khi | Nhãn |
 |---|---|---|---|---|---|---|
 | 0.1 | Push `main` lên GitHub; báo cả nhóm đọc [mục lục tài liệu](../README.md) và [AGENTS.md](../../AGENTS.md) | — | Trưởng nhóm | `main` trên GitHub | Cả nhóm clone được, `python -m pytest tests -q` qua | |
-| 0.2 | Chạy `python -m src.run --den suy_luan` trên v4; chạy notebook tầng 2; điền [báo cáo tầng 2](../2-tien-xu-ly/bao-cao.md) mục 3.2–3.7 | 6 | Trưởng nhóm | File tầng 2, `aspect_mentions` `rule-v1`, manifest | Bảng phiên bản tầng 2 có dòng `processing-2.0`; có số trong báo cáo | |
+| 0.2 | Chạy `python -m src.run --den suy_luan` trên v4; chạy notebook tầng 2; điền [báo cáo tầng 2](../2-tien-xu-ly/bao-cao.md) mục 3.2–3.7 | 6 | Trưởng nhóm | File tầng 2, `aspect_mentions` `rule-v1.1`, manifest | Bảng phiên bản tầng 2 có dòng `processing-2.0`; có số trong báo cáo | |
 
 ### 2.2 Giai đoạn 1: dữ liệu và nhãn người
 
@@ -57,22 +64,22 @@ Quy trình gán nhãn: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Cách 
 | 1.1 | Chốt bộ 4 máy, sửa `config/analysis.yaml`, chạy `python -m src.run --tu phan_tich` | 2 | ___ | Q1–Q5 minh họa đầu tiên | `business_questions.json` có số, ghi "số liệu minh họa" | |
 | 1.2 | Chia video train/test theo `video_id`, phân tầng theo máy | 7 | ___ | `data/labels/split.json` | Seed cố định, ~20–25% video vào test | |
 | 1.3 | Duyệt nháp guideline v1 | 1 | Kiên + trưởng nhóm | Guideline `v1.0-nhap` đã duyệt | Hai người đồng ý, ghi vào lịch sử thay đổi | |
-| 1.4 | Viết script lấy mẫu A/B, kiểm phiếu, tính đồng thuận, tính ước lượng (`src/labeling/`) | 1 | ___ | 4 script + test | Chạy được trên dữ liệu giả; đúng [đặc tả gán nhãn mục 9](../3-gan-nhan/dac-ta.md#9-file-và-script) | |
+| 1.4 | Viết script lấy mẫu A/B, kiểm phiếu, tính đồng thuận, tính ước lượng (`src/labeling/`). **26/11: xong phần mẫu A và hiệu chỉnh** (`sheet.py`, `check_sheet.py`, `estimate.py`); mẫu B chờ 1.2 | 1, 11 | Nguyễn Lê Quân | 4 script + test | Chạy được trên dữ liệu giả; đúng [đặc tả gán nhãn mục 9](../3-gan-nhan/dac-ta.md#9-file-và-script) | |
 | 1.5 | Hiệu chỉnh: cả nhóm gán 50 bình luận, họp, sửa guideline thành `v1.0` | 1 | Cả nhóm | Guideline `v1.0` | Kappa ≥ 0,6 cho khía cạnh và cảm xúc | ✋ |
 | 1.6 | Gán mẫu A (~850, 200 gán đôi): ước lượng spam, không liên quan, ngoại ngữ; đo luật gắn cờ | 1, 11 | Cả nhóm gán; CV11 phân tích | `docs/3-gan-nhan/bao-cao.md` phần mẫu A | Có tỷ lệ kèm khoảng tin cậy; precision, recall của luật | ✋ |
 | 1.7 | Gán mẫu B (800, gán đôi, phân xử), đóng băng | 1 | Cả nhóm | `gold_labels` tập test + SHA-256 | Kappa ≥ 0,6; mọi chỗ lệch đã phân xử | ✋ |
 | 1.8 | Nhãn train bằng LLM theo `v1.0`; người kiểm 200 bình luận | 1, 9 | CV9 | Nhãn train | Báo cáo tỷ lệ LLM đúng; `llm_label.py` đọc guideline v1, ghi đúng định dạng JSON của guideline mục 6 | ✋ |
-| 1.9 | DB theo contract v2 | 3 | ___ | `init_db.py`, script nạp | Nạp được `aspect_mentions` `rule-v1`, chạy lại không sinh bản trùng | |
-| 1.10 | Map UIT-ViSFD về 9 khía cạnh (cùng đơn vị bình luận) | 5 | ___ | Dữ liệu đã chuyển, data card | Bảng map có lý do cho từng nhãn | |
+| 1.9 | DB theo contract v3. **26/11: có `init_db.py` v3, `load_db.py`, bước `nap_db`** | 3, 13 | Nguyễn Lê Quân | `init_db.py`, script nạp | Nạp được `aspect_mentions` `rule-v1.1`, chạy lại không sinh bản trùng | |
+| 1.10 | Map UIT-ViSFD về 11 khía cạnh của bộ nhãn chốt (cùng đơn vị bình luận). UIT-ViSD4SA đã map 26/11 | 5 | ___ | Dữ liệu đã chuyển, data card | Bảng map có lý do cho từng nhãn | |
 
 ### 2.3 Giai đoạn 2: đo và mô hình
 
 | # | Việc | CV | Ai | Đầu ra | Xong khi | Nhãn |
 |---|---|---|---|---|---|---|
-| 2.1 | `evaluate.py` dùng chung; chấm `rule-v1` trên mẫu B: F1 từng khía cạnh, macro-F1 cảm xúc, máy được nhắc, `is_owner`, `defect_type`; **ma trận nhầm lẫn theo máy × khía cạnh** | 7 | ___ | Bảng điểm `rule-v1` | Chấm trên tập test đã đóng băng | ✋ |
-| 2.2 | Mô hình khía cạnh: TF-IDF, PhoBERT nếu cần | 8 | B1 | Bảng so với `rule-v1` | Chọn theo [luật chọn mô hình](muc-tieu.md#6-quy-ước-dùng-chung-cho-mọi-câu) | ✋ |
+| 2.1 | `evaluate.py` dùng chung; chấm `rule-v1.1` trên mẫu B: F1 từng khía cạnh, macro-F1 thái độ, máy được nhắc, `is_owner`; **ma trận nhầm lẫn theo máy × khía cạnh** | 7 | ___ | Bảng điểm `rule-v1.1` | Chấm trên tập test đã đóng băng | ✋ |
+| 2.2 | Mô hình khía cạnh: TF-IDF, PhoBERT nếu cần | 8 | B1 | Bảng so với `rule-v1.1` | Chọn theo [luật chọn mô hình](muc-tieu.md#6-quy-ước-dùng-chung-cho-mọi-câu) | ✋ |
 | 2.3 | Mô hình cảm xúc theo (bình luận, khía cạnh) | 9 | B2 | Như trên | Như trên; có phân tích lỗi phủ định, mỉa mai | ✋ |
-| 2.4 | Máy được nhắc: đo `rule-v1`, quyết bước "máy của video" (quyết định 2), thêm câu so sánh | 10 | B3 | Luật đã đo, `compare_with` | Precision/recall, tỷ lệ `null` trên tập test | ✋ |
+| 2.4 | Máy được nhắc: đo `rule-v1.1`, quyết bước "máy của video" (quyết định 2), thêm câu so sánh | 10 | B3 | Luật đã đo, `compare_with` | Precision/recall, tỷ lệ `null` trên tập test | ✋ |
 | 2.5 | Spam: giữ luật hay đổi (từ kết quả 1.6) | 11 | B3 | Quyết định + lý do | Có số đo từ mẫu A | ✋ |
 | 2.6 | Thay luật bằng phần đã chọn trong `src/models/run.py`, đổi `MODEL_VERSION` | 8–10 | B1–B3 | Phiên bản suy luận mới | Test qua; chạy lại cả chuỗi; [đặc tả suy luận](../4-mo-hinh/dac-ta-suy-luan.md) đã sửa | |
 
@@ -84,29 +91,31 @@ Quy trình gán nhãn: [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Cách 
 | 3.2 | Phép kiểm sai số mô hình cho Q2–Q4 ([muc-tieu.md mục 6](muc-tieu.md#6-quy-ước-dùng-chung-cho-mọi-câu)) | 12, 7 | C | Bảng: kết luận × còn đứng hay không | Mỗi kết luận Q2–Q4 có kết quả kiểm | ✋ (dùng ma trận ở 2.1) |
 | 3.3 | Bộ kiểm độ nhạy: bỏ video, kênh lớn nhất; mỗi tác giả một phiếu; chỉ bình luận gốc; bỏ video tặng quà; bỏ cờ Q6 | 12 | C | Bảng: kết luận × phép kiểm | Kết luận đổi chiều ở phép nào thì ghi trong báo cáo | |
 | 3.4 | Q6: gắn cờ phối hợp, duyệt tay các ca bị gắn cờ, thử thêm bình luận giả xem bao nhiêu thì kết luận đảo | B8 | ___ | Bảng tỷ lệ nghi vấn, độ chính xác luật gắn cờ | Theo [muc-tieu.md Q6](muc-tieu.md#q6-có-tài-khoản-ảo-seeding-quậy-phá-không-đề-xuất-chờ-nhóm-chốt) | ✋ (duyệt tay) |
-| 3.5 | Dashboard đọc kết quả Công việc 12 | 13 | C | Dashboard | Chỗ nào còn số minh họa thì ghi rõ | |
+| 3.5 | Dashboard đọc kết quả Công việc 12. **26/11: có, đọc DB qua bước `nap_db`, số minh họa** | 13 | Nguyễn Lê Quân | Dashboard | Chỗ nào còn số minh họa thì ghi rõ | |
 | 3.6 | Báo cáo + slide | 14 | Mỗi người phần mình | Báo cáo tổng | Mỗi kết luận kèm khoảng tin cậy, phép kiểm sai số và độ nhạy | |
 | — | Streaming (để sau) | — | | | | |
 
-**Làm được ngay, không chờ nhãn:** 0.1, 0.2, 1.1–1.4, 1.9, 1.10; viết khung `evaluate.py` (2.1) và bộ kiểm độ nhạy (3.3) trên đầu ra `rule-v1`; dựng dashboard (3.5) bằng số liệu minh họa.
+**Làm được ngay, không chờ nhãn:** 0.1, 0.2, 1.1–1.4, 1.9, 1.10; viết khung `evaluate.py` (2.1) và bộ kiểm độ nhạy (3.3) trên đầu ra `rule-v1.1`; dashboard (3.5) đã dựng bằng số liệu minh họa.
 
 ## 3. Quyết định đang chờ trưởng nhóm
 
 | # | Quyết định | Lựa chọn | Ảnh hưởng tới |
 |---|---|---|---|
 | 1 | Cửa sổ trước ra mắt | Q1–Q5 dùng `[0, 28)` (CV12). Phần `-7` ngày: sửa crawler rồi crawl lại, hoặc bỏ khỏi thiết kế dữ liệu | Thiết kế dữ liệu, crawler |
-| 2 | Bình luận không nêu tên máy | Luật mốc `rule-v1` đang làm: mệnh đề → mệnh đề trước → cả bình luận → comment cha → máy của video → `null` ([đặc tả suy luận mục 5](../4-mo-hinh/dac-ta-suy-luan.md#5-máy-được-nhắc)). Giữ bước "máy của video", hay để `null` khi chỉ dựa vào video: chờ CV10 đo | Cỡ mẫu Q1–Q5, nhất là Q3, Q4 |
+| 2 | Bình luận không nêu tên máy | Luật mốc `rule-v1.1` đang làm: mệnh đề → mệnh đề trước → cả bình luận → comment cha → máy của video → `null` ([đặc tả suy luận mục 5](../4-mo-hinh/dac-ta-suy-luan.md#5-máy-được-nhắc)). Giữ bước "máy của video", hay để `null` khi chỉ dựa vào video: chờ CV10 đo | Cỡ mẫu Q1–Q5, nhất là Q3, Q4 |
 | 3 | `author_name` trong dữ liệu chia sẻ | Bỏ khỏi file chia sẻ, hoặc sửa yêu cầu trong README | Contract `comment-event` v3, quyền riêng tư |
-| 4 | Baseline luật khía cạnh | Đề xuất lấy `rule-v1` (`src/models/aspect/keywords.py`) làm mốc chung; `rule-v0` của CV8 (`rule_baseline.py`, đã gỡ khỏi `main` 26/11) và của `seed_db` đổi tên | CV8, `seed_db`, CV12 |
+| 4 | Baseline luật khía cạnh | Đề xuất lấy `rule-v1.1` (`src/models/aspect/keywords.py`) làm mốc chung; `rule-v0` của CV8 (`rule_baseline.py`) đã gỡ khỏi `main` 26/11, `seed_db.py` cũng đã gỡ | CV8, CV12 |
 | 5 | Bộ 4 máy chính thức | Chốt (CV2) | CV12 và mọi phân tích |
 | 6 | Nhãn `FEATURES` của dataset ngoài | Phần cứng / phần mềm / tùy ngữ cảnh / bỏ | CV5, CV8 |
-| 7 | Câu khen chê chung ("máy quá ngon") | Thêm nhãn cảm xúc chung, hay bỏ khỏi Q1 | Contract, Q1 |
+| 7 | Câu khen chê chung ("máy quá ngon") | **Đã giải quyết 26/11:** nhãn `may_chung` trong bộ nhãn chốt và contract v3. Còn chờ: Q1 có gộp `may_chung` không | Q1 |
 | 8 | Crawl bằng 2 khóa API ở 2 project ([huong-dan-crawl-2-may.md](../1-thu-thap/huong-dan-crawl-2-may.md)) | Tiếp tục, hay về 1 khóa và xin tăng hạn mức | Chính sách YouTube API (mục III.D), tốc độ crawl |
 
 **Đã chốt ngày 20/11:**
 1. Phương án A: đơn vị là cả bình luận.
 2. Chạy theo lô mỗi ngày, streaming để sau.
-3. Giữ nguyên contract `aspect-mention` v2 và thiết kế dữ liệu; theo phương án A, `clause_idx`, `clause_text` là mệnh đề làm bằng chứng ([đặc tả suy luận mục 2](../4-mo-hinh/dac-ta-suy-luan.md#2-đơn-vị-và-quy-tắc-gộp)).
+3. ~~Giữ nguyên contract `aspect-mention` v2~~: thay bằng **v3 ngày 26/11** theo bộ nhãn chốt. Theo phương án A, `clause_idx`, `clause_text` là mệnh đề làm bằng chứng ([đặc tả suy luận mục 2](../4-mo-hinh/dac-ta-suy-luan.md#2-đơn-vị-và-quy-tắc-gộp)).
+
+**Đã chốt ngày 26/11:** contract v3 giữ chiều mục đích (quyết định 5 của [kế hoạch tổng thể](ke-hoach-tong-the.md#6-quyết-định-trưởng-nhóm-cần-chốt-trước-khi-bắt-đầu)).
 
 Quyết định riêng của tầng 2 (kiểu dấu thanh, từ điển viết tắt, video tặng quà, luật tách mệnh đề, luật gắn cờ…): [đặc tả tầng 2 mục 7](../2-tien-xu-ly/dac-ta.md#7-quyết-định-đang-chờ-nhóm).
 
@@ -120,29 +129,23 @@ Ký hiệu: ✅ đã có trên `main` · ⚠️ có nhưng còn vấn đề ph�
 |---|---|---|---|---|
 | 1 | Gán nhãn | ⚠️ | Guideline v0.3 huong-dan-gan-nhan.md (đã gỡ khỏi `main` 26/11) (Kiên), đã chỉnh qua 2 lần thử với Gemini | Guideline v0.3 gán theo mệnh đề: phải viết **v1 theo cả bình luận** (bản v0.3 giữ nguyên vì báo cáo CV9 ghi SHA). Chưa hiệu chỉnh cả nhóm. Chưa có tập test người gán, chưa có kappa |
 | 2 | Danh mục máy | ⚠️ | `config/pipeline.yaml` là đúng config đã dùng để crawl bản v4: 139 mã máy, 50 kênh; mọi máy trong dữ liệu đều có `launch_date` | Chưa ghi nguồn cho `launch_date`. Chưa có `predecessor`. 12 máy khai trong config nhưng không có dữ liệu. Bộ 4 máy chưa chốt |
-| 3 | DB | ⚠️ | MongoDB 7 collection, `src/storage/` (`init_db`, `seed_db`, `verify_db`), [đặc tả](../6-luu-tru/dac-ta.md) (Việt / davebui306, 07/11) | Theo contract **v1**, trong khi contract đã lên v2 (08/11). `seed_db.py` sinh dữ liệu giả (xem ghi chú dưới bảng), chỉ dùng được làm demo cho DB |
-| 4 | Contract | ✅ | `aspect-mention` v2 (08/11); `comment-event` v3 (11/11), khớp từng trường với crawler và dữ liệu v4 | `author_name` vẫn nằm trong dữ liệu và contract, trái README (quyết định 3) |
+| 3 | DB | ✅ ⚠️ | MongoDB 8 collection, `src/storage/` (`init_db`, `load_db`, `verify_db`), [đặc tả](../6-luu-tru/dac-ta.md) (Việt / davebui306, 07/11; sửa theo contract v3 và thêm `load_db.py`, Nguyễn Lê Quân, 26/11) | `seed_db.py` (dữ liệu giả) đã gỡ 26/11. Chưa nạp `videos`. Đặc tả DB còn nhiều đoạn mô tả bản 28/10 |
+| 4 | Contract | ✅ | `aspect-mention` **v3** (26/11, theo bộ nhãn chốt); `comment-event` v3 (11/11), khớp từng trường với crawler và dữ liệu v4 | `author_name` vẫn nằm trong dữ liệu và contract, trái README (quyết định 3) |
 | 5 | Dataset ngoài | ⚠️ | Chuẩn hóa UIT-ViSD4SA (có span) + test + trang duyệt `FEATURES`: `src/models/external_absa.py` (phudatdam, 09/11). Bỏ ViSFD vì không có span | Chờ nhóm duyệt 50 mẫu `FEATURES`. Yêu cầu CV5 ở mục 6 còn ghi ViSFD. Ghi ra `data/external/normalized/`, trong khi CV8 đọc `data/uit_visd4sa/` |
 | 6 | Tiền xử lý | ⚠️ | Tầng 2 cho v4 (`processing-2.0`): làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam (`src/processing/`), lệnh chạy ghi file + manifest, 39 test, [đặc tả](../2-tien-xu-ly/dac-ta.md) + 4 đặc tả con, [báo cáo](../2-tien-xu-ly/bao-cao.md) (trưởng nhóm, 16–20/11). Bản cũ `cleaner/` đã gỡ, còn ở commit `59e2d16` | Chưa chạy trên v4, chưa có file chung. Luật gắn cờ là mốc, chưa đo (CV11). 8 quyết định ở đặc tả tầng 2 mục 7 |
 | 7 | Khung đánh giá | ❌ | | Không có file chia tập chung hay `evaluate.py`. CV9 tự chia theo video, CV8 dùng tập test của dataset ngoài, nên điểm các mô hình không so được với nhau |
-| 8 | Mô hình khía cạnh | ⚠️ | TF-IDF + LinearSVC đa nhãn, `src/models/aspect/`, báo cáo (đã gỡ khỏi `main` 26/11) (Nguyễn Xuân Hồng Quân, 11/11): macro-F1 0,71 trên tập test UIT-ViSD4SA | Đo trên đánh giá Thế Giới Di Động, chưa trên YouTube. Không bao giờ đoán `SOFTWARE`. Luật `rule-v0` xếp nóng máy vào `HARDWARE_OTHER`, trái thiết kế dữ liệu. Lệnh tái lập trong báo cáo không chạy; báo cáo tả bước dùng nhãn YouTube mà code không có. File model `.pkl` đã gỡ khỏi git (không nạp được theo hướng dẫn) |
+| 8 | Mô hình khía cạnh | ⚠️ | TF-IDF + LinearSVC đa nhãn, `src/models/aspect/`, báo cáo (đã gỡ khỏi `main` 26/11) (Nguyễn Xuân Hồng Quân, 11/11): macro-F1 0,71 trên tập test UIT-ViSD4SA | Đo trên đánh giá Thế Giới Di Động, chưa trên YouTube. Không bao giờ đoán phần mềm (mã cũ `SOFTWARE`). Luật `rule-v0` xếp nóng máy vào phần cứng khác (mã cũ `HARDWARE_OTHER`), trái thiết kế dữ liệu. Lệnh tái lập trong báo cáo không chạy; báo cáo tả bước dùng nhãn YouTube mà code không có. File model `.pkl` đã gỡ khỏi git (không nạp được theo hướng dẫn) |
 | 9 | Mô hình cảm xúc | ⚠️ | Nhãn LLM (Gemini/NVIDIA), tập train/val chia theo video, baseline TF-IDF + LR: `src/models/sentiment/`, báo cáo (đã gỡ khỏi `main` 26/11), hướng dẫn (đã gỡ khỏi `main` 26/11) (Kiên, 09/11) | Điểm mới đo trên nhãn LLM, dữ liệu cũ 225.968 dòng. Với file tầng 2 mới, `extract_clauses.py` phải chạy với `--index-base 0`. File nhãn chỉ có trên máy Kiên |
-| 10 | Máy được nhắc | ⚠️ | Luật mốc `rule-v1`: nhận tên máy có chữ số theo `config/pipeline.yaml`, xét mệnh đề → mệnh đề trước → cả bình luận → comment cha → video (`src/models/target_model.py`, trưởng nhóm, 20/11) | Chưa đo. Chưa nhận câu so sánh (`compare_with` luôn `null`). Tên hãng trơn ("táo", "ss") không nhận |
-| 11 | Spam | ⚠️ | Luật mốc `src/processing/flags.py` (20/11): link, số điện thoại, mời liên hệ, cờ bạc; tách `is_vietnamese` riêng ([đặc tả](../2-tien-xu-ly/dac-ta-gan-co.md)). Bản của nhánh `nlquan` (Nguyễn Lê Quân, 28/10) đã gộp rồi gỡ khỏi `main` ngày 19/11: 500 "nhãn" do regex sinh ra, ba con số F1 mâu thuẫn, phụ thuộc `cleaner/` đã xóa. Còn trên nhánh `nlquan` | Đo luật mốc bằng nhãn mẫu A (lộ trình 1.6), rồi quyết giữ luật hay đổi |
+| 10 | Máy được nhắc | ⚠️ | Luật mốc `rule-v1.1`: nhận tên máy có chữ số theo `config/pipeline.yaml`, xét mệnh đề → mệnh đề trước → cả bình luận → comment cha → video (`src/models/target_model.py`, trưởng nhóm, 20/11) | Chưa đo. Chưa nhận câu so sánh (`compare_with` luôn `null`). Tên hãng trơn ("táo", "ss") không nhận |
+| 11 | Spam | ⚠️ | Luật mốc `src/processing/flags.py` (20/11), [đặc tả](../2-tien-xu-ly/dac-ta-gan-co.md). Code đo luật và so với ML (Nguyễn Lê Quân, 26/11): phiếu mẫu A `src/labeling/sheet.py`, gộp nhãn `check_sheet.py`, ước lượng `estimate.py`, mô hình `src/models/spam/` ([đặc tả](../4-mo-hinh/dac-ta-spam.md)). Bản 28/10 (nhãn do regex sinh) và bản 17/11 (640 nhãn LLM trên dữ liệu cũ) không đưa vào `main` | Chờ cả nhóm gán mẫu A (lộ trình 1.6), rồi chạy `estimate.py`, `src.models.spam.train` và quyết giữ luật hay đổi |
 | 12 | Aggregates + Q1–Q5 | ✅ | `src/analysis/`: kiểm tra đầu vào, aggregates, Q1–Q5, bootstrap-t theo cụm video, Holm, 235 test + dữ liệu demo, [hướng dẫn](../5-phan-tich/huong-dan.md) (Hải Minh, 09/11). Từ 20/11 nhận đầu ra của bước suy luận qua `python -m src.run` (đã thử trên dữ liệu giả) | `config/analysis.yaml` vẫn là bộ máy cũ (S23U/S22U/iPhone 14 PM/Xiaomi 13U): phải đổi theo CV2 thì mới có mention để tính |
-| 13 | Dashboard | ❌ | API + dashboard 4 tab của nhánh `nlquan` đã gộp rồi gỡ ngày 19/11: số Kafka/Spark viết cứng, đọc JSON tĩnh của EDA cũ. Còn trên nhánh `nlquan` | Làm lại, đọc từ kết quả CV12 |
+| 13 | Dashboard | ✅ ⚠️ | API + dashboard 4 tab (`src/serving/`, Nguyễn Lê Quân, 17/11, sửa theo v3 26/11): đọc MongoDB do bước `nap_db` nạp, lấy kiểm định từ CV12, không bịa số streaming; [hướng dẫn](../7-hien-thi/huong-dan.md) | Số là **số liệu minh họa** (`rule-v1.1`, bộ 4 máy cũ). Chưa có cảnh báo, chưa có word cloud |
 | 14 | Báo cáo | ⚠️ | File "Đánh giá tính khả thi" (Claude Docs, 08/11). Báo cáo tầng 2 [bao-cao.md](../2-tien-xu-ly/bao-cao.md) (16–19/11); báo cáo CV8, CV9 ở `docs/4-mo-hinh/` | Báo cáo tầng 2 còn chờ số liệu mục 3.2–3.6. Chưa có báo cáo tổng |
 | 15 | Nguồn ngoài YouTube | ❌ | | |
-| — | Chuỗi theo lô | ✅ ⚠️ | `python -m src.run`: tầng 2 → suy luận `rule-v1` → aggregates, Q1–Q5; [luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô) (trưởng nhóm, 20/11) | Chưa chạy trên v4. Kết quả là số liệu minh họa cho tới khi luật được đo hoặc thay bằng mô hình |
+| — | Chuỗi theo lô | ✅ ⚠️ | `python -m src.run`: tầng 2 → suy luận `rule-v1.1` → aggregates, Q1–Q5 → (tùy chọn) nạp DB; [luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô) (trưởng nhóm, 20/11) | Chưa chạy trên v4. Kết quả là số liệu minh họa cho tới khi luật được đo hoặc thay bằng mô hình |
 | — | Crawler | ✅ ⚠️ | Code, config và dữ liệu của lần crawl ra bản v4: schema v3 với 6 trường `author_*`, 50 kênh, chia việc cho 2 máy ([hướng dẫn](../1-thu-thap/huong-dan-crawl-2-may.md)), `state.db` và `videos.jsonl` để tra từng video; [đặc tả thu thập](../1-thu-thap/dac-ta.md) | Cửa sổ crawl bắt đầu từ `launch_date`, không phải 7 ngày trước như thiết kế dữ liệu. Hướng dẫn crawler cấm dùng nhiều project để tăng hạn mức, nhưng cách chia 2 máy dùng 2 khóa ở 2 project (quyết định 8) |
 
-**Vì sao `seed_db.py` (CV3) không dùng được làm dữ liệu phân tích:**
-- Mệnh đề không khớp từ khóa nào bị gán mặc định `PERFORMANCE`, nên khía cạnh này phồng lên.
-- Mỗi mệnh đề chỉ lấy khía cạnh khớp đầu tiên.
-- Mọi mệnh đề chê đều có `defect_type`.
-- `clause_idx` đếm từ 1; `target_model` = máy của video.
-- `compare_with` gán cứng `ip14prm`/`s22u`; `days_since_launch` gán cứng 8; `confidence` là hằng số.
-- Video, aggregates, alerts, gold_labels là số viết tay; bình luận của `ip6`, `ip11` bị đổi thành `s23u`.
+`seed_db.py` (CV3, dữ liệu giả theo 9 khía cạnh cũ) đã gỡ ngày 26/11; lý do ghi trong lịch sử git của file này (bản 20/11).
 
 ### 4.2 Giai đoạn
 
@@ -150,7 +153,7 @@ Ký hiệu: ✅ đã có trên `main` · ⚠️ có nhưng còn vấn đề ph�
 |---|---|---|---|
 | 0. Nền móng | 4, 6 | Contract đã merge; cả nhóm chạy được tiền xử lý ra cùng một file dữ liệu | ❌ Contract, dữ liệu raw v4 và code tầng 2 đủ bước có; chưa chạy trên v4, chưa phát hành file chung |
 | 1. Dữ liệu & nhãn | 1, 2, 3, 5 (song song), 15 bước 1 | Có tập test gán tay với kappa ≥ 0,6; có ước lượng chất lượng dữ liệu từ mẫu A; DB nạp được dữ liệu | ❌ |
-| 2. Mô hình | 7, 8, 9, 10, 11 | Mỗi mô hình có bảng F1 so với `rule-v1` trên tập test chung, kèm ma trận nhầm lẫn theo máy × khía cạnh | ❌ CV8, CV9 có bảng, nhưng đo trên dataset ngoài hoặc nhãn LLM, không trên tập test chung |
+| 2. Mô hình | 7, 8, 9, 10, 11 | Mỗi mô hình có bảng F1 so với `rule-v1.1` trên tập test chung, kèm ma trận nhầm lẫn theo máy × khía cạnh | ❌ CV8, CV9 có bảng, nhưng đo trên dataset ngoài hoặc nhãn LLM, không trên tập test chung |
 | 3. Kết quả | 12, 13, 14 | Q1–Q5 chạy lại được từ code, qua phép kiểm sai số mô hình và độ nhạy; báo cáo hoàn chỉnh | Code CV12 có, chờ đầu vào |
 
 ### 4.3 Theo bài toán
@@ -160,7 +163,7 @@ Mỗi câu hỏi ở [muc-tieu.md](muc-tieu.md) cần một số bài toán con.
 | Mã | Bài toán | Câu hỏi cần | Công việc | Trạng thái |
 |---|---|---|---|---|
 | B1 | Tiền xử lý: làm sạch, chuẩn hóa, tách mệnh đề, lọc spam, nhận tiếng Việt | Q1–Q6 | 6, 11 | ⚠️ Code đủ; lọc spam, nhận tiếng Việt là luật mốc chưa đo |
-| B2 | Phát hiện khía cạnh | Q1–Q4 (Q6 khi đo độ nhạy) | 8 | ⚠️ Luật mốc `rule-v1` chạy trong chuỗi, chưa đo. Mô hình CV8 đo khác miền, không đoán `SOFTWARE` |
+| B2 | Phát hiện khía cạnh | Q1–Q4 (Q6 khi đo độ nhạy) | 8 | ⚠️ Luật mốc `rule-v1.1` chạy trong chuỗi, chưa đo. Mô hình CV8 đo khác miền, không đoán phần mềm |
 | B3 | Cảm xúc theo khía cạnh | Q1, Q2, Q3a, Q4 | 9 | ⚠️ Luật mốc `rule-v1` chạy trong chuỗi, chưa đo. Mô hình CV9 đo trên nhãn LLM |
 | B4 | Máy được nhắc (nhận tên máy, nối vào danh mục) | Q1–Q5 | 10 | ⚠️ Luật mốc `rule-v1`, chưa đo |
 | B5 | So sánh trực tiếp (máy A hơn máy B ở khía cạnh nào) | Q3b | 10 | ❌ |
@@ -243,13 +246,13 @@ Mỗi công việc điền **Phụ trách** và **Hạn** trước khi bắt đ�
 ### Công việc 4: Chốt contract dữ liệu
 - **Phụ trách:** trưởng nhóm | **Hạn:** 28/10 | **Ưu tiên:** RẤT CAO (làm đầu tiên)
 - **Mô tả:** Chốt bản thỏa thuận định dạng dữ liệu mà mọi nhóm phải tuân theo: trường nào, kiểu gì, nhận giá trị nào. Contract: [contracts/aspect-mention.schema.json](../../contracts/aspect-mention.schema.json), mô tả trong [thiết kế dữ liệu](thiet-ke-du-lieu.md).
-- **Yêu cầu:** Chốt danh sách 9 khía cạnh kèm định nghĩa, danh sách loại lỗi, cửa sổ thời gian (đề xuất 4 tuần). Sau khi chốt, đổi trường nào cũng phải tăng `schema_version` và báo cả nhóm.
+- **Yêu cầu:** Chốt danh sách khía cạnh kèm định nghĩa (bản 28/10: 9 khía cạnh; từ 26/11: bộ nhãn chốt, contract v3), danh sách loại lỗi (chờ bước 2.6 của kế hoạch tổng thể), cửa sổ thời gian (đề xuất 4 tuần). Sau khi chốt, đổi trường nào cũng phải tăng `schema_version` và báo cả nhóm.
 - **Đầu ra:** contract đã merge vào `main`, bỏ chữ "DRAFT".
 
 ### Công việc 5: Dataset tiếng Việt đã gán nhãn
 - **Phụ trách:** ___ | **Hạn:** ___ | **Ưu tiên:** cao
 - **Mô tả:** Tận dụng dữ liệu đã có người gán nhãn để có thêm dữ liệu huấn luyện. Ứng viên chính: **UIT-ViSFD** (~11 nghìn đánh giá smartphone trên trang thương mại điện tử, nhãn dạng `{CAMERA#Positive};{BATTERY#Negative}`). Tham khảo thêm **ViSpamReviews** cho spam. Kiểm tra lại số liệu trên bài báo và trang gốc.
-- **Yêu cầu:** Kiểm tra giấy phép. Lập bảng map khía cạnh về 9 khía cạnh của nhóm (xem [đặc tả mô hình mục 3](../4-mo-hinh/dac-ta.md#3-dữ-liệu-có-nhãn-từ-bên-ngoài)). Viết script chuyển về định dạng của nhóm.
+- **Yêu cầu:** Kiểm tra giấy phép. Lập bảng map khía cạnh về 11 khía cạnh của bộ nhãn chốt (UIT-ViSD4SA đã map 26/11, [đặc tả mô hình mục 3](../4-mo-hinh/dac-ta.md)) (xem [đặc tả mô hình mục 3](../4-mo-hinh/dac-ta.md#3-dữ-liệu-có-nhãn-từ-bên-ngoài)). Viết script chuyển về định dạng của nhóm.
 - **Đầu ra:** data card (nguồn, kích thước, phân bố nhãn), bảng map, dữ liệu đã chuyển đổi.
 - **Phụ thuộc:** 4
 
@@ -288,7 +291,7 @@ Mỗi công việc điền **Phụ trách** và **Hạn** trước khi bắt đ�
 - **Phụ thuộc:** 2, 4, 7
 
 ### Công việc 11: Phát hiện spam
-- **Phụ trách:** B3 (___) | **Hạn:** ___ | **Ưu tiên:** trung bình
+- **Phụ trách:** B3 (Nguyễn Lê Quân) | **Hạn:** ___ | **Ưu tiên:** trung bình
 - **Mô tả:** Đo bộ luật spam mốc `src/processing/flags.py` ([đặc tả](../2-tien-xu-ly/dac-ta-gan-co.md)) rồi so với một mô hình ML. Bộ luật cũ (~6% bị gắn cờ) đã bỏ vì gộp tiếng nước ngoài và bình luận chỉ có emoji vào spam.
 - **Yêu cầu:** Dùng nhãn **mẫu A** ([đặc tả gán nhãn mục 3](../3-gan-nhan/dac-ta.md#3-mẫu-a-chất-lượng-dữ-liệu)): ước lượng tỷ lệ spam cho cả dữ liệu kèm khoảng tin cậy; precision, recall của luật. Không dùng accuracy. Tách "không phải tiếng Việt" ra khỏi "spam". Mô hình ML chỉ làm nếu luật kém rõ rệt: spam hiếm nên mẫu nhỏ không đủ train.
 - **Đầu ra:** so sánh luật và mô hình, chọn một phương án.
@@ -301,7 +304,7 @@ Mỗi công việc điền **Phụ trách** và **Hạn** trước khi bắt đ�
 - **Phụ thuộc:** 3, 8, 9, 10
 
 ### Công việc 13: Dashboard
-- **Phụ trách:** C (___) | **Hạn:** ___ | **Ưu tiên:** trung bình
+- **Phụ trách:** C (Nguyễn Lê Quân) | **Hạn:** ___ | **Ưu tiên:** trung bình
 - **Mô tả:** Chuyển dashboard từ JSON tĩnh sang đọc từ DB/API.
 - **Yêu cầu:** Chỗ nào còn số liệu minh họa phải ghi rõ "số liệu minh họa".
 - **Phụ thuộc:** 3, 12

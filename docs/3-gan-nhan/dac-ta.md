@@ -2,13 +2,13 @@
 
 > Mục đích: Quy định gán nhãn người cho cả dự án: lấy hai mẫu nào, lấy thế nào, phiếu gán có gì, gán đôi, đo đồng thuận, phân xử, và tính tỷ lệ spam, không liên quan… kèm khoảng tin cậy từ nhãn người; cập nhật lần cuối: 2026-11-26.
 
-**Trạng thái:** đặc tả nháp ngày 20/11, chưa có code. Các script ở mục 9 còn phải viết. Cách gán từng bình luận nằm ở [hướng dẫn gán chính thức](huong-dan-gan-nhan-chinh-thuc.md), file này không chép lại.
+**Trạng thái:** đặc tả nháp ngày 20/11. Từ 26/11 có code cho mẫu A và đợt hiệu chỉnh (mục 9); mẫu B chưa có code. Cách gán từng bình luận nằm ở [hướng dẫn gán chính thức](huong-dan-gan-nhan-chinh-thuc.md), file này không chép lại.
 
-**Cập nhật 26/11:** bộ nhãn đã chốt ([đặc tả bộ nhãn mục 8](dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)). Phần quy trình (hai mẫu, gán đôi, phân xử) vẫn dùng; phần nhãn, phiếu và bộ 4 máy trong file này còn theo bản cũ, sửa ở bước 0.5 của [kế hoạch tổng thể](../0-chung/ke-hoach-tong-the.md).
+**Cập nhật 26/11:** bộ nhãn đã chốt ([đặc tả bộ nhãn mục 8](dac-ta-bo-nhan.md#8-bộ-nhãn-chốt-b8-2611)). Phần quy trình (hai mẫu, gán đôi, phân xử) vẫn dùng. Phiếu, nhãn mẫu A và đợt hiệu chỉnh đã sửa theo bộ nhãn chốt ngày 26/11 (bước 0.5 của [kế hoạch tổng thể](../0-chung/ke-hoach-tong-the.md)). Mẫu B (mục 4) còn viết theo bộ 4 máy và từ khóa cũ, chờ Công việc 7 chia video.
 
 ## 1. Vì sao cần nhãn người
 
-Code đã chạy được cả chuỗi bằng luật mốc `rule-v1`, nhưng chưa biết đúng hay sai. Nhãn người là **mốc độc lập** để:
+Code đã chạy được cả chuỗi bằng luật mốc `rule-v1.1`, nhưng chưa biết đúng hay sai. Nhãn người là **mốc độc lập** để:
 1. trả lời "dữ liệu có bao nhiêu spam, bao nhiêu bình luận không liên quan, bao nhiêu không phải tiếng Việt" (mẫu A);
 2. đo luật và mô hình: khía cạnh, cảm xúc, máy được nhắc, đã dùng máy, loại lỗi, so sánh (mẫu B);
 3. đo sai số của mô hình **theo từng máy, từng khía cạnh**, để biết sai số đó có làm lệch kết luận Q1–Q5 không ([muc-tieu.md mục 6](../0-chung/muc-tieu.md#6-quy-ước-dùng-chung-cho-mọi-câu)).
@@ -45,7 +45,8 @@ Cả hai mẫu gán theo **cùng một guideline, cùng một phiếu**. Bình l
 - Tầng nào có ít bình luận hơn cỡ mẫu thì lấy hết.
 - Lấy ngẫu nhiên đơn trong từng tầng, seed cố định `20261120`, ghi seed và SHA-256 file nguồn vào file mẫu.
 - **Gán đôi:** 200 bình luận lấy ngẫu nhiên tỷ lệ theo tầng, hai người gán độc lập. Phần còn lại một người gán.
-- Nhãn cần cho mẫu A: `tieng_viet`, `spam`, `lien_quan`, và bộ nhãn nếu có (guideline mục 2, 3).
+- Nhãn cần cho mẫu A: đủ các cột của phiếu (mục 5). **Spam thật** là bình luận có mục đích `quang_cao` (`qc`): bộ nhãn chốt gộp lừa đảo, cờ bạc vào đây.
+- Code: `python -m src.labeling.sheet` lấy mẫu và chia việc cho 11 người (mã `n01`…`n11`, đổi bằng `--nguoi`), mỗi người khoảng như nhau. Ước lượng ở mục này: `python -m src.labeling.estimate`.
 
 **Ước lượng tỷ lệ cho cả dữ liệu.** Với mỗi đại lượng (tỷ lệ spam, không liên quan, ngoại ngữ, có ít nhất một bộ nhãn):
 
@@ -93,27 +94,29 @@ khoảng tin cậy 95%: p̂ ± 1,96 · √Var(p̂)
 
 ## 5. Phiếu gán nhãn
 
-Một phiếu là một bảng tính (Google Sheets hoặc CSV, mã hóa UTF-8). Mỗi bình luận một dòng, mỗi người gán một phiếu riêng. Người gán **không xem** phiếu của người kia cho tới khi cả hai xong.
+Một phiếu là một bảng tính, xuất sẵn hai dạng: CSV (UTF-8 có BOM) và Excel (`.xlsx`) có danh sách thả xuống cho `tieng_viet`, `lien_quan`, `da_dung`, `may_nhac` và gợi ý mã máy cho `ten_may` ([hướng dẫn gán chính thức mục 10](huong-dan-gan-nhan-chinh-thuc.md#10-phiếu-và-cách-làm)). Mỗi bình luận một dòng, mỗi người gán một phiếu riêng. Người gán **không xem** phiếu của người kia cho tới khi cả hai xong. Excel có thêm trang `danh_sach_nhan` (mọi nhãn, chữ viết tắt, ý nghĩa) và `danh_muc_may`; hai trang này cũng xuất thành `danh_sach_nhan.csv`, `danh_muc_may.csv`.
 
 | Cột | Ai điền | Nội dung |
 |---|---|---|
-| `mau`, `tang`, `trong_so` | Script lấy mẫu | `A`/`B`, tầng, nghịch đảo xác suất được chọn |
+| `stt` | Script | Số thứ tự trong mẫu |
 | `comment_id`, `video_id`, `may_video` | Script | `may_video` là trường `model` (máy của video) |
-| `binh_luan` | Script | `text_clean`, mệnh đề đánh số `[0] … [1] …` |
-| `binh_luan_cha` | Script | `parent_text` nếu là reply, cắt ở 600 ký tự |
-| `nguoi_gan` | Người gán | Mã người gán (không dùng tên thật) |
-| `tieng_viet` | Người gán | `co` / `khong` |
-| `spam` | Người gán | `khong` / `quang_cao` / `lua_dao` / `khac` |
-| `lien_quan` | Người gán | `truc_tiep` / `ngu_canh` / `khong` |
-| `nhan` | Người gán | Các nhãn theo cách ghi ở [hướng dẫn gán chính thức mục 10](huong-dan-gan-nhan-chinh-thuc.md#10-phiếu-và-cách-làm) |
-| `ghi_chu` | Người gán | Chỗ khó, đề xuất sửa guideline |
+| `la_reply` | Script | `co` nếu là reply |
+| `binh_luan` | Script | `text_clean`, đã che tên người được nhắc (`@[người dùng]`) |
+| `binh_luan_cha` | Script | `parent_text` nếu là reply, cắt ở 600 ký tự, đã che tên |
+| `nguoi_gan` | Người gán | Mã người gán (không dùng tên thật); phiếu riêng đã điền sẵn |
+| `tieng_viet` | Người gán | `co` / `khong` (gán đầu tiên) |
+| `lien_quan` | Người gán | Chiều 1: `D` `N` `B` `L` `X` |
+| `noi_ve_thai_do` | Người gán | Chiều 2 và 4, vd `cam+-, gia0`; hai máy thì `@mã máy`; so sánh `pin=@s24u>ip15prm` |
+| `muc_dich` | Người gán | Chiều 3, nhiều nhãn, vd `dg, hoi`; spam là `qc` |
+| `da_dung`, `may_nhac`, `ten_may` | Người gán | Chiều 5, 6 và mã máy |
+| `chua_chac`, `ghi_chu` | Người gán | Số chiều còn phân vân; chỗ khó, đề xuất sửa guideline |
 
-Phiếu **không** có `author_name`, `author_hash` hay bất cứ thông tin nào về người viết.
+Phiếu **không** có `author_name`, `author_hash` hay bất cứ thông tin nào về người viết. Phiếu cũng **không** có tầng, trọng số hay cờ của luật, để người gán không bị dẫn dắt; các cột đó chỉ nằm trong `data/labels/mau_a.jsonl`. Bỏ so với bản 20/11: cột `mau`, `tang`, `trong_so`, `spam`, `nhan`, số mệnh đề trong `binh_luan`.
 
 ## 6. Quy trình
 
 1. **Chuẩn bị:** guideline v1 được người viết guideline duyệt; viết xong script lấy mẫu và kiểm phiếu (mục 9).
-2. **Hiệu chỉnh:** 50 bình luận (25 lấy từ mẫu A, 25 từ video train), **cả nhóm** cùng gán. Tính đồng thuận, họp về các chỗ lệch, sửa guideline, đổi `guideline_version` thành `v1.0`. Đồng thuận dưới ngưỡng (mục 7) thì làm thêm một vòng 50 bình luận khác.
+2. **Hiệu chỉnh:** 50 bình luận, **cả nhóm** cùng gán. Đặc tả gốc lấy 25 từ mẫu A, 25 từ video train; vì chưa có `split.json` (Công việc 7), bản 26/11 lấy cả 50 từ mẫu A (10 ở A1, 5 ở A2, 35 ở A3) và không đưa 50 bình luận này vào phiếu riêng (nhãn đợt hiệu chỉnh dùng luôn cho mẫu A). Tính đồng thuận, họp về các chỗ lệch, sửa guideline, đổi `guideline_version` thành `v1.0`. Đồng thuận dưới ngưỡng (mục 7) thì làm thêm một vòng 50 bình luận khác.
 3. **Mẫu A:** gán, kiểm phiếu, phân xử 200 bình luận gán đôi, tính các ước lượng ở mục 3.
 4. **Mẫu B:** gán đôi 800 bình luận, kiểm phiếu, phân xử, đóng băng.
 5. **Dữ liệu huấn luyện:** LLM gán theo `v1.0`; người kiểm 200 bình luận.
@@ -127,41 +130,41 @@ Trên phần gán đôi, với từng loại nhãn, báo cáo **cả ba**: tỷ 
 
 | Loại nhãn | Đơn vị so | Chỉ số |
 |---|---|---|
-| `tieng_viet`, `spam`, `lien_quan` | bình luận | đồng ý thô, kappa |
-| Có khía cạnh hay không | (bình luận, khía cạnh), bỏ qua máy | kappa từng khía cạnh và gộp; đồng ý dương |
-| Cảm xúc | (bình luận, khía cạnh) mà cả hai cùng gán; giá trị `pos`/`neg`/`neu`/`ca hai` | kappa |
+| `tieng_viet`, spam (`muc_dich` có `quang_cao`), `lien_quan`, `da_dung`, `may_nhac` | bình luận | đồng ý thô, kappa; spam thêm đồng ý dương |
+| Có nhãn chiều 2 hay không | (bình luận, nhãn chiều 2), bỏ qua máy | kappa từng nhãn; đồng ý dương |
+| Thái độ | (bình luận, nhãn chiều 2) mà cả hai cùng gán; giá trị `tich_cuc`/`tieu_cuc`/`so_sanh`/`khong_danh_gia` (có thể nhiều) | kappa |
 | Máy | bộ nhãn khớp nhau theo khía cạnh và cảm xúc | đồng ý thô |
-| Đã dùng máy, loại lỗi, so sánh | bộ nhãn khớp | đồng ý thô (thường ít ca, chỉ báo cáo số) |
+| So sánh (bên hơn) | bộ nhãn khớp | đồng ý thô (thường ít ca, chỉ báo cáo số) |
 
-**Ngưỡng:** kappa ≥ 0,6 cho có khía cạnh và cảm xúc. Dưới ngưỡng thì dừng, sửa guideline, hiệu chỉnh lại, không gán tiếp. Kappa cao chỉ cho thấy hai người **nhất quán**, không chứng minh nhãn đúng: vẫn đọc các ví dụ lệch.
+**Ngưỡng:** kappa ≥ 0,6 cho có nhãn chiều 2 và thái độ. Dưới ngưỡng thì dừng, sửa guideline, hiệu chỉnh lại, không gán tiếp. Kappa cao chỉ cho thấy hai người **nhất quán**, không chứng minh nhãn đúng: vẫn đọc các ví dụ lệch.
 
 ## 8. Phân xử và nhãn chuẩn
 
-- Mọi bình luận gán đôi có chỗ lệch thì người thứ ba (không phải một trong hai người gán) đọc cả hai phiếu và quyết. Kết quả phân xử là **nhãn chuẩn**.
+- `python -m src.labeling.check_sheet gop` gộp mọi phiếu: hai người khớp nhau thì thành nhãn chuẩn; lệch thì ghi vào `data/labels/so_phan_xu.csv`.
+- Mọi bình luận gán đôi có chỗ lệch thì người thứ ba (không phải một trong hai người gán) đọc cả hai phiếu và quyết, điền các cột `px_*` trong sổ phân xử rồi chạy lại `gop`. Kết quả phân xử là **nhãn chuẩn**.
 - Ghi lại từng chỗ lệch và cách quyết vào sổ phân xử. Lệch lặp lại từ 3 lần thì thêm ví dụ vào guideline.
 - **Ghi ra bảng `gold_labels`** ([thiết kế dữ liệu mục 7](../0-chung/thiet-ke-du-lieu.md#7-gold_labels), giữ nguyên định dạng):
-  - mỗi bộ nhãn một dòng: `clause_id = <comment_id>#<mệnh đề bằng chứng>`, `aspects = [{aspect, sentiment}]`, cùng `target_model`, `is_owner`, `defect_type`, `compare_with`, `compare_winner`;
+  - mỗi bộ nhãn một dòng: `clause_id = <comment_id>#<mệnh đề bằng chứng>`, `aspects = [{aspect, sentiment}]` theo mã của contract v3, cùng `target_model`, `is_owner`, `model_mention`, `compare_with`, `compare_winner` (từ cách ghi `@a>b`, `@a~b`);
   - `split` theo video;
   - `label_source = "human"`, `annotator` là người phân xử hoặc người gán.
-- `target_model`:
-  - `video` trên phiếu → ghi máy của video, cộng một cột phụ `may_tu_video = true`;
-  - `?` → `null`.
-
-  Cột phụ này cho Công việc 10 biết bao nhiêu nhận xét chỉ dựa vào máy của video (quyết định 2 của kế hoạch).
-- Ba nhãn cấp bình luận (`tieng_viet`, `spam`, `lien_quan`) không có trong `gold_labels`. Ghi riêng ở `data/labels/nhan_binh_luan.jsonl`, mỗi bình luận một dòng.
+- `target_model`: theo `ten_may` và `@mã máy` trên phiếu. Bình luận không gọi tên máy nào thì để `null`; người gán không đoán theo video (hướng dẫn gán mục 9). Lúc phân tích, nhóm quyết có coi là máy của video hay không (quyết định 2 của kế hoạch).
+- Nhãn cấp bình luận (`tieng_viet`, `lien_quan`, `muc_dich`, `da_dung`, `may_nhac`, `ten_may`) không có trong `gold_labels`. Ghi riêng ở `data/labels/nhan_binh_luan.jsonl`, mỗi bình luận một dòng (cả `noi_ve` để dựng `gold_labels`).
 
 ## 9. File và script
 
 | File | Nội dung | Có chưa |
 |---|---|---|
-| `data/labels/mau_a.jsonl`, `mau_b_test.jsonl`, `mau_b_train.jsonl` | Danh sách bình luận được chọn, tầng, trọng số, seed, SHA-256 nguồn | Chưa |
-| `data/labels/phieu/<mau>_<nguoi_gan>.csv` | Phiếu đã gán | Chưa |
-| `data/labels/so_phan_xu.csv` | Chỗ lệch và cách quyết | Chưa |
-| `data/labels/gold_labels.jsonl`, `nhan_binh_luan.jsonl` | Nhãn chuẩn sau phân xử | Chưa |
+| `data/labels/mau_a.jsonl`, `mau_a.manifest.json` | Bình luận mẫu A được chọn, tầng, `N_h`, `n_h`, trọng số, ai gán, cờ của luật; seed, SHA-256 nguồn | Có code (`sheet.py`), chờ chạy trên v4 |
+| `data/labels/mau_b_test.jsonl`, `mau_b_train.jsonl` | Mẫu B | Chưa (chờ `split.json`) |
+| `data/labels/phieu/hieu_chinh_50.csv\|.xlsx`, `mau_a_<nguoi_gan>.csv\|.xlsx`, `danh_sach_nhan.csv`, `danh_muc_may.csv` | Phiếu trống, danh sách nhãn, danh mục máy | Có code (`sheet.py`) |
+| `data/labels/so_phan_xu.csv` | Chỗ lệch, cột `px_*` cho người phân xử | Có code (`check_sheet.py gop`) |
+| `data/labels/nhan_binh_luan.jsonl`, `dong_thuan.json` | Nhãn chuẩn sau phân xử; đồng thuận mục 7 | Có code (`check_sheet.py gop`) |
+| `data/labels/gold_labels.jsonl` | Bảng `gold_labels` | Chưa |
+| `data/labels/uoc_luong_mau_a.json` | Các ước lượng mục 3, precision và recall của luật | Có code (`estimate.py`) |
 | `data/labels/split.json` | Video train/test (CV7) | Chưa |
-| Script lấy mẫu A, B và xuất phiếu | Đọc file tầng 2, `split.json`; ghi file mẫu và phiếu trống | Chưa viết |
-| Script kiểm phiếu | Bắt lỗi cú pháp `nhan`, mã khía cạnh, mã máy, số mệnh đề không tồn tại, cột bỏ trống | Chưa viết |
-| Script đồng thuận | Tính các chỉ số ở mục 7 | Chưa viết |
-| Script ước lượng | Tính các ước lượng, khoảng tin cậy ở mục 3 | Chưa viết |
+| `src/labeling/sheet.py` | Lấy mẫu A, đợt hiệu chỉnh, xuất phiếu; không ghi đè phiếu đã có người điền | Đã viết 26/11 |
+| `src/labeling/check_sheet.py` | `kiem`: bắt lỗi cú pháp, mã nhãn, `@mã máy`, luật tự kiểm của hướng dẫn gán mục 10. `gop`: gộp, sổ phân xử, đồng thuận | Đã viết 26/11 |
+| `src/labeling/estimate.py`, `weighted_metrics.py` | Ước lượng mục 3 (công thức phân tầng; bootstrap phân tầng theo video khi tầng có tỷ lệ 0, 1 hay dưới 5 ca), đo luật | Đã viết 26/11 |
+| Script lấy mẫu B | Đọc file tầng 2, `split.json` | Chưa viết |
 
-`data/` không vào git: chia sẻ phiếu và nhãn qua kho chung của nhóm, ghi SHA-256 vào báo cáo. Code các script đặt trong thư mục code mới `src/labeling/` (thêm vào quy tắc đặt tên khi tạo).
+`data/` không vào git: chia sẻ phiếu và nhãn qua kho chung của nhóm, ghi SHA-256 vào báo cáo. Code các script ở `src/labeling/`; test ở `tests/test_labeling_sheet.py`.

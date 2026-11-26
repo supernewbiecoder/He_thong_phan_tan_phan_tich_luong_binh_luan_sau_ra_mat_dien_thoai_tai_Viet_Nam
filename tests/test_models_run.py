@@ -1,4 +1,4 @@
-"""Mục đích: Kiểm bước suy luận theo bình luận (src/models/run.py và các luật mốc, docs/4-mo-hinh/dac-ta-suy-luan.md), kể cả việc đầu ra qua được bước kiểm đầu vào của Công việc 12; cập nhật lần cuối: 2026-11-20.
+"""Mục đích: Kiểm bước suy luận theo bình luận (src/models/run.py và các luật mốc, docs/4-mo-hinh/dac-ta-suy-luan.md), kể cả việc đầu ra qua được bước kiểm đầu vào của Công việc 12; cập nhật lần cuối: 2026-11-26.
 
 Chỉ dùng câu và danh mục máy tự soạn. Chạy: python -m pytest tests/test_models_run.py
 """
@@ -11,7 +11,7 @@ from pathlib import Path
 
 from src.models import run as SL
 from src.models.aspect.keywords import khia_canh
-from src.models.owner_defect import da_dung_may, loai_loi
+from src.models.owner_defect import da_dung_may
 from src.models.sentiment.rules import NEG, NEU, POS, cam_xuc
 from src.models.target_model import (BINH_LUAN_CHA, KHONG_RO, MENH_DE, MENH_DE_TRUOC, VIDEO, BoNhanMay,
                                      so_ngay_tu_ra_mat, xac_dinh_may)
@@ -45,7 +45,9 @@ def gon(mentions):
 
 class LuatMoc(unittest.TestCase):
     def test_khia_canh(self):
-        self.assertEqual(khia_canh("Pin trâu, cam đẹp"), ["BATTERY", "CAMERA"])
+        self.assertEqual(khia_canh("Pin trâu, cam đẹp"), ["pin_sac", "camera"])
+        self.assertEqual(khia_canh("rơi một lần là nứt, nhưng màu tím đẹp"), ["thiet_ke", "do_ben"])
+        self.assertEqual(khia_canh("bảo hành chính hãng hay xách tay, trả góp được không"), ["mua_ban", "bao_hanh_sua_chua"])
         self.assertEqual(khia_canh("trẻ trâu quá, cam on anh"), [])
 
     def test_cam_xuc(self):
@@ -54,13 +56,15 @@ class LuatMoc(unittest.TestCase):
         for s, nhan in ca.items():
             self.assertEqual(cam_xuc(s), nhan, s)
 
-    def test_da_dung_va_loai_loi(self):
+    def test_da_dung(self):
         self.assertTrue(da_dung_may("mình dùng được 2 tháng rồi"))
         self.assertIsNone(da_dung_may("anh dùng thử chưa"))
-        self.assertEqual(loai_loi("BATTERY", "pin hao quá"), "BATTERY_DRAIN")
-        self.assertEqual(loai_loi("PERFORMANCE", "máy nóng quá"), "OVERHEAT")
-        self.assertEqual(loai_loi("PERFORMANCE", "chơi game lag"), "LAG")
-        self.assertIsNone(loai_loi("DISPLAY", "màn tối"))
+
+    def test_may_duoc_nhac(self):
+        self.assertEqual(SL.may_duoc_nhac("s26 ultra pin trâu", [["s26u"]]), "goi_ten_may")
+        self.assertEqual(SL.may_duoc_nhac("note 99 pin trâu", [[]]), "goi_ten_may")   # có số đời, ngoài danh mục
+        self.assertEqual(SL.may_duoc_nhac("samsung pin trâu", [[]]), "chi_hang")
+        self.assertEqual(SL.may_duoc_nhac("con này pin trâu", [[]]), "khong_nhac")
 
     def test_nhan_may(self):
         self.assertEqual(NHAN_MAY.tim("iPhone 17 Pro Max pin trâu hơn S26 Ultra"), ["ip17prm", "s26u"])
@@ -83,17 +87,17 @@ class LuatMoc(unittest.TestCase):
 class SuyLuanBinhLuan(unittest.TestCase):
     def test_may_lay_tu_menh_de_truoc(self):
         m = SL.suy_luan_binh_luan(ban_ghi("c1", "iPhone 17 Pro Max thì pin trâu, camera đẹp"), NHAN_MAY)
-        self.assertEqual(gon(m), [("ip17prm", "BATTERY", POS, 0), ("ip17prm", "CAMERA", POS, 1)])
+        self.assertEqual(gon(m), [("ip17prm", "camera", POS, 1), ("ip17prm", "pin_sac", POS, 0)])
 
     def test_cung_khia_canh_vua_khen_vua_che(self):
         m = SL.suy_luan_binh_luan(ban_ghi("c2", "camera ngày đẹp, đêm thì chụp kém"), NHAN_MAY)
-        self.assertEqual(gon(m), [("s26u", "CAMERA", NEG, 1), ("s26u", "CAMERA", POS, 0)])
+        self.assertEqual(gon(m), [("s26u", "camera", POS, 0), ("s26u", "camera", NEG, 1)])
 
     def test_moi_may_khia_canh_mot_phieu(self):
         m = SL.suy_luan_binh_luan(ban_ghi("c3", "pin tốt, pin trâu, pin ngon"), NHAN_MAY)
-        self.assertEqual(gon(m), [("s26u", "BATTERY", POS, 0)])
+        self.assertEqual(gon(m), [("s26u", "pin_sac", POS, 0)])
         m = SL.suy_luan_binh_luan(ban_ghi("c4", "camera 200mp, chụp đẹp"), NHAN_MAY)
-        self.assertEqual(gon(m), [("s26u", "CAMERA", POS, 1)])   # có khen thì bỏ dòng trung tính
+        self.assertEqual(gon(m), [("s26u", "camera", POS, 1)])   # có khen thì bỏ dòng trung tính
 
     def test_bo_qua_spam_ngoai_ngu_rong(self):
         for text in ["pin trâu, liên hệ zalo 0912345678", "nice phone battery bro", "   ", "😂😂"]:
@@ -120,9 +124,12 @@ class SuyLuanBinhLuan(unittest.TestCase):
             self.assertEqual(validate_schema(x, v), [], x)
             self.assertEqual(x["clause_text"], rec["clauses"][x["clause_idx"]]["text"])
             self.assertEqual(x["mention_id"], f"{x['comment_id']}#{x['clause_idx']}#{x['aspect']}")
-        pin = next(x for x in m if x["aspect"] == "BATTERY")
+        pin = next(x for x in m if x["aspect"] == "pin_sac")
         self.assertEqual((pin["sentiment"], pin["defect_type"], pin["is_owner"], pin["days_since_launch"]),
-                         (NEG, "BATTERY_DRAIN", True, 4))
+                         (NEG, None, True, 4))
+        self.assertEqual((pin["purposes"], pin["model_mention"], pin["target_model_source"]),
+                         (None, "goi_ten_may", MENH_DE))
+        self.assertEqual((pin["schema_version"], pin["model_version"]), (3, "rule-v1.1"))
 
 
 class QuaKiemTraCV12(unittest.TestCase):

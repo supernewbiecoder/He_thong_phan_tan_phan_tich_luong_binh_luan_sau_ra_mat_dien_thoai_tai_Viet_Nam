@@ -1,0 +1,174 @@
+/* Mục đích: Giao diện dashboard; màu theo vai trò, có bản sáng và tối. Cập nhật lần cuối: 2026-11-17. */
+:root {
+  color-scheme: light;
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --muted: #898781;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --praise: #2a78d6;
+  --criticism: #e34948;
+  --neutral-mid: #f0efec;
+  --warn-bg: #fff4d6;
+  --warn-ink: #5c4200;
+  --warn-border: #eda100;
+  --seq-1: #cde2fb; --seq-2: #9ec5f4; --seq-3: #6da7ec; --seq-4: #3987e5; --seq-5: #256abf; --seq-6: #104281;
+  --critical: #d03b3b;
+  --good: #006300;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #1a1a19;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --muted: #898781;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --praise: #3987e5;
+    --criticism: #e66767;
+    --neutral-mid: #383835;
+    --warn-bg: #3a2c05;
+    --warn-ink: #f5dd9a;
+    --warn-border: #c98500;
+    --seq-1: #0d366b; --seq-2: #184f95; --seq-3: #256abf; --seq-4: #3987e5; --seq-5: #6da7ec; --seq-6: #b7d3f6;
+    --critical: #e66767;
+    --good: #0ca30c;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+a { color: inherit; }
+h1 { font-size: 20px; margin: 0; }
+h2 { font-size: 15px; margin: 0; }
+h3 { font-size: 13px; margin: 0 0 6px; color: var(--ink-2); font-weight: 600; }
+p { margin: 0; }
+
+.page-head { padding: 20px 24px 0; max-width: 1280px; margin: 0 auto; }
+.head-row { display: flex; gap: 16px; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; }
+.sub { color: var(--ink-2); margin-top: 2px; }
+.filters { display: flex; gap: 12px; flex-wrap: wrap; }
+.filters label { display: grid; gap: 2px; font-size: 12px; color: var(--ink-2); }
+select {
+  font: inherit; color: var(--ink); background: var(--surface);
+  border: 1px solid var(--axis); border-radius: 6px; padding: 5px 8px; min-width: 190px;
+}
+
+.banner {
+  margin-top: 14px; padding: 10px 14px; border-radius: 8px;
+  background: var(--warn-bg); color: var(--warn-ink); border: 1px solid var(--warn-border);
+}
+.banner strong { letter-spacing: 0.04em; }
+.banner ul { margin: 4px 0 0; padding-left: 20px; }
+.banner.error { background: transparent; color: var(--critical); border-color: var(--critical); }
+
+.tabs { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--grid); overflow-x: auto; }
+.tabs button {
+  font: inherit; font-weight: 600; color: var(--ink-2); background: none; border: 0;
+  border-bottom: 2px solid transparent; padding: 8px 12px; cursor: pointer; white-space: nowrap;
+}
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--series-1); }
+.tabs button:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+
+main { max-width: 1280px; margin: 0 auto; padding: 16px 24px 8px; }
+.tab-panel { display: grid; gap: 16px; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.tab-panel[hidden] { display: none; }
+.card {
+  grid-column: span 12; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; min-width: 0;
+}
+.card.half { grid-column: span 6; }
+@media (max-width: 900px) { .card.half { grid-column: span 12; } }
+.card-head { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 4px; }
+.card-note { color: var(--ink-2); font-size: 13px; margin-bottom: 12px; max-width: 80ch; }
+.question { color: var(--muted); font-size: 12px; font-weight: 600; }
+
+.chip {
+  display: inline-block; font-size: 11px; font-weight: 600; line-height: 1.5; padding: 0 7px;
+  border-radius: 10px; border: 1px solid var(--axis); color: var(--ink-2);
+}
+.chip.illustrative { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-border); }
+.chip.strong { border-color: var(--ink); color: var(--ink); }
+
+.tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.tile { border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+.tile .value { font-size: 24px; font-weight: 650; line-height: 1.2; }
+.tile .label { color: var(--ink-2); font-size: 12px; }
+.tile .hint { color: var(--muted); font-size: 11px; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { color: var(--ink-2); font-weight: 600; font-size: 12px; white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.dim td { color: var(--muted); }
+.swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: baseline; }
+
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+/* Mỗi biểu đồ tự đặt min/max-width theo kích thước thiết kế để chữ trong SVG giữ cỡ đọc được. */
+.chart-wrap { overflow-x: auto; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { fill: var(--ink-2); font-size: 12px; }
+.chart .tick { fill: var(--muted); font-size: 11px; }
+.chart .value { fill: var(--ink); font-variant-numeric: tabular-nums; }
+.chart .grid { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: var(--axis); stroke-width: 1; }
+.chart .hit { fill: transparent; cursor: default; }
+
+.toggle { display: inline-flex; border: 1px solid var(--axis); border-radius: 6px; overflow: hidden; margin-bottom: 10px; }
+.toggle button { font: inherit; font-size: 12px; padding: 4px 10px; border: 0; background: none; color: var(--ink-2); cursor: pointer; }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--surface); }
+
+.heat { border-collapse: separate; border-spacing: 2px; }
+.heat th, .heat td { border: 0; }
+.heat td.cell { text-align: center; border-radius: 4px; min-width: 96px; padding: 8px 6px; font-variant-numeric: tabular-nums; }
+.heat td.cell.low { background: repeating-linear-gradient(135deg, transparent 0 6px, var(--grid) 6px 7px); color: var(--muted); }
+.heat td.s1 { background: var(--seq-1); } .heat td.s2 { background: var(--seq-2); } .heat td.s3 { background: var(--seq-3); }
+.heat td.s4 { background: var(--seq-4); } .heat td.s5 { background: var(--seq-5); } .heat td.s6 { background: var(--seq-6); }
+/* Chữ trong ô: tối trên nền nhạt, trắng trên nền đậm (bản sáng); ngược lại ở bản tối. */
+.heat td.s1, .heat td.s2, .heat td.s3 { color: #0b0b0b; }
+.heat td.s4, .heat td.s5, .heat td.s6 { color: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  .heat td.s1, .heat td.s2, .heat td.s3, .heat td.s4 { color: #ffffff; }
+  .heat td.s5, .heat td.s6 { color: #0b0b0b; }
+}
+.heat td.cell small { display: block; font-size: 11px; opacity: 0.85; }
+
+details.samples { margin-top: 4px; }
+details.samples summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.quote { border-left: 3px solid var(--axis); padding: 2px 10px; margin: 6px 0; font-size: 13px; }
+.quote.neg { border-left-color: var(--criticism); }
+.quote.pos { border-left-color: var(--praise); }
+.quote .meta { color: var(--muted); font-size: 11px; }
+
+.empty { color: var(--ink-2); padding: 18px; border: 1px dashed var(--axis); border-radius: 8px; }
+.empty code, .card-note code { font-size: 12px; background: var(--neutral-mid); padding: 1px 5px; border-radius: 4px; }
+
+.tooltip {
+  position: fixed; z-index: 10; pointer-events: none; max-width: 320px;
+  background: var(--ink); color: var(--surface); padding: 6px 10px; border-radius: 6px; font-size: 12px;
+}
+.tooltip b { font-weight: 650; }
+.page-foot {
+  max-width: 1280px; margin: 0 auto; padding: 12px 24px 28px; color: var(--muted); font-size: 12px;
+  display: flex; gap: 16px; justify-content: space-between; flex-wrap: wrap;
+}

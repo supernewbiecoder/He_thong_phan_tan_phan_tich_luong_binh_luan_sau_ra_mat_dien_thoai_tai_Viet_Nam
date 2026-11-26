@@ -4,17 +4,19 @@
 
 **Trạng thái: đề xuất, trưởng nhóm chưa duyệt.** Claude soạn từ kế hoạch trên `main` (20/11) và kết quả nhánh khám phá nhãn (26/11). Cột hạn để trống vì chưa biết hạn nộp đồ án. Đã chép về `main` ngày 26/11; duyệt xong thì thay mục 2 (lộ trình) của [kế hoạch](ke-hoach.md).
 
+**Cập nhật 26/11 (refactor trên nhánh `nlquan`, Nguyễn Lê Quân, theo giao việc của trưởng nhóm):** đã làm 0.4, 0.5 (phần phiếu và mẫu A), 0.6; một phần 1.4 (DB v3), 2.1 (script mẫu A, phiếu, kiểm, gộp), 5.2, 5.3. Ghi chi tiết ở các bảng dưới và ở [kế hoạch](ke-hoach.md) mục 1.
+
 ## 1. Đang đứng ở đâu (26/11)
 
 | Phần | Đã có | Còn thiếu |
 |---|---|---|
 | Dữ liệu | v4: 473.786 bình luận, 127 máy, 44 kênh, có SHA-256 | |
 | Tiền xử lý (tầng 2) | Code đủ bước trên `main` | **Chưa chạy trên v4**, chưa có file chung cho cả nhóm |
-| Bộ nhãn | **Chốt 26/11** trên nhánh khám phá: 6 chiều, 41 nhãn, 11 khía cạnh; [hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md) đã duyệt | Chưa chép về `main`. Contract, thiết kế dữ liệu, guideline v1 trên `main` vẫn theo 9 khía cạnh cũ |
+| Bộ nhãn | **Chốt 26/11**: 6 chiều, 41 nhãn, 11 khía cạnh; [hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md) đã duyệt. Đã về `main`; dạng code ở `src/labeling/final_labels.py`; contract v3 và thiết kế dữ liệu theo bộ này (26/11) | Chưa gán chính thức |
 | Nhãn người | 600 bình luận ngẫu nhiên đã gán và kiểm (dùng để tính phân bố); lô K, lô D2 gán mù | **Chưa có tập test** để chấm mô hình |
 | Mô hình | Luật mốc `rule-v1`; mô hình khía cạnh (CV8) và cảm xúc (CV9) | Chưa mô hình nào được chấm trên nhãn người của bình luận YouTube |
 | Phân tích Q1–Q5 | Code CV12: aggregates, bootstrap theo video, Holm | Viết cho bộ 4 máy, mà 26/11 đã quyết **không chọn bộ 4 máy** |
-| DB, dashboard, streaming | MongoDB theo contract v1 (cũ); Kafka 1 node để dev | Dashboard chưa có; Spark, cụm Kafka chưa dựng |
+| DB, dashboard, streaming | MongoDB theo contract v3, nạp bằng bước `nap_db` (26/11); API + dashboard 4 tab đọc DB, số liệu minh họa (26/11); Kafka 1 node để dev | Spark, cụm Kafka chưa dựng |
 | Git | | `main` và `kham-pha-nhan` **chưa push**; nhánh khám phá **chưa commit** |
 
 **Nhánh khám phá đổi những gì cho các bước sau** (số từ [báo cáo phân bố](../3-gan-nhan/bao-cao-phan-bo-nhan.md), mẫu 600 bình luận ngẫu nhiên của v4, khoảng tin cậy 95% bootstrap theo video):
@@ -56,9 +58,9 @@ GĐ6 Báo cáo                          (mọi người)
 | 0.1 | Commit nhánh `kham-pha-nhan`; push `main` và `kham-pha-nhan` | Hai nhánh trên GitHub | Cả nhóm clone được |
 | 0.2 | Chép về `main` bằng cách chép file (không merge): đặc tả bộ nhãn, hướng dẫn gán chính thức, các báo cáo, `src/labeling/` và test | Thư mục `docs/3-gan-nhan/`, `src/labeling/` trên `main` | Test của `main` và của `src/labeling/` đều qua |
 | 0.3 | Sửa `muc-tieu.md`: bỏ bộ 4 máy, viết lại Q1–Q6 theo mục 5 dưới đây | `muc-tieu.md` mới | Trưởng nhóm duyệt |
-| 0.4 | Contract `aspect-mention` lên v3 và sửa thiết kế dữ liệu theo bộ nhãn chốt: 11 mã khía cạnh, `may_chung`, `hang_nguoi_dung`, thái độ `so_sanh` kèm bên hơn, `ten_may`, `tieng_viet`; có giữ mục đích hay không thì theo quyết định 5 | Contract v3, `thiet-ke-du-lieu.md` | Tăng `schema_version`, báo cả nhóm |
-| 0.5 | Sửa đặc tả gán nhãn trên `main` theo bộ nhãn chốt; thay guideline v1 bằng hướng dẫn gán chính thức | `docs/3-gan-nhan/dac-ta.md` mới | Không còn hai bộ nhãn song song |
-| 0.6 | Sửa từ khóa của luật mốc `rule-v1` theo 11 khía cạnh (lấy từ ánh xạ trong `label_set.py`) | `rule-v1.1` | Luật mốc và bộ nhãn dùng cùng mã |
+| 0.4 | Contract `aspect-mention` lên v3 và sửa thiết kế dữ liệu theo bộ nhãn chốt: 11 mã khía cạnh, `may_chung`, `hang_nguoi_dung`, thái độ `so_sanh` kèm bên hơn, `ten_may`, `tieng_viet`; có giữ mục đích hay không thì theo quyết định 5 | Contract v3, `thiet-ke-du-lieu.md` | Tăng `schema_version`, báo cả nhóm. **Xong 26/11:** v3 giữ mục đích (`purposes`), thêm `model_mention`, `target_model_source`; `defect_type` luôn `null`; `ten_may` ghi qua `target_model`/`compare_with`, `tieng_viet` qua cờ `is_vietnamese` của bình luận |
+| 0.5 | Sửa đặc tả gán nhãn trên `main` theo bộ nhãn chốt; thay guideline v1 bằng hướng dẫn gán chính thức | `docs/3-gan-nhan/dac-ta.md` mới | Không còn hai bộ nhãn song song. **Xong phần phiếu và mẫu A 26/11** (mục 5, 9 của đặc tả gán nhãn); phần mẫu B còn theo bộ 4 máy |
+| 0.6 | Sửa từ khóa của luật mốc `rule-v1` theo 11 khía cạnh (lấy từ ánh xạ trong `label_set.py`) | `rule-v1.1` | Luật mốc và bộ nhãn dùng cùng mã. **Xong 26/11** ([đặc tả suy luận](../4-mo-hinh/dac-ta-suy-luan.md)) |
 
 **Vì sao làm trước:** mọi việc sau (gán nhãn, mô hình, DB, phân tích) đều đọc bộ nhãn. Làm khi `main` còn hai bộ nhãn thì mỗi nhóm theo một bộ.
 
@@ -180,7 +182,7 @@ Ngày 26/11 trưởng nhóm quyết không chọn bộ 4 máy, dòng máy nào c
 | 2 | Môn học có bắt buộc phần hệ thống phân tán (Kafka, Spark streaming) không | Làm hay bỏ 5.4; nhóm A cần bao nhiêu người |
 | 3 | Dùng LLM nào để gán phần huấn luyện, và có được gửi chữ bình luận ra dịch vụ ngoài không (hiện chỉ cho Claude trong phiên của trưởng nhóm) | 2.5 |
 | 4 | Thử PhoBERT trước, hay đi từ mô hình đơn giản lên | Thứ tự trong GĐ3 |
-| 5 | Contract v3 có giữ chiều mục đích không (giúp lọc bình luận có ý kiến, nhưng thêm việc gán) | 0.4, 2.4, 3.6 |
+| 5 | Contract v3 có giữ chiều mục đích không (giúp lọc bình luận có ý kiến, nhưng thêm việc gán). **Đã chốt 26/11: giữ** | 0.4, 2.4, 3.6 |
 | 6 | Cách đặt lại Q1–Q6 ở mục 5 | 0.3, GĐ4 |
 | 7 | Dùng lại 600 bình luận của nhánh khám phá làm mẫu chất lượng dữ liệu (2.3) | Bớt khoảng 850 bình luận phải gán |
 | 8 | Ai nhận việc nào (điền tên vào mục 4) | Mọi giai đoạn |

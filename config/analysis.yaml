@@ -8,10 +8,10 @@ rival_models:
 timezone: Asia/Ho_Chi_Minh
 window_days: 28
 
-# Baseline đang có trong src/storage/seed_db.py trên nhánh database.
-# Demo cũng dùng tên phiên bản này nhưng luôn được đánh dấu data_kind=fixture.
+# Chỉ dùng cho --demo và test (fixture ghi rule-v0, luôn đánh dấu data_kind=fixture).
+# python -m src.run luôn truyền --model-version bằng MODEL_VERSION của bước suy luận (hiện rule-v1.1).
 expected_model_version: rule-v0
-# Contract v2: clause_idx là vị trí mảng từ 0, độc lập với clause_id từ 1 của cleaner.
+# Contract v3 (như v2): clause_idx là vị trí mảng từ 0 trong comments.clauses.
 clause_reference: position
 clause_text_field: text
 # Chỉ tạo cảnh báo, không loại mention có confidence thấp.

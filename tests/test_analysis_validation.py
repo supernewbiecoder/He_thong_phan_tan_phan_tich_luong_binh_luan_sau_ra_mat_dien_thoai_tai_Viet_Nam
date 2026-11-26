@@ -88,7 +88,7 @@ def test_duplicate_does_not_inflate_counts(config, catalog, validator):
 @pytest.mark.parametrize("reverse", [False, True])
 def test_conflicting_labels_quarantine_every_member(reverse, config, catalog, validator):
     record, comments = base_context(config)
-    changed = {**record, "sentiment": "neg"}
+    changed = {**record, "sentiment": "tieu_cuc"}
     records = [record, changed]
     if reverse:
         records.reverse()
@@ -99,7 +99,7 @@ def test_conflicting_labels_quarantine_every_member(reverse, config, catalog, va
 
 def test_old_version_cannot_conflict_with_selected_version(config, catalog, validator):
     record, comments = base_context(config)
-    old = {**record, "model_version": "old-v0", "sentiment": "neg"}
+    old = {**record, "model_version": "old-v0", "sentiment": "tieu_cuc"}
     results = validate_records([record, old], comments, catalog, config, validator)
     assert [r.status for r in results] == ["accepted", "excluded"]
 
@@ -117,7 +117,7 @@ def test_target_may_differ_from_video_model(config, catalog, validator):
 @pytest.mark.parametrize("winner,expected", [("target", "loss"), ("other", "win"), ("tie", "tie")])
 def test_comparison_direction_is_normalized_to_x(winner, expected, config, catalog, validator):
     record, comment = fixture_case(PAYLOAD, {"name": "reverse_comparison"})
-    record.update(target_model="ip14prm", compare_with="s23u", compare_winner=winner,
+    record.update(target_model="ip14prm", compare_with="s23u", compare_winner=winner, sentiment="so_sanh",
                   published_at="2022-09-16T01:00:00Z", days_since_launch=0)
     comment["published_at"] = record["published_at"]
     result = validate_record(record, index_comments([comment], config), catalog, config, validator=validator)
@@ -127,7 +127,7 @@ def test_comparison_direction_is_normalized_to_x(winner, expected, config, catal
 
 def test_q5_denominator_keeps_unknown_owner_and_neutral(config, catalog, validator):
     record, comments = base_context(config)
-    record.update(is_owner=None, sentiment="neu")
+    record.update(is_owner=None, sentiment="khong_danh_gia")
     result = validate_record(record, comments, catalog, config, validator=validator)
     assert result.status == "accepted"
     assert result.record["is_owner"] is None
@@ -192,7 +192,8 @@ def test_default_config_selects_existing_rule_baseline(config):
 
 @pytest.mark.parametrize("field", [
     "author_hash", "author_is_creator", "parent_id", "confidence", "is_owner",
-    "defect_type", "compare_with", "compare_winner", "days_since_launch",
+    "defect_type", "compare_with", "compare_winner", "days_since_launch", "purposes", "model_mention",
+    "target_model_source",
 ])
 def test_v2_requires_nullable_fields_to_be_present(field, config, catalog, validator):
     record, comments = base_context(config)
@@ -232,7 +233,7 @@ def test_old_contract_cannot_be_selected_to_bypass_v2(kind, tmp_path):
     elif kind == "unversioned_property":
         schema["properties"]["schema_version"] = True
     path.write_text(json.dumps(schema), encoding="utf-8")
-    with pytest.raises(InputError, match="contract v2"):
+    with pytest.raises(InputError, match="contract v3"):
         load_schema_validator(path)
 
 
@@ -240,8 +241,8 @@ def test_second_clause_is_selected_by_array_position_and_original_text(config, c
     record, comment = fixture_case(PAYLOAD, {"name": "second_clause"})
     comment["clauses"].append({"clause_id": 2, "text": "Camera rất tốt", "text_norm": "camera rất tốt"})
     comment["clause_count"] = 2
-    record.update(clause_idx=1, clause_text=comment["clauses"][1]["text"], aspect="CAMERA")
-    record["mention_id"] = f"{record['comment_id']}#1#CAMERA"
+    record.update(clause_idx=1, clause_text=comment["clauses"][1]["text"], aspect="camera")
+    record["mention_id"] = f"{record['comment_id']}#1#camera"
     comments = index_comments([comment], config)
     assert validate_record(record, comments, catalog, config, validator=validator).status == "accepted"
     record["clause_text"] = comment["clauses"][0]["text"]
@@ -262,16 +263,16 @@ def test_creator_flag_must_match_source_before_filtering(config, catalog, valida
     assert result.status == "excluded" and result.issues[0].code == "AUTHOR_IS_CREATOR"
 
 
-def test_unknown_comparison_model_is_rejected_by_v2_semantics(config, catalog, validator):
+def test_unknown_comparison_model_is_rejected_by_v3_semantics(config, catalog, validator):
     record, comments = base_context(config)
-    record.update(compare_with="unknown_phone", compare_winner="target")
+    record.update(compare_with="unknown_phone", compare_winner="target", sentiment="so_sanh")
     result = validate_record(record, comments, catalog, config, validator=validator)
     assert result.status == "rejected" and result.issues[0].code == "UNKNOWN_COMPARISON_MODEL"
 
 
 def test_known_model_outside_analysis_scope_only_excludes_q3b(config, catalog, validator):
     record, comments = base_context(config)
-    record.update(compare_with="mi11", compare_winner="target")
+    record.update(compare_with="mi11", compare_winner="target", sentiment="so_sanh")
     result = validate_record(record, comments, catalog, config, validator=validator)
     assert result.status == "accepted" and result.analysis["eligible_q1"]
     assert not result.analysis["eligible_q3b"]
@@ -296,21 +297,21 @@ def test_negation_warns_without_changing_the_baseline_label(config, catalog, val
     record, comment = fixture_case(PAYLOAD, case)
     original = deepcopy(record)
     result = validate_record(record, index_comments([comment], config), catalog, config, validator=validator)
-    assert result.record == original and result.record["sentiment"] == "pos"
+    assert result.record == original and result.record["sentiment"] == "tich_cuc"
     assert "NEGATION_REVIEW_REQUIRED" in {i.code for i in result.issues}
     assert result.analysis["requires_label_review"] is True
 
 
 def test_multilabel_mentions_remain_separate_from_duplicates(config, catalog, validator):
     record, comments = base_context(config)
-    camera = {**record, "aspect": "CAMERA", "sentiment": "neg"}
-    camera["mention_id"] = f"{camera['comment_id']}#{camera['clause_idx']}#CAMERA"
+    camera = {**record, "aspect": "camera", "sentiment": "tieu_cuc"}
+    camera["mention_id"] = f"{camera['comment_id']}#{camera['clause_idx']}#camera"
     results = validate_records([record, camera], comments, catalog, config, validator)
     assert [r.status for r in results] == ["accepted", "accepted"]
-    assert [r.record["sentiment"] for r in results] == ["pos", "neg"]
+    assert [r.record["sentiment"] for r in results] == ["tich_cuc", "tieu_cuc"]
     report = build_report(results)
     assert report["multi_aspect_clause_count"] == 1
-    assert report["accepted_by_aspect"] == {"BATTERY": 1, "CAMERA": 1}
+    assert report["accepted_by_aspect"] == {"pin_sac": 1, "camera": 1}
 
 
 @pytest.mark.parametrize("text,expected", [
@@ -375,7 +376,7 @@ def test_owner_false_is_preserved_and_not_dropped_from_q5_denominator(config, ca
 
 def test_rule_comparison_keeps_direction_but_exposes_manual_review(config, catalog, validator):
     record, comments = base_context(config)
-    record.update(compare_with="ip14prm", compare_winner="other")
+    record.update(compare_with="ip14prm", compare_winner="other", sentiment="so_sanh")
     result = validate_record(record, comments, catalog, config, validator=validator)
     assert result.analysis["eligible_q3b"] is True
     assert result.analysis["x_comparison_outcome"] == "loss"
@@ -445,7 +446,7 @@ def test_cli_demo_valid_artifacts_and_reproducibility(tmp_path, validator):
     assert set(p.name for p in output.iterdir()) == set(OUTPUT_NAMES)
     report = json.loads((output / "validation_report.json").read_text(encoding="utf-8"))
     assert report["status"] == "passed" and report["data_kind"] == "fixture"
-    assert report["mention_schema_version"] == 2
+    assert report["mention_schema_version"] == 3
     assert report["counts"]["accepted"] == 1
     assert report["label_accuracy_verified"] is False
     assert report["usage"] == "exploratory_only"
@@ -454,7 +455,7 @@ def test_cli_demo_valid_artifacts_and_reproducibility(tmp_path, validator):
     assert not validate_schema(record, validator)
     assert "eligible_q1" not in record and "week_since_launch" not in record
     index = read_jsonl(output / "analysis_index.jsonl")[0]
-    assert record["schema_version"] == index["schema_version"] == 2
+    assert record["schema_version"] == index["schema_version"] == 3
     assert record["clause_idx"] == index["clause_idx"] == 0
     assert index["author_hash"] == record["author_hash"] and index["parent_id"] is None
     assert index["days_since_launch"] == 0 and index["week_since_launch"] == 1

@@ -1,6 +1,6 @@
 # Đặc tả bước 2.4: gắn cờ tiếng Việt và spam
 
-> Mục đích: Quy định cách gắn `is_vietnamese`, `is_spam`, `spam_reasons` cho từng bình luận bằng luật: dấu hiệu nào, ngưỡng nào, cái gì cố ý không tính; cập nhật lần cuối: 2026-11-20.
+> Mục đích: Quy định cách gắn `is_vietnamese`, `is_spam`, `spam_reasons` cho từng bình luận bằng luật: dấu hiệu nào, ngưỡng nào, cái gì cố ý không tính; cập nhật lần cuối: 2026-11-26.
 
 **Code:** `src/processing/flags.py`, hàm `gan_co` (gồm `nhan_tieng_viet`, `ly_do_spam`). **Test:** `tests/test_processing_flags.py`. Đầu vào, đầu ra và phiên bản chung của tầng 2: [dac-ta.md](dac-ta.md).
 
@@ -8,7 +8,7 @@
 
 Bước suy luận bỏ qua bình luận spam và bình luận không phải tiếng Việt ([thiết kế dữ liệu mục 4](../0-chung/thiet-ke-du-lieu.md#4-aspect_mentions)). Công việc 12 cũng bắt buộc file bình luận có hai cờ này. Hai cờ **tách riêng**: bình luận tiếng nước ngoài không bị tính là spam, để tỷ lệ spam báo cáo ra không lẫn chuyện ngôn ngữ.
 
-Đây là **luật mốc, chưa đo độ chính xác.** Công việc 11 đo precision/recall bằng nhãn người của mẫu A ([đặc tả gán nhãn mục 3](../3-gan-nhan/dac-ta.md#3-mẫu-a-chất-lượng-dữ-liệu)): mẫu lấy từ dữ liệu chưa lọc, chia tầng theo chính các cờ này. Kết quả đo quyết định giữ luật hay đổi.
+Đây là **luật mốc, chưa đo độ chính xác.** Công việc 11 đo precision/recall bằng nhãn người của mẫu A ([đặc tả gán nhãn mục 3](../3-gan-nhan/dac-ta.md#3-mẫu-a-chất-lượng-dữ-liệu)): mẫu lấy từ dữ liệu chưa lọc, chia tầng theo chính các cờ này. Kết quả đo quyết định giữ luật hay đổi. Cách đo và luật chọn phương án: [đặc tả phát hiện spam](../4-mo-hinh/dac-ta-spam.md) (code `src/labeling/estimate.py`, `src/models/spam/`).
 
 ## 2. Đầu vào, đầu ra
 

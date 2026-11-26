@@ -12,12 +12,14 @@ Tài liệu (docs) có mục lục riêng ở [docs/README.md](../README.md), k�
 |---|---|---|---|---|---|
 | 1. Thu thập | Tìm video trên các kênh trong config, cào bình luận | `src/ingest/` | YouTube API, `config/pipeline.yaml` | `src/ingest/data/raw/comments.jsonl` (v4), `videos.jsonl`, `state.db`, `models.json` | Chạy được |
 | 2. Tiền xử lý | Làm sạch, chuẩn hóa, tách mệnh đề, gắn cờ tiếng Việt và spam | `src/processing/` | file raw của tầng 1 | `data/processed/comments.jsonl` + manifest | Chạy được (`processing-2.0`), chưa chạy trên v4 |
-| 3. Gán nhãn | Lấy mẫu, xuất phiếu, so hai người gán, tính phân bố nhãn | `src/labeling/` | file raw của tầng 1; phiếu người gán | `data/kham-pha/` (ngoài git); báo cáo ở `docs/3-gan-nhan/` | Đã dùng cho khám phá nhãn; gán nhãn chính thức chưa bắt đầu |
-| 4. Suy luận, mô hình | Suy luận theo cả bình luận → `aspect_mentions` | `src/models/` | `data/processed/comments.jsonl` | `data/aspect_mentions.jsonl` (+ `.comments.jsonl`, manifest) | Chạy được bằng luật mốc `rule-v1`, chưa đo. Chưa có mô hình (kế hoạch tổng thể GĐ3) |
+| 3. Gán nhãn | Bộ nhãn chốt dạng code; lấy mẫu, xuất phiếu, kiểm và gộp phiếu, ước lượng, đo luật gắn cờ | `src/labeling/` | file tầng 2; phiếu người gán | `data/kham-pha/`, `data/labels/` (ngoài git); báo cáo ở `docs/3-gan-nhan/` | Khám phá nhãn xong; phiếu mẫu A và hiệu chỉnh xuất được, chờ cả nhóm gán |
+| 4. Suy luận, mô hình | Suy luận theo cả bình luận → `aspect_mentions` | `src/models/` | `data/processed/comments.jsonl` | `data/aspect_mentions.jsonl` (+ `.comments.jsonl`, manifest) | Chạy được bằng luật mốc `rule-v1.1` (contract v3), chưa đo. Chưa có mô hình (kế hoạch tổng thể GĐ3) |
 | 5. Phân tích | Đếm khen/chê, khoảng tin cậy, kiểm định Q1–Q5 | `src/analysis/` | `data/aspect_mentions.jsonl`, `data/aspect_mentions.comments.jsonl` | `data/aggregates/` | Chạy được; `config/analysis.yaml` còn là bộ máy cũ |
 
-**Cả chuỗi 2 → 4 → 5** chạy bằng `python -m src.run` (file `src/run.py`), mỗi ngày một lần: [luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô).
-| 6. Lưu trữ | MongoDB 7 collection | `src/storage/` | dữ liệu đã xử lý | MongoDB | Theo contract v1; dữ liệu mẫu là giả |
+| 6. Lưu trữ | MongoDB 8 collection, nạp đầu ra pipeline | `src/storage/` | đầu ra tầng 2, 4, 5; `config/pipeline.yaml` | MongoDB | Theo contract v3 (26/11) |
+| 7. Hiển thị | API chỉ đọc + dashboard 4 tab | `src/serving/` | MongoDB | trang web | Chạy được; số liệu minh họa cho tới khi có nhãn đã đo |
+
+**Cả chuỗi 2 → 4 → 5** chạy bằng `python -m src.run` (file `src/run.py`), mỗi ngày một lần; thêm `--den nap_db` để nạp MongoDB (tầng 6): [luồng xử lý mục 2](luong-xu-ly.md#2-giai-đoạn-1-theo-lô).
 
 Ba thứ **không phải code** nhưng code đọc trực tiếp, nên sửa chúng là đổi hành vi của code:
 
@@ -25,7 +27,7 @@ Ba thứ **không phải code** nhưng code đọc trực tiếp, nên sửa ch�
 |---|---|---|
 | `config/pipeline.yaml` | Danh mục máy (mã, tên gọi, `launch_date`, đối thủ), danh sách kênh, cửa sổ thời gian, hạn mức API | Crawler; bước suy luận (nhận tên máy, tính `days_since_launch`); `src/analysis/` |
 | `config/analysis.yaml` | Bộ 4 máy, cửa sổ, phiên bản nhãn cần phân tích | `src/analysis/` |
-| `contracts/*.schema.json` | Định dạng bắt buộc của một bình luận raw (`comment-event` v3) và một mention (`aspect-mention` v2); `aspect-mention.example.json` là ví dụ | Crawler (`crawler/schema.py` phải khớp), `src/analysis/validation.py`, mọi nhóm ghi/đọc dữ liệu |
+| `contracts/*.schema.json` | Định dạng bắt buộc của một bình luận raw (`comment-event` v3) và một mention (`aspect-mention` v3, nhãn lấy từ `src/labeling/final_labels.py`); `aspect-mention.example.json` là ví dụ | Crawler (`crawler/schema.py` phải khớp), `src/analysis/validation.py`, mọi nhóm ghi/đọc dữ liệu |
 | `src/ingest/.env` (tự tạo từ `.env.example`, không commit) | API key YouTube, salt băm tác giả, địa chỉ Kafka, tên máy crawl (`CRAWLER_WORKER`) | Crawler |
 
 ## 2. Từng thư mục
@@ -76,18 +78,19 @@ Chạy từ `src/ingest/` bằng `python -m crawler.main <lệnh>`. Hướng d�
 
 | File | Để làm gì | Lưu ý |
 |---|---|---|
-| `run.py` | Bước suy luận theo cả bình luận: đọc file tầng 2, ghi `data/aspect_mentions.jsonl` (đúng contract v2), `aspect_mentions.comments.jsonl` (cho Công việc 12) và manifest; giữ `MODEL_VERSION` | Hiện dùng luật mốc `rule-v1`; thay từng phần bằng mô hình theo đặc tả mục 9 |
-| `aspect/keywords.py` | Bộ từ khóa 9 khía cạnh và hàm `khia_canh`; dùng chung với notebook `3_aspect_keywords` | Chuyển từ notebook 19/11. Phải sửa theo 11 khía cạnh của bộ nhãn chốt (kế hoạch tổng thể bước 0.6) |
-| `sentiment/rules.py` | Luật cảm xúc mốc: cụm khen/chê, phủ định, câu hỏi | Chưa đo trên nhãn người |
+| `run.py` | Bước suy luận theo cả bình luận: đọc file tầng 2, ghi `data/aspect_mentions.jsonl` (đúng contract v3), `aspect_mentions.comments.jsonl` (cho Công việc 12) và manifest; giữ `MODEL_VERSION`; tính `model_mention`, `target_model_source` | Hiện dùng luật mốc `rule-v1.1`; thay từng phần bằng mô hình theo đặc tả mục 9 |
+| `aspect/keywords.py` | Bộ từ khóa 11 khía cạnh của bộ nhãn chốt và hàm `khia_canh`; dùng chung với notebook `3_aspect_keywords` | Đổi sang mã chốt 26/11 (kế hoạch tổng thể bước 0.6). Không đoán `may_chung`, `hang_nguoi_dung`, `khac` |
+| `sentiment/rules.py` | Luật thái độ mốc (`tich_cuc`, `tieu_cuc`, `khong_danh_gia`): cụm khen/chê, phủ định, câu hỏi | Không nhận `so_sanh`. Chưa đo trên nhãn người |
 | `target_model.py` | Nhận tên máy theo danh mục, xác định máy được nhắc cho từng nhận xét (xét cả bình luận, comment cha, máy của video), tính `days_since_launch` | Chưa nhận câu so sánh (`compare_with`) |
-| `owner_defect.py` | Luật mốc `is_owner`, `defect_type` cho Q5 | Không thấy dấu hiệu thì `null` |
-| `external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA (nhãn theo đoạn) về 9 khía cạnh; tạo trang duyệt nhãn `FEATURES`. Đọc dataset đặt cạnh repo, ghi `data/external/normalized/` | `FEATURES` chưa chốt |
+| `owner_defect.py` | Luật mốc `is_owner` (chiều 5) cho Q5 | Không thấy dấu hiệu thì `null`. Luật loại lỗi đã bỏ (bộ loại lỗi chưa chốt) |
+| `external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA (nhãn theo đoạn) về bộ nhãn chốt; tạo trang duyệt nhãn `FEATURES`. Đọc dataset đặt cạnh repo, ghi `data/external/normalized/` | `FEATURES` chưa chốt |
+| `spam/model.py`, `spam/train.py` | Công việc 11: mô hình ML phát hiện spam so với luật `flags.py` trên nhãn người của mẫu A; chọn bằng cross-validation trên video train, chấm một lần trên video test; ghi `data/labels/spam_ml_eval.json`, model ở `artifacts/spam/` | Dừng nếu dưới 20 bình luận spam có nhãn người trong video train. [Đặc tả](../4-mo-hinh/dac-ta-spam.md) |
 
 Mô hình khía cạnh (Công việc 8) và toàn bộ phần cảm xúc dùng nhãn LLM (Công việc 9) đã gỡ khỏi `main` 26/11, còn ở nhánh `xhquan/cong-viec-8` và `kien/cong-viec-9`.
 
 ### `src/labeling/`: tầng 3, lấy mẫu và đo nhãn
 
-Viết ở nhánh khám phá nhãn (22–26/11). Luật: [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md) mục 10. Chạy từ gốc repo bằng `python -m src.labeling.<tên>`. Đầu ra có chữ bình luận ghi vào `data/kham-pha/` (ngoài git).
+Các file khám phá nhãn viết ở nhánh khám phá nhãn (22–26/11), luật ở [đặc tả khám phá nhãn](../3-gan-nhan/dac-ta-kham-pha-nhan.md) mục 10. Các file gán nhãn chính thức (26/11) theo [đặc tả gán nhãn](../3-gan-nhan/dac-ta.md). Chạy từ gốc repo bằng `python -m src.labeling.<tên>`. Đầu ra có chữ bình luận ghi vào `data/kham-pha/`, `data/labels/` (ngoài git).
 
 | File | Để làm gì |
 |---|---|
@@ -99,6 +102,11 @@ Viết ở nhánh khám phá nhãn (22–26/11). Luật: [đặc tả khám phá
 | `lot_k.py` | So nhãn hai người gán mù (lô K, lô D2): đồng ý thô, kappa, đồng ý dương, phân xử. Dùng lại được cho gán nhãn chính thức |
 | `b7_labels.py`, `distribution.py` | Kiểm nhãn của người gán thứ nhất, tính phân bố nhãn kèm khoảng tin cậy |
 | `b8.py` | So ba nguồn, áp luật chốt bộ nhãn, bảng gộp nhãn khám phá → nhãn chốt (`GOP`) |
+| `final_labels.py` | **Bộ nhãn chốt dạng hằng**: 11 khía cạnh, nhãn ngoài khía cạnh, thái độ, mục đích, chữ viết tắt trên phiếu. Nguồn duy nhất cho contract v3, luật mốc, phân tích, DB, dashboard, phiếu |
+| `sheet.py` | Lấy mẫu A (tầng A1 spam theo luật, A2 ngoại ngữ, A3 còn lại; seed 20261120; 200 gán đôi) và đợt hiệu chỉnh 50; xuất phiếu CSV và Excel có danh sách thả xuống cho từng người, kèm `danh_sach_nhan.csv`, `danh_muc_may.csv` |
+| `check_sheet.py` | `kiem`: kiểm phiếu theo luật tự kiểm của hướng dẫn gán mục 10. `gop`: gộp phiếu thành `nhan_binh_luan.jsonl`, ghi ca lệch vào `so_phan_xu.csv`, tính đồng thuận |
+| `estimate.py` | Từ nhãn mẫu A: tỷ lệ spam, ngoại ngữ, từng loại liên quan kèm khoảng tin cậy; precision, recall của luật spam và luật tiếng Việt (Công việc 11) |
+| `weighted_metrics.py` | Precision, recall có trọng số tầng, bootstrap phân tầng theo video, cận recall, McNemar, kappa |
 
 ### `src/analysis/`: tầng 5, aggregates và Q1–Q5
 
@@ -106,9 +114,9 @@ Hướng dẫn: [docs/5-phan-tich/huong-dan.md](../5-phan-tich/huong-dan.md). Ch
 
 | File | Để làm gì |
 |---|---|
-| `validation.py` | Kiểm tra mention theo contract `aspect-mention` v2 và đối chiếu với bình luận nguồn |
+| `validation.py` | Kiểm tra mention theo contract `aspect-mention` v3 và đối chiếu với bình luận nguồn |
 | `validate_inputs.py` | Lệnh chẩn đoán đầu vào, chỉ chạy phần kiểm tra |
-| `aggregation.py` | Đếm theo máy × khía cạnh × tuần × video × nguồn × phiên bản; đối soát số đếm |
+| `aggregation.py` | Đếm theo máy × khía cạnh × tuần × video × nguồn × phiên bản (`n_pos`, `n_neg`, `n_neu`, `n_cmp`); đối soát số đếm |
 | `questions.py` | Q1–Q5: tỷ lệ, khoảng tin cậy bootstrap theo cụm video, kiểm định, hiệu chỉnh Holm, điều kiện được kết luận |
 | `build_aggregates.py` | Lệnh chạy cả luồng, ghi `aggregates.jsonl`, `business_questions.json`, `aggregation_manifest.json` vào `data/aggregates/` |
 | `requirements.txt` | Thư viện riêng của tầng 5 |
@@ -119,9 +127,22 @@ Hướng dẫn: [docs/5-phan-tich/huong-dan.md](../5-phan-tich/huong-dan.md). Ch
 
 | File | Để làm gì | Lưu ý |
 |---|---|---|
-| `init_db.py` | Tạo 7 collection, validator, index | Theo contract v1 |
-| `seed_db.py` | Nạp dữ liệu mẫu | Video, aggregates, alerts, gold_labels viết tay; chỉ dùng để demo DB, không dùng để phân tích |
-| `verify_db.py` | 8 phép kiểm tra; `--mock` chạy bằng mongomock và tự nạp dữ liệu mẫu | |
+| `init_db.py` | Tạo 8 collection (thêm `analysis_results`), validator, index | Theo contract v3 |
+| `load_db.py` | Nạp danh mục máy, bình luận tầng 2 (bỏ `author_name`), mention (kiểm theo contract), aggregates, `business_questions.json`; upsert theo khóa | Gọi qua `python -m src.run --den nap_db`. Chuyển từ `src/serving/` (Công việc 13) |
+| `verify_db.py` | Kiểm một DB đã nạp: đủ collection, index khóa, mention đúng contract v3, aggregates chỉ có số đếm | DB trống thì báo lỗi. Bản `seed_db.py` (dữ liệu giả theo 9 khía cạnh cũ) đã gỡ 26/11 |
+
+### `src/serving/`: tầng 7, API và dashboard
+
+Hướng dẫn: [docs/7-hien-thi/huong-dan.md](../7-hien-thi/huong-dan.md). Chạy từ gốc repo bằng `python -m src.serving.api.app --port 8000`, sau khi đã nạp DB.
+
+| File | Để làm gì |
+|---|---|
+| `api/app.py` | Ứng dụng FastAPI: endpoint của 4 tab, đo độ trễ, phục vụ trang dashboard |
+| `api/store.py` | Đọc MongoDB, dựng dữ liệu từng tab, đối chiếu với kết quả Công việc 12 |
+| `api/metrics.py` | Công thức duy nhất cho % khen, % chê, Net |
+| `api/settings.py` | Biến môi trường, tên khía cạnh (lấy từ `final_labels.py`), ngưỡng "ít dữ liệu" |
+| `dashboard/` | `index.html`, `app.js`, `styles.css`; không dùng thư viện ngoài |
+| `requirements.txt` | Thư viện cho API và test |
 
 ### `notebooks/`
 
@@ -145,9 +166,11 @@ Chạy hết: `python -m pytest tests -q` (cần `pytest` và `src/analysis/requ
 | `test_processing_clauses.py` | Tầng 2: tách mệnh đề (11 test) |
 | `test_processing_flags.py` | Tầng 2: gắn cờ tiếng Việt và spam (7 test) |
 | `test_labeling.py` | Tầng 3: làm sạch nhẹ, che tên, công thức thống kê, chia lô, không ghi đè phiếu, đồng thuận, HAC, bộ nhãn, so lô K |
-| `test_models_run.py` | Bước suy luận: từng luật mốc, quy tắc gộp, đúng contract, chạy thông tới aggregates của Công việc 12 (13 test) |
+| `test_labeling_sheet.py` | Tầng 3: bộ nhãn chốt khớp contract v3; lấy mẫu A, phiếu, kiểm và gộp phiếu, ước lượng, mô hình spam từ chối khi thiếu nhãn |
+| `test_models_run.py` | Bước suy luận: từng luật mốc, quy tắc gộp, đúng contract v3, chạy thông tới aggregates của Công việc 12 |
 | `test_models_external_absa.py` | Công việc 5: chuẩn hóa UIT-ViSD4SA |
 | `test_analysis_validation.py`, `test_analysis_aggregation.py`, `test_analysis_questions.py` + `fixtures/` | Công việc 12: kiểm tra đầu vào, đếm aggregates, khoảng tin cậy, Holm. `fixtures/` cũng là dữ liệu cho `--demo` |
+| `test_serving_api.py` | Tầng 6–7: nạp DB (`load_db.py`) và API dashboard; chạy bằng mongomock, hay MongoDB thật khi có `TEST_MONGO_URI` |
 
 Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 
@@ -164,6 +187,7 @@ Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 | `data/external/`, `data/uit_visd4sa/` | Dataset ngoài đã chuẩn hóa (Công việc 5, 8) | Được; chạy lại `src/models/external_absa.py` |
 | `data/aspect_mentions.jsonl`, `.comments.jsonl`, `.manifest.json` | Đầu ra bước suy luận | Được; chạy lại `python -m src.models.run` |
 | `data/aggregates/` | Đầu ra tầng 5 | Được |
+| `data/labels/` | Mẫu A, phiếu gán nhãn, nhãn chuẩn, sổ phân xử, kết quả đo luật spam | **Không**: có phần người gán đã điền; chia sẻ qua kho chung của nhóm |
 | `data/` (phần còn lại) | `comments.jsonl` cùng kích thước với bản v4 (có lẽ là bản sao), danh sách video đã crawl | Hỏi trưởng nhóm trước |
 | `artifacts/**/*.pkl`, `*.joblib` | File model đã huấn luyện | Được; huấn luyện lại để tạo |
 | `__pycache__/` | File Python tự sinh | Được, tự sinh lại |
@@ -180,6 +204,8 @@ Kiểm tra dữ liệu crawl dùng `src/ingest/check_data.py`.
 | Thêm, bỏ một viết tắt | `src/processing/resources/abbreviations.tsv` | Tăng `PIPELINE_VERSION`, chạy test, chạy lại lệnh tầng 2 ([hướng dẫn tầng 2 mục 5](../2-tien-xu-ly/huong-dan.md#5-sửa-từ-điển-hay-luật)) |
 | Đổi kiểu dấu thanh, luật làm sạch, chuẩn hóa, tách mệnh đề | `clean.py`, `normalize.py`, `clauses.py` + đặc tả con tương ứng + test | Như trên |
 | Sửa luật spam, nhận tiếng Việt | `src/processing/flags.py` + [dac-ta-gan-co.md](../2-tien-xu-ly/dac-ta-gan-co.md) + test | Tăng `PIPELINE_VERSION`, chạy lại cả chuỗi |
-| Sửa từ khóa khía cạnh, luật cảm xúc, luật nhận máy, luật Q5 | `src/models/aspect/keywords.py`, `sentiment/rules.py`, `target_model.py`, `owner_defect.py` + [dac-ta-suy-luan.md](../4-mo-hinh/dac-ta-suy-luan.md) + `tests/test_models_run.py` | Đổi `MODEL_VERSION` trong `src/models/run.py`, chạy lại `python -m src.run --tu suy_luan` |
+| Sửa từ khóa khía cạnh, luật thái độ, luật nhận máy, luật đã dùng máy | `src/models/aspect/keywords.py`, `sentiment/rules.py`, `target_model.py`, `owner_defect.py` + [dac-ta-suy-luan.md](../4-mo-hinh/dac-ta-suy-luan.md) + `tests/test_models_run.py` | Đổi `MODEL_VERSION` trong `src/models/run.py`, chạy lại `python -m src.run --tu suy_luan` |
 | Đổi bộ 4 máy cho phân tích | `config/analysis.yaml` | Chạy lại `python -m src.run --tu phan_tich` |
 | Đổi định nghĩa nhãn hay cách gán | [đặc tả bộ nhãn](../3-gan-nhan/dac-ta-bo-nhan.md) trước, rồi [hướng dẫn gán chính thức](../3-gan-nhan/huong-dan-gan-nhan-chinh-thuc.md), `src/labeling/label_set.py`, `tests/test_labeling.py` | Nhãn đã gán bằng bản cũ phải xem lại |
+| Thêm, bỏ, đổi tên một nhãn chốt | `src/labeling/final_labels.py` + `contracts/aspect-mention.schema.json` (tăng `schema_version`) + [thiết kế dữ liệu](thiet-ke-du-lieu.md) + test | `tests/test_labeling_sheet.py` báo nếu contract lệch; báo cả nhóm, chạy lại cả chuỗi |
+| Nạp DB, xem dashboard | `python -m src.run --den nap_db`, rồi `python -m src.serving.api.app` | [hướng dẫn dashboard](../7-hien-thi/huong-dan.md) |

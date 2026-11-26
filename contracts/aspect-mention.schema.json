@@ -1,18 +1,24 @@
 {
-  "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (mệnh đề × khía cạnh) trong aspect_mentions. v1 chốt ở Công việc 4 ngày 2026-10-28; v2 ngày 2026-11-08 sau khi đối chiếu Data_vip_pro_v4 (thêm author_hash, author_is_creator, parent_id; mọi trường bắt buộc có mặt; ràng buộc chéo). Đổi trường nào phải tăng schema_version và báo cả nhóm.",
+  "$comment": "Mục đích: Hợp đồng JSON Schema cho một mention (bình luận × máy × nhãn chiều 2) trong aspect_mentions. v1 chốt ở Công việc 4 ngày 2026-10-28; v2 ngày 2026-11-08 (thêm author_hash, author_is_creator, parent_id; ràng buộc chéo); v3 ngày 2026-11-26 theo bộ nhãn chốt (docs/3-gan-nhan/dac-ta-bo-nhan.md mục 8): 11 khía cạnh + may_chung, hang_nguoi_dung, khac; thái độ tich_cuc/tieu_cuc/so_sanh/khong_danh_gia; thêm purposes, model_mention, target_model_source; defect_type chờ bộ loại lỗi. Danh sách nhãn lấy từ src/labeling/final_labels.py. Đổi trường nào phải tăng schema_version và báo cả nhóm.",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "AspectMention",
-  "description": "Một mệnh đề nhắc tới một khía cạnh của một máy, kèm nhãn cảm xúc. Mọi trường đều phải có mặt; không biết thì ghi null (không bỏ trường). Mô tả đầy đủ tại docs/0-chung/thiet-ke-du-lieu.md.",
+  "description": "Một nhận xét của một bình luận về một phần (nhãn chiều 2) của một máy, kèm thái độ. Mọi trường đều phải có mặt; không biết thì ghi null (không bỏ trường). Mô tả đầy đủ tại docs/0-chung/thiet-ke-du-lieu.md.",
   "type": "object",
   "properties": {
     "mention_id": {
       "type": "string",
-      "pattern": "^[^#]+#[0-9]+#(BATTERY|DISPLAY|PERFORMANCE|CAMERA|DESIGN|SOFTWARE|HARDWARE_OTHER|PRICE|WARRANTY)$",
-      "description": "<comment_id>#<clause_idx>#<aspect>, khóa upsert"
+      "pattern": "^[^#]+#[0-9]+#(pin_sac|man_hinh|hieu_nang|camera|thiet_ke|do_ben|phan_mem|phan_cung_khac|gia|mua_ban|bao_hanh_sua_chua|may_chung|hang_nguoi_dung|khac)$",
+      "description": "<comment_id>#<clause_idx>#<aspect>, khóa upsert; clause_idx là mệnh đề bằng chứng đầu tiên"
     },
-    "comment_id": { "type": "string", "pattern": "^[^#]+$" },
+    "comment_id": {
+      "type": "string",
+      "pattern": "^[^#]+$"
+    },
     "parent_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "comment_id của bình luận gốc nếu là reply, null nếu là bình luận gốc. Dùng để lần ngữ cảnh khi xác định target_model"
     },
     "clause_idx": {
@@ -25,15 +31,24 @@
       "minLength": 1,
       "description": "comments.clauses[clause_idx].text: chữ gốc của mệnh đề (giữ dấu), không phải text_norm"
     },
-    "source": { "type": "string", "description": "youtube, tgdd, tinhte, ..." },
-    "video_id": { "type": "string", "description": "Với nguồn ngoài YouTube: id trang/bài gốc" },
+    "source": {
+      "type": "string",
+      "description": "youtube, tgdd, tinhte, ..."
+    },
+    "video_id": {
+      "type": "string",
+      "description": "Với nguồn ngoài YouTube: id trang/bài gốc"
+    },
     "video_model": {
       "type": "string",
       "pattern": "^[A-Za-z0-9_]+(\\|[A-Za-z0-9_]+)*$",
       "description": "Trường model của bình luận raw: máy của video (ngữ cảnh), có thể dạng a|b"
     },
     "target_model": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z0-9_]+$",
       "description": "Máy được nhắc trong mệnh đề; phải là model_id có trong collection models. null = không xác định"
     },
@@ -47,71 +62,255 @@
       "description": "Lấy từ bình luận raw: người viết là chủ kênh của video. true thì không vào aggregates"
     },
     "aspect": {
-      "enum": ["BATTERY", "DISPLAY", "PERFORMANCE", "CAMERA", "DESIGN", "SOFTWARE", "HARDWARE_OTHER", "PRICE", "WARRANTY"]
+      "enum": [
+        "pin_sac",
+        "man_hinh",
+        "hieu_nang",
+        "camera",
+        "thiet_ke",
+        "do_ben",
+        "phan_mem",
+        "phan_cung_khac",
+        "gia",
+        "mua_ban",
+        "bao_hanh_sua_chua",
+        "may_chung",
+        "hang_nguoi_dung",
+        "khac"
+      ],
+      "description": "Nhãn chiều 2: 11 khía cạnh, hai nhãn ngoài khía cạnh (may_chung, hang_nguoi_dung) và khac"
     },
-    "sentiment": { "enum": ["pos", "neg", "neu"] },
+    "sentiment": {
+      "enum": [
+        "tich_cuc",
+        "tieu_cuc",
+        "so_sanh",
+        "khong_danh_gia"
+      ],
+      "description": "Thái độ (chiều 4) với nhãn chiều 2 này"
+    },
     "confidence": {
-      "type": ["number", "null"],
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0,
       "maximum": 1,
       "description": "null với label_source = human"
     },
-    "is_owner": { "type": ["boolean", "null"], "description": "Người viết đã dùng target_model. null = không rõ" },
+    "is_owner": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Chiều 5: true khi bình luận nói rõ là máy của mình hay người nhà (co); null khi không rõ (khong_ro)"
+    },
+    "purposes": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "danh_gia",
+          "hoi",
+          "thong_tin",
+          "de_nghi",
+          "ban_than",
+          "bao_loi",
+          "tranh_luan",
+          "dua",
+          "cong_kich",
+          "minigame",
+          "quang_cao",
+          "xa_giao",
+          "khong_xac_dinh"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Chiều 3 (mục đích) của cả bình luận, chép vào mọi mention của bình luận đó. null = chưa suy luận"
+    },
+    "model_mention": {
+      "enum": [
+        null,
+        "goi_ten_may",
+        "chi_hang",
+        "khong_nhac"
+      ],
+      "description": "Chiều 6 của cả bình luận: gọi tên máy cụ thể, chỉ nhắc hãng hay dòng, hay không nhắc. null = chưa suy luận"
+    },
+    "target_model_source": {
+      "enum": [
+        null,
+        "menh_de",
+        "menh_de_truoc",
+        "binh_luan",
+        "binh_luan_cha",
+        "video",
+        "khong_ro",
+        "nguoi_gan"
+      ],
+      "description": "target_model lấy từ đâu: tên máy trong mệnh đề, mệnh đề trước, cả bình luận, bình luận cha, máy của video (đoán, không do bình luận viết), không rõ, hay do người gán ghi. Phân tích dùng trường này để tách phần đoán theo video"
+    },
     "defect_type": {
-      "enum": [null, "BATTERY_DRAIN", "OVERHEAT", "LAG", "DISPLAY_DEFECT", "CAMERA_DEFECT", "SOFTWARE_BUG", "CONNECTIVITY", "HARDWARE_DEFECT", "OTHER"],
-      "description": "Chỉ khác null khi sentiment = neg"
+      "type": "null",
+      "description": "Loại lỗi: bộ loại lỗi chưa chốt (kế hoạch tổng thể bước 2.6), v3 luôn null"
     },
     "compare_with": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^[A-Za-z0-9_]+$",
-      "description": "Máy được so sánh cùng trong mệnh đề; model_id trong collection models, khác target_model"
+      "description": "Máy được so sánh cùng; model_id trong collection models, khác target_model. Khác null thì sentiment phải là so_sanh"
     },
     "compare_winner": {
-      "enum": [null, "target", "other", "tie"],
-      "description": "Khác null khi và chỉ khi compare_with khác null"
+      "enum": [
+        null,
+        "target",
+        "other",
+        "tie"
+      ],
+      "description": "Bên hơn (cách ghi @a>b hay @a~b trên phiếu): target, other, tie. Khác null khi và chỉ khi compare_with khác null"
     },
-    "published_at": { "type": "string", "format": "date-time", "description": "Thời điểm đăng bình luận, UTC" },
+    "published_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Thời điểm đăng bình luận, UTC"
+    },
     "days_since_launch": {
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "description": "Ngày đăng (giờ VN) trừ launch_date của target_model. Có thể âm hoặc vượt cửa sổ; null khi target_model null"
     },
-    "label_source": { "enum": ["rule", "llm", "model", "human"] },
-    "model_version": { "type": "string", "minLength": 1, "description": "vd rule-v0, aspect-lr-v1" },
-    "schema_version": { "const": 2 }
+    "label_source": {
+      "enum": [
+        "rule",
+        "llm",
+        "model",
+        "human"
+      ]
+    },
+    "model_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "vd rule-v0, aspect-lr-v1"
+    },
+    "schema_version": {
+      "const": 3
+    }
   },
   "required": [
-    "mention_id", "comment_id", "parent_id", "clause_idx", "clause_text", "source", "video_id", "video_model",
-    "target_model", "author_hash", "author_is_creator", "aspect", "sentiment", "confidence", "is_owner",
-    "defect_type", "compare_with", "compare_winner", "published_at", "days_since_launch",
-    "label_source", "model_version", "schema_version"
+    "mention_id",
+    "comment_id",
+    "parent_id",
+    "clause_idx",
+    "clause_text",
+    "source",
+    "video_id",
+    "video_model",
+    "target_model",
+    "author_hash",
+    "author_is_creator",
+    "aspect",
+    "sentiment",
+    "confidence",
+    "is_owner",
+    "purposes",
+    "model_mention",
+    "target_model_source",
+    "defect_type",
+    "compare_with",
+    "compare_winner",
+    "published_at",
+    "days_since_launch",
+    "label_source",
+    "model_version",
+    "schema_version"
   ],
   "additionalProperties": false,
   "allOf": [
     {
-      "$comment": "defect_type chỉ đi với mệnh đề chê",
-      "if": { "properties": { "defect_type": { "type": "string" } } },
-      "then": { "properties": { "sentiment": { "const": "neg" } } }
+      "$comment": "có máy so sánh thì thái độ là so sánh",
+      "if": {
+        "properties": {
+          "compare_with": {
+            "type": "string"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "sentiment": {
+            "const": "so_sanh"
+          }
+        }
+      }
     },
     {
       "$comment": "compare_with và compare_winner cùng có hoặc cùng null",
-      "if": { "properties": { "compare_with": { "type": "string" } } },
-      "then": { "properties": { "compare_winner": { "type": "string" } } },
-      "else": { "properties": { "compare_winner": { "type": "null" } } }
+      "if": {
+        "properties": {
+          "compare_with": {
+            "type": "string"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "compare_winner": {
+            "type": "string"
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "compare_winner": {
+            "type": "null"
+          }
+        }
+      }
     },
     {
       "$comment": "không biết máy thì không tính được ngày",
-      "if": { "properties": { "target_model": { "type": "null" } } },
-      "then": { "properties": { "days_since_launch": { "type": "null" } } }
+      "if": {
+        "properties": {
+          "target_model": {
+            "type": "null"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "days_since_launch": {
+            "type": "null"
+          }
+        }
+      }
     },
     {
       "$comment": "nhãn người gán không có confidence",
-      "if": { "properties": { "label_source": { "const": "human" } } },
-      "then": { "properties": { "confidence": { "type": "null" } } }
+      "if": {
+        "properties": {
+          "label_source": {
+            "const": "human"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "confidence": {
+            "type": "null"
+          }
+        }
+      }
     }
   ],
   "examples": [
     {
-      "mention_id": "UgxA1b2C3#2#BATTERY",
+      "mention_id": "UgxA1b2C3#2#pin_sac",
       "comment_id": "UgxA1b2C3",
       "parent_id": null,
       "clause_idx": 2,
@@ -122,21 +321,26 @@
       "target_model": "s23u",
       "author_hash": "069722f199073a1f8b0223df1aa448cd79e0695bd87f82fd737f9f892520bdcb",
       "author_is_creator": false,
-      "aspect": "BATTERY",
-      "sentiment": "neg",
+      "aspect": "pin_sac",
+      "sentiment": "tieu_cuc",
       "confidence": 0.87,
       "is_owner": true,
-      "defect_type": "BATTERY_DRAIN",
+      "purposes": [
+        "bao_loi"
+      ],
+      "model_mention": "khong_nhac",
+      "target_model_source": "video",
+      "defect_type": null,
       "compare_with": null,
       "compare_winner": null,
       "published_at": "2023-02-10T03:15:00Z",
       "days_since_launch": 8,
       "label_source": "model",
       "model_version": "aspect-lr-v1",
-      "schema_version": 2
+      "schema_version": 3
     },
     {
-      "mention_id": "UgzQ9x8Y7.AbCdEf#0#CAMERA",
+      "mention_id": "UgzQ9x8Y7.AbCdEf#0#camera",
       "comment_id": "UgzQ9x8Y7.AbCdEf",
       "parent_id": "UgzQ9x8Y7",
       "clause_idx": 0,
@@ -147,18 +351,23 @@
       "target_model": "ip14prm",
       "author_hash": "ee90f58adca90151f95bb1470e9793f7fa52a44c775f57a49e2e3691c7264934",
       "author_is_creator": false,
-      "aspect": "CAMERA",
-      "sentiment": "pos",
+      "aspect": "camera",
+      "sentiment": "so_sanh",
       "confidence": null,
       "is_owner": null,
+      "purposes": [
+        "danh_gia"
+      ],
+      "model_mention": "goi_ten_may",
+      "target_model_source": "nguoi_gan",
       "defect_type": null,
       "compare_with": "s23u",
       "compare_winner": "target",
       "published_at": "2023-02-14T12:40:00Z",
       "days_since_launch": 151,
       "label_source": "human",
-      "model_version": "guideline-v1",
-      "schema_version": 2
+      "model_version": "huong-dan-chinh-thuc-2026-11-26",
+      "schema_version": 3
     }
   ]
 }
